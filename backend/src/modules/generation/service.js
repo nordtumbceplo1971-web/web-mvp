@@ -45,7 +45,6 @@ export async function generateImage({
   if (template.defaults.output_format) params.output_format = template.defaults.output_format;
 
   const model = imageModelRef(template);
-  const attach = imageUrls.map((u) => ({ url: u }));
 
   if (isMockMode()) {
     const task = createMockTask({ type: 'image', title, count: params.count });
@@ -56,13 +55,17 @@ export async function generateImage({
     return { taskId: task.task_id, workId: work.id, prompt, params, model, mock: true };
   }
 
+  // attachments: 参考图公网 URL 数组 (字符串数组, 不是对象数组)
+  // params.images: 模型参数里的参考图 (同为 URL 数组)
   const payload = {
     model_id: model,
     modality: 'image',
     operation: imageUrls.length ? 'edit' : 'generate',
-    params,
-    ...(attach.length ? { attachments: attach, params: { ...params, images: imageUrls } } : {}),
+    params: imageUrls.length ? { ...params, images: imageUrls } : params,
   };
+  if (imageUrls.length) {
+    payload.attachments = imageUrls;
+  }
   const res = await modelRuntimeInvoke(payload);
   const work = createWork({
     taskId: res.task_id, type: 'image', templateId, title: title || template.title,
