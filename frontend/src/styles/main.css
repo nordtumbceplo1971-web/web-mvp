@@ -975,7 +975,36 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
 }
 .mp-model-name { font-size: 16px; font-weight: 800; }
 .mp-model-desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
-.inspiration-wrap .text-input { width: 100%; box-sizing: border-box; }
+/* ============================================================
+   双模特槽位 + 素材分配预览
+   ============================================================ */
+.model-slots { display: flex; gap: 12px; margin-bottom: 12px; }
+.model-slot { flex: 1; border: 2px dashed var(--line-strong); border-radius: var(--r-md); overflow: hidden; transition: all 0.2s; }
+.model-slot.picking { border-color: var(--brand); border-style: solid; box-shadow: var(--ring); }
+.model-slot.filled { border-color: var(--brand); border-style: solid; }
+.ms-label { padding: 6px 10px; font-size: 11px; font-weight: 700; background: var(--fill); color: var(--ink-2); }
+.ms-preview { display: flex; align-items: center; gap: 10px; padding: 10px; }
+.ms-preview img { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; object-position: left top; }
+.ms-info { flex: 1; }
+.ms-name { font-size: 12px; font-weight: 700; }
+.ms-empty {
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+  gap: 6px; padding: 20px; color: var(--ink-3); cursor: pointer; font-size: 12px;
+}
+.ms-empty:hover { color: var(--brand); }
+
+.asset-map { margin-top: 16px; border-top: 1px solid var(--line); padding-top: 12px; }
+.am-title { font-size: 12px; font-weight: 700; color: var(--ink-2); margin-bottom: 8px; }
+.am-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(160px, 1fr)); gap: 6px; }
+.am-item {
+  display: flex; align-items: center; gap: 6px; padding: 5px 8px;
+  background: var(--fill); border-radius: 6px; font-size: 11px;
+}
+.am-id { font-weight: 800; color: var(--brand); width: 18px; flex-shrink: 0; }
+.am-name { font-weight: 600; flex: 1; }
+.am-assets { color: var(--ink-3); font-size: 10px; }
+
+.lb-placeholder.failed { color: var(--danger); flex-direction: column; gap: 4px; }
 
 /* ============================================================
    Shopify 套图 · 布局 + 流程进度侧栏
