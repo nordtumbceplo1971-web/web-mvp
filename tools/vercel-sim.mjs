@@ -25,7 +25,7 @@ server.listen(8899, async () => {
   all = (await check('/api/templates', '"categories"')) && all;
   all = (await check('/api/works', '"items"')) && all;
   // 模拟 Vercel 把路径改写成 /index 的情况
-  all = (await check('/index', '"name":"BrandStudio API"')) && all;
+  all = (await check('/index', '"name":"996 Studio API"')) && all;
   console.log(all ? '\n全部通过 ✅' : '\n存在失败 ❌');
   server.close();
   process.exit(all ? 0 : 1);

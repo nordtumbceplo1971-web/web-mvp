@@ -30,7 +30,7 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
 
   app.get('/', (req, res) => {
-    res.json({ name: 'BrandStudio API', version: '0.1.2', docs: '/api/health' });
+    res.json({ name: '996 Studio API', version: '0.1.3', docs: '/api/health' });
   });
   app.use('/api', api);
 

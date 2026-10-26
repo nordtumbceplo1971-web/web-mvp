@@ -344,7 +344,7 @@ export const templates = [
     promptTemplate:
       '包装文字替换: 保持包装的设计、材质、光影与透视完全不变, 仅将包装上的主文字替换为「{{text}}」, 新文字遵循原有的字体风格、弧度与透视变形, 印刷质感真实, 边缘自然。',
     slots: [
-      { key: 'text', label: '改成什么字', type: 'text', placeholder: '例: BRANDSTUDIO', defaultValue: 'NEW TEXT' },
+      { key: 'text', label: '改成什么字', type: 'text', placeholder: '例: 996 STUDIO', defaultValue: 'NEW TEXT' },
     ],
     tips: '适合换 Logo、换型号、做外语版本包装。',
   },

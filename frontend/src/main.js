@@ -77,14 +77,14 @@ function renderShell() {
   const modeChip = h('div', { class: 'mode-chip' }, h('span', { class: 'dot' }), '检测服务中…');
   const sidebar = h('aside', { class: 'sidebar' },
     h('a', {
-      class: 'brand', href: '#/', 'aria-label': '996.chat · BrandStudio 首页',
+      class: 'brand', href: '#/', 'aria-label': '996.chat · 996 Studio 首页',
       onclick: (e) => { e.preventDefault(); navigate('/'); },
     },
       h('img', {
         class: 'brand-logo', src: '/brand/logo-square.png', alt: '996.chat',
         width: 52, height: 52, loading: 'eager', decoding: 'async',
       }),
-      h('span', { class: 'brand-name' }, 'BrandStudio', h('small', {}, 'AI 电商内容工作台')),
+      h('span', { class: 'brand-name' }, '996 Studio', h('small', {}, 'AI 电商内容工作台')),
     ),
     navEl,
     h('div', { class: 'sidebar-foot' },
@@ -320,7 +320,7 @@ function renderShell() {
         main,
         h('footer', { class: 'site' },
           h('div', { class: 'container' },
-            h('span', {}, '© 2026 BrandStudio · 一个想法 + 一个模板 = 一套可上架内容'),
+            h('span', {}, '© 2026 996 Studio · 一个想法 + 一个模板 = 一套可上架内容'),
             h('span', {}, `图片 gpt-image-2.5 · 视频 veo-4-omni · 文本 glm-5.3-flash · ${APP_VERSION}`),
           ),
         ),

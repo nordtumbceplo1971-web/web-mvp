@@ -1,9 +1,9 @@
 {
-  "name": "brandstudio-web",
-  "version": "0.1.2",
+  "name": "996-studio-web",
+  "version": "0.1.3",
   "private": true,
   "type": "module",
-  "description": "BrandStudio · AI 电商自动化创作平台 (前端 + Serverless API 一体化部署)",
+  "description": "996 Studio · AI 电商自动化创作平台 (前端 + Serverless API 一体化部署)",
   "engines": {
     "node": ">=20"
   },

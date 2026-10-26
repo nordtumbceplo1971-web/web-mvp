@@ -7,7 +7,7 @@ import { isTourDone, markTourDone } from './store.js';
  */
 const DEFAULT_STEPS = [
   {
-    title: '欢迎来到 BrandStudio',
+    title: '欢迎来到 996 Studio',
     text: '这里不需要懂 AI、不用写提示词——选模板、传产品图, 内容自动做出来。先带你逛 4 个地方 (共 5 步)。',
   },
   {

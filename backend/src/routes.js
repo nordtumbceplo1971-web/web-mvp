@@ -25,10 +25,10 @@ function publicBaseUrl(req) {
 
 // ---------- 系统 ----------
 api.get('/', (req, res) => {
-  res.json({ name: 'BrandStudio API', version: '0.1.2', docs: '/api/health' });
+  res.json({ name: '996 Studio API', version: '0.1.3', docs: '/api/health' });
 });
 api.get('/index', (req, res) => {
-  res.json({ name: 'BrandStudio API', version: '0.1.2', docs: '/api/health' });
+  res.json({ name: '996 Studio API', version: '0.1.3', docs: '/api/health' });
 });
 api.get('/health', (req, res) => {
   res.json({

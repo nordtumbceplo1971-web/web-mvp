@@ -3,8 +3,41 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.2**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.2`，
+当前版本：**v0.1.3**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.3`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示）
+
+---
+
+## v0.1.3 · 2026-10-26
+
+**主题**：品牌更名 —— BrandStudio → **996 Studio**（与 996.chat 品牌标识统一）
+
+### 更名范围
+
+| 位置 | 改动 |
+|---|---|
+| 侧栏品牌区 | `BrandStudio` → `996 Studio`（与上方 996.chat 正方形标识并列） |
+| 浏览器标题 | `996.chat · BrandStudio AI 电商内容工作室` → `996.chat · 996 Studio AI 电商内容工作室` |
+| 页脚版权 | `© 2026 BrandStudio · …` → `© 2026 996 Studio · …` |
+| 新手引导首屏 | 「欢迎来到 BrandStudio」→「欢迎来到 996 Studio」 |
+| API 自述 | `/api` 与 `/api/index` 返回的 `name` → `996 Studio API`；启动日志前缀同步 |
+| 模板占位示例 | 「改成什么字」示例 `例: BRANDSTUDIO` → `例: 996 STUDIO` |
+| 包名 | `brandstudio-web / -frontend / -backend` → `996-studio-web / -frontend / -backend`（含三份 lock 文件） |
+| 文档 | README 标题、PRD 标题与产品代号、设计方向文档项目名、根 package 描述 |
+
+### 刻意保留（避免破坏存量数据与历史）
+
+- **localStorage 键**：`bs-wallet` / `bs-profile` / `bs-tour-done-v1` 与 `bs:credits` / `bs:profile` 事件名不变
+  —— 改名会让老用户的额度、偏好与引导标记全部丢失
+- **`/tmp/brandstudio-data`**：作为兼容候选目录保留在降级链里（新的写入走 `/tmp/996-studio-data`）
+- **CHANGELOG 历史条目**（v0.1.0 ~ v0.1.2）与 README 的历史验收记录保持原貌，如实反映当时事实
+- CSS 类名 `.brand` / `.brand-name` / `.brand-logo` 属结构性命名，与品牌名无关，未动
+
+### 验证
+
+- 全仓 `grep -i brandstudio` 仅剩上述 3 处刻意保留项
+- `vite build` 通过；`tools/vercel-sim.mjs` 4/4 通过；`tools/smoke.mjs` 端到端全绿
+- CDP 1440 / 375：无横向溢出、0 控制台报错；侧栏与页脚显示新名称，版本 v0.1.3
 
 ---
 

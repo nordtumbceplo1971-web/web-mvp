@@ -9,14 +9,15 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
  * 作品存储 (三级降级, 兼容 Serverless 只读文件系统)
  * 1) WORKS_DATA_DIR 环境变量指定的目录
  * 2) 本地开发: backend/data (可写磁盘, 数据持久)
- * 3) Serverless: /tmp/brandstudio-data (实例内持久, 冷启动会丢)
+ * 3) Serverless: /tmp/996-studio-data (实例内持久, 冷启动会丢)
  * 4) 全部不可写 → 纯内存 (仍可完整演示, 但数据不跨实例/冷启动保留)
  */
 function resolveDataDir() {
   const candidates = [
     process.env.WORKS_DATA_DIR,
     path.join(__dirname, '..', '..', '..', 'data'),
-    path.join('/tmp', 'brandstudio-data'),
+    path.join('/tmp', '996-studio-data'),
+    path.join('/tmp', 'brandstudio-data'), // 兼容改名前的存量目录
   ].filter(Boolean);
   for (const dir of candidates) {
     try {

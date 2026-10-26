@@ -1,4 +1,4 @@
-# BrandStudio MVP · AI 电商自动化创作平台
+# 996 Studio · AI 电商自动化创作平台
 
 > **一个想法 + 选一个模板 = 一套可直接上架的品牌内容。**
 > 面向 0 基础电商从业者：不写提示词、不选模型、不调参数——上传产品图、点选微调、点生成。
@@ -68,7 +68,7 @@ npm run dev
 | 原问题 | 适配方案 |
 |---|---|
 | MOCK 任务状态存在内存/文件里，冷启动后轮询会永远停在 pending | 任务 ID 自描述（`mock-{类型}-{张数}-{时间戳36进制}-{uuid}`），进度纯靠 ID 解析，**跨实例也能正确推进** |
-| 作品存在 `backend/data/works.json`，Serverless 文件系统只读且实例级 | 三级降级：指定目录 → 本地 `backend/data` → `/tmp/brandstudio-data`（实例内持久）→ 纯内存 |
+| 作品存在 `backend/data/works.json`，Serverless 文件系统只读且实例级 | 三级降级：指定目录 → 本地 `backend/data` → `/tmp/996-studio-data`（实例内持久）→ 纯内存 |
 | 反向代理下 `req.protocol` 是 http，导致占位图地址变成 http（浏览器按混合内容拦截） | 读取 `x-forwarded-proto` / `x-forwarded-host` 还原真实对外地址 |
 | `/mock-assets` 占位素材在后端静态目录，函数只接管 `/api/*` | 同步一份到 `frontend/public/mock-assets/`，由 Vercel 静态托管 |
 | 根目录缺少 package.json，函数找不到 express 等依赖 | 新增根 `package.json`（含后端依赖 + build 脚本），Vercel 安装后即可打包函数 |

@@ -1,6 +1,6 @@
 {
-  "name": "brandstudio-frontend",
-  "version": "0.1.2",
+  "name": "996-studio-frontend",
+  "version": "0.1.3",
   "private": true,
   "type": "module",
   "scripts": {

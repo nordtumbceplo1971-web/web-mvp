@@ -7,7 +7,7 @@ import { app } from './app.js';
  */
 app.listen(config.port, () => {
   const mode = isMockMode() ? 'MOCK 演示模式(未配置上游密钥, 不产生费用)' : 'LIVE 模式(真实调用上游)';
-  console.log(`[BrandStudio API] http://localhost:${config.port} · ${mode}`);
+  console.log(`[996 Studio API] http://localhost:${config.port} · ${mode}`);
   console.log(`  图片模型: ${config.models.imagePrimary} / ${config.models.imageSecondary}`);
   console.log(`  视频模型: ${config.models.video} · 文本模型: ${config.models.text}`);
 });
