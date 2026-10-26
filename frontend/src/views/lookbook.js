@@ -223,12 +223,15 @@ export async function renderLookbook(root, { navigate, back }) {
     const m1 = state.model1 ? '✓' : '—';
     const m2 = state.model2 ? '✓' : (state.model1 ? 'AI' : '—');
     assetMap.replaceChildren(
-      h('div', { class: 'am-title' }, '素材分配预览'),
+      h('div', { class: 'am-title' }, '素材分配预览 (含节点依赖)'),
       h('div', { class: 'am-grid' },
-        ...[['01', '列表主图', `产品${p1} 主模特${m1}`], ['02', '背面展示', `产品${p2} 主模特${m1}`],
-        ['03', '完整穿搭', `主模特${m1}`], ['04', '印花细节', `产品${p1}`],
-        ['05', '面料做工', `产品${p1}`], ['06', '另一位模特', `产品${p1} ${state.model2 ? '第二模特✓' : 'AI生成'}`],
-        ['07', '品牌生活方式', `主模特${m1} ${state.model2 ? '第二模特✓' : 'AI生成'}`],
+        ...[['01', '列表主图', `产品正面${p1} + 主模特${m1} · 独立`],
+        ['02', '背面展示', `产品背面${p2} + 节点01图 · 依赖01`],
+        ['03', '完整穿搭', `产品正面${p1} + 节点01图 · 依赖01`],
+        ['04', '印花细节', `产品正面${p1} · 独立`],
+        ['05', '面料做工', `产品正面${p1} · 独立`],
+        ['06', '另一位模特', `产品正面${p1} + ${state.model2 ? '模特2✓' : 'AI生成模特'} · 独立`],
+        ['07', '品牌生活方式', `产品${p1} + 节点01/03图 + 节点06图`],
         ].map(([id, name, assets]) => h('div', { class: 'am-item' },
           h('span', { class: 'am-id' }, id),
           h('span', { class: 'am-name' }, name),
@@ -350,7 +353,15 @@ export async function renderLookbook(root, { navigate, back }) {
     );
   }
 
-  // ---------- 素材分配 (按流程图) ----------
+  // ---------- 素材分配 (按流程依赖图) ----------
+  // 01: 产品正面 + 主模特(选了才有)          → 无依赖
+  // 02: 产品背面 + 节点01结果(同景同光仅转身) → 依赖 01
+  // 03: 产品正面 + 节点01结果                → 依赖 01
+  // 04: 仅产品图 (独立)
+  // 05: 仅产品图 (独立)
+  // 06: 产品图 + 模特2(没有则AI生成)          → 独立
+  // 07: 产品图 + 节点01/03结果 + 节点06结果   → 依赖 (01|03) + 06
+  //
   // 模特图是本地路径 (/models/system/xxx.jpg), 上游要求稳定 http(s) URL
   // → 生成前自动上传获取公网 URL, 并缓存
   const uploadedModelUrls = new Map();
@@ -382,20 +393,34 @@ export async function renderLookbook(root, { navigate, back }) {
     }
   }
 
+  /** 各步骤依赖 (前置节点) */
+  const STEP_DEPS = {
+    '01': [],
+    '02': ['01'],
+    '03': ['01'],
+    '04': [],
+    '05': [],
+    '06': [],
+    '07': ['01', '06'], // 01 或 03 的结果作为主模特身份; 这里以 01 为必要依赖, 03 完成后升级为更优输入
+  };
+
   function getAssetsForStep(stepId) {
     const productUrls = state.productImages.map((im) => im.url).filter((u) => u && !isMockUrl(u));
-    const model1Url = state.model1?.cover;
-    const model2Url = state.model2?.cover;
+    const front = productUrls[0];
+    const back = productUrls[1] || productUrls[0];
+    const r = state.results;
+    // 主模特身份优先用 03 (全身) , 回退到 01; 没有就用主模特封面 (仅 01 自己用)
+    const model1Result = r['03']?.url || r['01']?.url || state.model1?.cover;
 
     switch (stepId) {
-      case '01': return { images: [productUrls[0], model1Url].filter(Boolean), hasModel: !!state.model1 };
-      case '02': return { images: [productUrls[1] || productUrls[0], model1Url].filter(Boolean), hasModel: !!state.model1 };
-      case '03': return { images: [model1Url].filter(Boolean), hasModel: !!state.model1 };
-      case '04': return { images: productUrls.slice(0, 1), hasModel: false };
-      case '05': return { images: productUrls.slice(0, 1), hasModel: false };
-      case '06': return { images: [productUrls[0], model2Url].filter(Boolean), hasModel: !!state.model2 };
-      case '07': return { images: [productUrls[0], model1Url, model2Url].filter(Boolean), hasModel: !!state.model1 };
-      default: return { images: productUrls, hasModel: false };
+      case '01': return { images: [front, state.model1?.cover].filter(Boolean) };
+      case '02': return { images: [back, r['01']?.url].filter(Boolean) };
+      case '03': return { images: [front, r['01']?.url].filter(Boolean) };
+      case '04': return { images: front ? [front] : [] };
+      case '05': return { images: front ? [front] : [] };
+      case '06': return { images: [front, state.model2?.cover].filter(Boolean) };
+      case '07': return { images: [front, model1Result, r['06']?.url].filter(Boolean) };
+      default: return { images: productUrls };
     }
   }
 
@@ -409,18 +434,50 @@ export async function renderLookbook(root, { navigate, back }) {
     return resolved;
   }
 
-  // ---------- 生成 ----------
+  /** 检查依赖是否就绪; 返回 null=可跑, 否则返回失败原因 */
+  function checkDeps(stepId) {
+    const unmet = [];
+    for (const dep of STEP_DEPS[stepId] || []) {
+      const st = state.results[dep]?.status;
+      if (st === 'completed') continue;
+      unmet.push(dep);
+    }
+    // 07 特例: 依赖写的是 01, 但 03 完成也可满足主模特身份
+    if (stepId === '07' && unmet.includes('01') && state.results['03']?.status === 'completed') {
+      unmet.splice(unmet.indexOf('01'), 1);
+    }
+    return unmet.length ? `依赖节点 ${unmet.join('/')} 未完成` : null;
+  }
+
+  // ---------- 生成 (分波并行, 按依赖图) ----------
+  // 波次: [01,04,05,06] (独立并行) → [02,03] (依赖01) → [07] (依赖01|03 + 06)
+  const EXEC_WAVES = [['01', '04', '05', '06'], ['02', '03'], ['07']];
+
   async function generateAll() {
     if (state.generating) return;
     if (getCredits() < 14) { toast('额度不足 (需 14 额度)', 'err'); return; }
     state.generating = true;
     refreshGenerate();
 
-    const mode = state.model1 ? (state.model2 ? 'b' : 'b') : 'a';
-    // mode: a = 全 AI, b = 有模特库参考
+    const mode = state.model1 ? 'b' : 'a';
 
-    for (const s of STEPS) {
-      await generateStep(s, mode);
+    for (const wave of EXEC_WAVES) {
+      // 依赖未就绪的节点先标记失败原因 (如 01 失败则 02/03 无法跑)
+      const runnable = [];
+      for (const id of wave) {
+        const s = STEPS.find((x) => x.id === id);
+        if (state.results[id]?.status === 'completed') continue;
+        const blocked = checkDeps(id);
+        if (blocked) {
+          if (!state.results[id]?.status || state.results[id]?.status === 'pending') {
+            state.results[id] = { status: 'failed', error: blocked + ', 请先重试前置节点' };
+            drawResults();
+          }
+          continue;
+        }
+        runnable.push(s);
+      }
+      await Promise.all(runnable.map((s) => generateStep(s, mode)));
     }
 
     state.generating = false;
@@ -431,6 +488,12 @@ export async function renderLookbook(root, { navigate, back }) {
 
   async function generateStep(s, mode) {
     if (state.results[s.id]?.status === 'completed') return;
+    const blocked = checkDeps(s.id);
+    if (blocked) {
+      state.results[s.id] = { status: 'failed', error: blocked };
+      drawResults();
+      return;
+    }
     spendCredits(2);
     state.results[s.id] = { status: 'generating' };
     drawResults();
