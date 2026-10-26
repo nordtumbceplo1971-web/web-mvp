@@ -1,5 +1,4 @@
 import { h } from './ui.js';
-import { icon } from './icons.js';
 
 /**
  * 轮播公告模块 (顶栏)
@@ -12,6 +11,7 @@ export const ANNOUNCEMENTS = [
   {
     id: 'test-version',
     level: 'warn', // warn(琥珀提示) | info(蓝色提示)
+    label: '公告', // 标题前缀, 渲染为 !公告!
     text: '本版本为测试版本，仅为功能演示，尚未接入任何输出功能',
     link: null,
   },
@@ -28,16 +28,20 @@ const FADE_MS = 160;
 export function createAnnouncementBar(items = ANNOUNCEMENTS, opts = {}) {
   if (!items?.length) return null;
 
+  const labelEl = h('span', { class: 'ann-label' });
   const textEl = h('span', { class: 'ann-text' });
   const dotsEl = h('span', { class: 'ann-dots' });
 
+  // 框内内容: !公告!：xxx —— 整体居中
+  const content = h('span', { class: 'ann-content' },
+    labelEl,
+    h('span', { class: 'ann-sep' }, '：'),
+    textEl,
+  );
+
   const bar = h('div', {
     class: 'ann-bar', 'data-tour': 'announcement', role: 'status', 'aria-live': 'polite',
-  },
-    h('span', { class: 'ann-ico' }, icon('info', { size: 14 })),
-    textEl,
-    dotsEl,
-  );
+  }, content, dotsEl);
 
   let index = 0;
   let timer = null;
@@ -45,6 +49,7 @@ export function createAnnouncementBar(items = ANNOUNCEMENTS, opts = {}) {
   function paint(i) {
     index = (i + items.length) % items.length;
     const item = items[index];
+    labelEl.textContent = `!${item.label ?? '公告'}!`;
     textEl.classList.add('fade');
     setTimeout(() => {
       textEl.textContent = item.text;

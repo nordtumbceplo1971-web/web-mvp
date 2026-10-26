@@ -162,9 +162,10 @@ h1, h2, h3 { line-height: 1.3; margin: 0; }
 
 /* ---------- 轮播公告 (顶栏 · 标题与右侧导航之间) ---------- */
 .ann-bar {
-  flex: 1; min-width: 0; max-width: 680px;
-  display: flex; align-items: center; gap: 9px;
-  margin-left: 20px; padding: 5px 12px;
+  flex: 1; min-width: 0;
+  position: relative;
+  display: flex; align-items: center; justify-content: center;
+  margin: 0 20px; padding: 5px 40px;
   background: var(--gold-soft); border: 1px solid var(--gold-border);
   border-radius: var(--r-sm);
   font-size: 13px; font-weight: 500; color: var(--gold);
@@ -173,14 +174,21 @@ h1, h2, h3 { line-height: 1.3; margin: 0; }
 .ann-bar[data-level="info"] {
   background: var(--brand-soft); border-color: var(--brand-border); color: var(--brand-deep);
 }
-.ann-ico { display: grid; place-items: center; opacity: 0.9; flex-shrink: 0; }
+/* 框内内容整体居中: !公告!：xxx */
+.ann-content { display: inline-flex; align-items: center; gap: 2px; min-width: 0; max-width: 100%; }
+.ann-label { font-weight: 700; letter-spacing: 0.02em; flex-shrink: 0; }
+.ann-sep { opacity: 0.75; flex-shrink: 0; }
 .ann-text {
-  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
   transition: opacity 0.16s ease;
 }
 .ann-text.fade { opacity: 0; }
 .ann-text.linkable { cursor: pointer; text-decoration: underline dotted; }
-.ann-dots { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+/* 指示点固定在右侧, 不影响文案居中 */
+.ann-dots {
+  position: absolute; right: 10px; top: 50%; transform: translateY(-50%);
+  display: flex; align-items: center; gap: 4px;
+}
 .ann-dot {
   width: 6px; height: 6px; border-radius: 50%; border: 0; padding: 0;
   background: currentColor; opacity: 0.28; cursor: pointer;
@@ -823,6 +831,11 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .pkg-grid { grid-template-columns: 1fr; }
   .form-grid { grid-template-columns: 1fr; }
   .fact-card { grid-template-columns: 1fr; }
+  /* 窄屏公告: 换行完整展示, 不截断 */
+  .ann-bar { padding: 6px 14px; }
+  .ann-content { align-items: flex-start; }
+  .ann-label, .ann-sep { line-height: 1.6; }
+  .ann-text { white-space: normal; overflow: visible; }
   .topbar-inner { padding: 0 16px; gap: 10px; }
   .credits-pill { padding: 4px 9px; font-size: 12px; }
   .btn-guide { padding: 5px 9px; font-size: 12px; }
