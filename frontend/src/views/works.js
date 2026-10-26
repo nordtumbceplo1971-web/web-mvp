@@ -1,5 +1,6 @@
 import { h, toast } from '../ui.js';
 import { api } from '../api.js';
+import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
 
 /** 我的作品 (PRD 模块 5): 按 product 归档的 MVP 形态 — 列表 + 再做一张 + 收藏 + 删除 */
@@ -30,7 +31,13 @@ export async function renderWorks(root, { navigate }) {
       const res = await api.listWorks();
       works = res.items ?? [];
     } catch (e) {
-      grid.replaceChildren(h('div', { class: 'empty-state' }, '加载失败: ', e.message));
+      // 说清真实原因 (后端未部署 / 地址不对 / 网络不通), 而不是笼统的「加载失败」
+      grid.replaceChildren();
+      renderApiError(grid, e, {
+        resource: '作品',
+        onRetry: () => load(),
+        backTo: { label: '去用户设置', href: '#/settings', onClick: () => navigate('/settings') },
+      });
       return;
     }
     drawGrid();

@@ -31,14 +31,18 @@ export class ApiError extends Error {
     super(message);
     this.name = 'ApiError';
     this.status = status;
-    this.reason = reason; // network | no-api | not-found | server | http
+    this.reason = reason; // network | timeout | no-api | not-found | server | http
     this.url = url;
     this.code = code;
   }
 }
 
-async function request(path, { method = 'GET', body, formData } = {}) {
-  const url = `${getApiBase()}/api${path}`;
+/** 默认请求超时 (ms) —— 避免请求悬挂导致界面永远转圈 */
+const DEFAULT_TIMEOUT_MS = 20_000;
+
+async function request(path, { method = 'GET', body, formData, base, timeoutMs = DEFAULT_TIMEOUT_MS } = {}) {
+  const root = base === undefined ? getApiBase() : trimBase(base);
+  const url = `${root}/api${path}`;
   const opts = { method };
   if (formData) opts.body = formData;
   else if (body !== undefined) {
@@ -46,21 +50,35 @@ async function request(path, { method = 'GET', body, formData } = {}) {
     opts.body = JSON.stringify(body);
   }
 
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), timeoutMs);
+  opts.signal = controller.signal;
+
   let res;
   try {
     res = await fetch(url, opts);
   } catch (e) {
+    clearTimeout(timer);
+    if (e?.name === 'AbortError') {
+      throw new ApiError(`请求超时 (${Math.round(timeoutMs / 1000)} 秒无响应)`, { status: 0, reason: 'timeout', url });
+    }
     throw new ApiError('无法连接后端服务', { status: 0, reason: 'network', url });
+  } finally {
+    clearTimeout(timer);
   }
 
   let data = null;
-  try { data = await res.json(); } catch { /* 非 JSON 响应(可能是前端 HTML / 404 页) */ }
+  let parsed = false;
+  try { data = await res.json(); parsed = true; } catch { /* 非 JSON 响应(可能是前端 HTML / 404 页) */ }
+
+  // 返回的不是 JSON → 多半是 /api 没落到后端(前端被单独部署时的典型症状)
+  if (!parsed) {
+    throw new ApiError('后端未响应（返回的不是接口数据）', { status: res.status, reason: 'no-api', url });
+  }
 
   if (!res.ok || data?.error) {
-    // 返回的不是 JSON → 多半是 /api 没落到后端(前端被单独部署时的典型症状)
-    const reason = data === null ? 'no-api'
-      : res.status === 404 ? 'not-found'
-        : res.status >= 500 ? 'server' : 'http';
+    const reason = res.status === 404 ? 'not-found'
+      : res.status >= 500 ? 'server' : 'http';
     const msg = data?.error?.message || `请求失败 (${res.status})`;
     throw new ApiError(msg, { status: res.status, reason, url, code: data?.error?.code ?? null });
   }
@@ -68,7 +86,7 @@ async function request(path, { method = 'GET', body, formData } = {}) {
 }
 
 export const api = {
-  health: () => request('/health'),
+  health: (base) => request('/health', base === undefined ? {} : { base }),
   listTemplates: ({ category, type } = {}) => {
     const q = new URLSearchParams();
     if (category && category !== 'all') q.set('category', category);
@@ -76,8 +94,8 @@ export const api = {
     const qs = q.toString();
     return request(`/templates${qs ? `?${qs}` : ''}`);
   },
-  getTemplate: (id) => request(`/templates/${id}`),
-  previewPrompt: (id, slotValues) => request(`/templates/${id}/preview-prompt`, { method: 'POST', body: { slotValues } }),
+  getTemplate: (id) => request(`/templates/${encodeURIComponent(id)}`),
+  previewPrompt: (id, slotValues) => request(`/templates/${encodeURIComponent(id)}/preview-prompt`, { method: 'POST', body: { slotValues } }),
   upload: (file) => {
     const fd = new FormData();
     fd.append('file', file);
@@ -85,7 +103,7 @@ export const api = {
   },
   generateImage: (payload) => request('/generate/image', { method: 'POST', body: payload }),
   generateVideo: (payload) => request('/generate/video', { method: 'POST', body: payload }),
-  getTask: (taskId) => request(`/tasks/${taskId}`),
+  getTask: (taskId) => request(`/tasks/${encodeURIComponent(taskId)}`),
   optimizePrompt: (prompt, imageUrl) => request('/prompt/optimize', { method: 'POST', body: { prompt, imageUrl } }),
   listWorks: (type) => request(`/works${type ? `?type=${type}` : ''}`),
   deleteWork: (id) => request(`/works/${id}`, { method: 'DELETE' }),

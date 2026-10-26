@@ -1,5 +1,6 @@
 import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES } from '../ui.js';
 import { api } from '../api.js';
+import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
@@ -14,7 +15,25 @@ export async function renderStudio(root, { navigate, query, back }) {
   root.replaceChildren();
   const goBack = back ?? (() => navigate('/'));
 
-  const { items: allTemplates } = await api.listTemplates();
+  let allTemplates;
+  try {
+    ({ items: allTemplates } = await api.listTemplates());
+  } catch (e) {
+    // 模板库都拉不到, 工作台无法初始化 —— 说清真实原因, 给出重试与设置入口
+    root.append(
+      h('div', { class: 'page-head' },
+        h('button', {
+          class: 'btn btn-ghost btn-sm', onclick: () => goBack(), 'aria-label': '返回上一页', title: '返回上一页',
+        }, icon('arrow-left', { size: 15 }), '返回上一页'),
+      ),
+    );
+    renderApiError(root, e, {
+      resource: '模板库',
+      onRetry: () => navigate('/studio'),
+      backTo: { label: '去用户设置', href: '#/settings', onClick: () => navigate('/settings') },
+    });
+    return;
+  }
   const quickTemplates = allTemplates.filter((t) => t.type === 'image' || t.type === 'video');
 
   const state = {

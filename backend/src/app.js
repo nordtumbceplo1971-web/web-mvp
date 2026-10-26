@@ -5,6 +5,7 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { config } from './config.js';
 import { api } from './routes.js';
+import { APP_VERSION } from './version.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 
@@ -31,7 +32,7 @@ export function createApp() {
   app.use(express.json({ limit: '2mb' }));
 
   app.get('/', (req, res) => {
-    res.json({ name: '996 Studio API', version: '0.1.6', docs: '/api/health' });
+    res.json({ name: '996 Studio API', version: APP_VERSION, docs: '/api/health' });
   });
   app.use('/api', api);
 

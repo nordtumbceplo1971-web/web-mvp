@@ -2,6 +2,7 @@ import { h, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { getCredits, getProfile, setProfile, resetLocalData } from '../store.js';
 import { api, getApiBase, setApiBase } from '../api.js';
+import { describeApiError } from '../errors.js';
 import { APP_VERSION } from '../version.js';
 
 /** 用户设置页: 账户资料 / 创作偏好 / 本地数据 (MVP 演示: 偏好存本地) */
@@ -78,11 +79,12 @@ export function renderSettings(root, { navigate, back }) {
   const testBtn = h('button', {
     class: 'btn btn-blue btn-sm',
     onclick: async () => {
-      setApiBase(apiBase.value);
       connTip.className = 'conn-tip';
       connTip.replaceChildren('正在检测…');
+      testBtn.disabled = true;
       try {
-        const j = await api.health();
+        // 只探测, 不落盘 —— 填错地址时不应把坏配置写进去
+        const j = await api.health(apiBase.value.trim());
         connTip.className = 'conn-tip ok';
         connTip.replaceChildren(
           `✓ 已连接 · 模式 ${j.mode === 'live' ? '正式' : '演示(MOCK)'} · 运行时 ${j.runtime ?? '未知'} · 存储 ${j.storage ?? '未知'}`,
@@ -90,8 +92,10 @@ export function renderSettings(root, { navigate, back }) {
         toast('后端连接正常', 'ok');
       } catch (e) {
         connTip.className = 'conn-tip bad';
-        connTip.replaceChildren(`✗ ${e.reason === 'network' ? '无法连接' : e.reason === 'no-api' ? '未响应接口数据' : e.message}`);
+        connTip.replaceChildren(`✗ ${describeApiError(e).title} · ${e.message}`);
         toast('后端连接失败', 'err');
+      } finally {
+        testBtn.disabled = false;
       }
     },
   }, '测试连接');
@@ -115,7 +119,13 @@ export function renderSettings(root, { navigate, back }) {
       }, '保存并刷新'),
       h('button', {
         class: 'btn btn-ghost',
-        onclick: () => { apiBase.value = ''; setApiBase(''); connTip.replaceChildren(); },
+        onclick: () => {
+          apiBase.value = '';
+          setApiBase('');
+          connTip.replaceChildren();
+          toast('已恢复同域, 正在刷新…', 'ok');
+          setTimeout(() => window.location.reload(), 600);
+        },
       }, '恢复同域'),
     ),
     connTip,

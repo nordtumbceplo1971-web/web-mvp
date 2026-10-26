@@ -1,7 +1,8 @@
 import { h } from './ui.js';
 import './styles/main.css';
 import { icon } from './icons.js';
-import { api, getApiBase } from './api.js';
+import { api } from './api.js';
+import { describeApiError } from './errors.js';
 import { getCredits } from './store.js';
 import { startTour } from './tour.js';
 import { createAnnouncementBar } from './announcements.js';
@@ -310,12 +311,10 @@ function renderShell() {
     modeChip.replaceChildren(h('span', { class: 'dot' }), live ? '正式模式 · 已连接模型服务' : '演示模式 · 未配置 API 密钥');
     modeChip.title = `运行时: ${j?.runtime ?? '未知'} · 存储: ${j?.storage ?? '未知'}`;
   }).catch((e) => {
-    const why = e?.reason === 'network' ? '网络不可达'
-      : e?.reason === 'no-api' ? '返回的不是接口数据(后端未部署?)'
-        : (e?.message || '未知错误');
+    const info = describeApiError(e, '后端服务');
     modeChip.classList.add('offline');
     modeChip.replaceChildren(h('span', { class: 'dot' }), '后端未连接');
-    modeChip.title = `${why}\n接口: ${e?.url ?? `${getApiBase()}/api`}\n点击打开「用户设置」配置后端地址`;
+    modeChip.title = `${info.title}\n${info.detail || info.hint}\n接口: ${info.url}\n点击打开「用户设置」配置后端地址`;
   });
   modeChip.style.cursor = 'pointer';
   modeChip.addEventListener('click', () => navigate('/settings'));

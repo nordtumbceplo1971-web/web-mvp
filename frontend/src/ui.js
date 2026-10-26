@@ -1,4 +1,5 @@
 /** UI 基础件: DOM 构建 / toast / 轮询生成任务 / 拟物文案 */
+import { api } from './api.js';
 
 export function h(tag, attrs = {}, ...children) {
   const el = document.createElement(tag);
@@ -48,16 +49,21 @@ export const VIDEO_STAGES = ['正在写脚本…', '正在布置片场…', '正
 /**
  * 轮询任务直到完成。onUpdate({status, progress, stageIndex, urls, error})
  * 返回 { stop() }
+ *
+ * 注意: 必须走 api.getTask —— 后端地址可在「用户设置」里运行时配置,
+ * 写死相对路径 /api 会导致独立部署后端时永远轮询不到结果。
+ * 连续失败达到 maxErrors 即判定失败, 避免界面无限转圈。
  */
-export function pollTask(taskId, onUpdate, { intervalMs = 3000 } = {}) {
+export function pollTask(taskId, onUpdate, { intervalMs = 3000, maxErrors = 5 } = {}) {
   let stopped = false;
   let timer = null;
+  let errors = 0;
   async function tick() {
     if (stopped) return;
     try {
-      const res = await fetch(`/api/tasks/${encodeURIComponent(taskId)}`);
-      const task = await res.json();
+      const task = await api.getTask(taskId);
       if (stopped) return;
+      errors = 0;
       const urls = Array.isArray(task?.data) ? task.data.map((d) => d.url).filter(Boolean) : [];
       const progress = Number(task?.progress ?? 0) || 0;
       onUpdate({
@@ -69,8 +75,21 @@ export function pollTask(taskId, onUpdate, { intervalMs = 3000 } = {}) {
         error: task?.error?.message || (task?.status === 'failed' ? '生成失败, 请重试' : null),
       });
       if (task?.is_final) return;
-    } catch {
-      if (!stopped) onUpdate({ status: 'processing', progress: 0, stageIndex: 0, urls: [] });
+    } catch (e) {
+      if (stopped) return;
+      errors += 1;
+      if (errors >= maxErrors) {
+        onUpdate({
+          status: 'failed',
+          isFinal: true,
+          progress: 0,
+          stageIndex: 0,
+          urls: [],
+          error: `无法获取任务状态: ${e?.message ?? '未知错误'}`,
+        });
+        return;
+      }
+      onUpdate({ status: 'processing', progress: 0, stageIndex: 0, urls: [] });
     }
     timer = setTimeout(tick, intervalMs);
   }

@@ -7,6 +7,7 @@ import { isMockTaskId, getMockTask, parseMockTaskId } from './modules/generation
 import { getTask, uploadFile, UpstreamError } from './upstream/client.js';
 import { optimizePrompt, OPTIMIZER_SYSTEM_PROMPT } from './modules/prompt/optimizer.js';
 import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork, storageMode } from './modules/works/store.js';
+import { APP_VERSION } from './version.js';
 
 export const api = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
@@ -25,14 +26,15 @@ function publicBaseUrl(req) {
 
 // ---------- 系统 ----------
 api.get('/', (req, res) => {
-  res.json({ name: '996 Studio API', version: '0.1.6', docs: '/api/health' });
+  res.json({ name: '996 Studio API', version: APP_VERSION, docs: '/api/health' });
 });
 api.get('/index', (req, res) => {
-  res.json({ name: '996 Studio API', version: '0.1.6', docs: '/api/health' });
+  res.json({ name: '996 Studio API', version: APP_VERSION, docs: '/api/health' });
 });
 api.get('/health', (req, res) => {
   res.json({
     ok: true,
+    version: APP_VERSION,
     mode: isMockMode() ? 'mock' : 'live',
     models: config.models,
     upstream: config.upstream.baseUrl,

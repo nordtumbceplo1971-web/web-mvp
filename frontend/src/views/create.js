@@ -246,6 +246,22 @@ export async function renderCreate(root, { navigate, query, back }) {
   // ---------- 生成与结果 ----------
   const resultZone = h('div', {});
 
+  /** 组装生成请求体 (首次生成与「换一批」必须完全一致, 否则两次结果不可比) */
+  function buildPayload() {
+    const imageUrls = state.images.map((im) => im.url).filter((u) => u && !isMockUrl(u));
+    return {
+      templateId: tpl.id,
+      slotValues: {
+        ...state.slotValues,
+        ...Object.fromEntries(Object.entries(state.texts).map(([k, v]) => [k, v || undefined])),
+      },
+      extraIdea: state.extraIdea,
+      imageUrls,
+      title: tpl.title,
+      ...state.spec,
+    };
+  }
+
   async function generate() {
     if (genBtn.disabled) return;
     spendCredits(tpl.credits);
@@ -254,17 +270,8 @@ export async function renderCreate(root, { navigate, query, back }) {
     resultZone.replaceChildren(gen.el);
     gen.el.scrollIntoView({ behavior: 'smooth', block: 'start' });
 
-    const imageUrls = state.images.map((im) => im.url).filter((u) => u && !isMockUrl(u));
-    const payload = {
-      templateId: tpl.id,
-      slotValues: { ...state.slotValues, ...Object.fromEntries(Object.entries(state.texts).map(([k, v]) => [k, v || undefined])) },
-      extraIdea: state.extraIdea,
-      imageUrls,
-      title: tpl.title,
-      ...state.spec,
-    };
     try {
-      const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
+      const res = isVideo ? await api.generateVideo(buildPayload()) : await api.generateImage(buildPayload());
       pollTask(res.taskId, (st) => {
         gen.update(st);
         if (st.isFinal && st.status === 'completed') {
@@ -319,29 +326,31 @@ export async function renderCreate(root, { navigate, query, back }) {
         ),
       )),
     );
+    // 首次「换一批」免费 —— 只有真的扣了额度, 失败时才需要退回
+    const againFree = state.retryFree;
     const againBtn = h('button', {
       class: 'btn btn-ghost-green', 'data-tour': 'again-btn',
       onclick: async () => {
-        if (!state.retryFree) spendCredits(tpl.credits);
+        const charged = !againFree;
+        if (charged) spendCredits(tpl.credits);
         state.retryFree = false;
         againBtn.disabled = true;
         const gen = renderGenerating();
         resultZone.replaceChildren(gen.el);
-        const imageUrls = state.images.map((im) => im.url).filter((u) => u && !isMockUrl(u));
-        const payload = {
-          templateId: tpl.id, slotValues: { ...state.slotValues, ...state.texts }, extraIdea: state.extraIdea,
-          imageUrls, title: tpl.title, ...state.spec,
-        };
         try {
-          const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
+          const res = isVideo ? await api.generateVideo(buildPayload()) : await api.generateImage(buildPayload());
           pollTask(res.taskId, (st) => {
             gen.update(st);
             if (st.isFinal && st.status === 'completed') { againBtn.disabled = false; renderResults(st.urls); }
-            else if (st.isFinal) { refundCredits(tpl.credits); againBtn.disabled = false; renderFailure(st.error); }
+            else if (st.isFinal) { if (charged) refundCredits(tpl.credits); againBtn.disabled = false; renderFailure(st.error); }
           });
-        } catch (e) { refundCredits(tpl.credits); againBtn.disabled = false; toast(e.message, 'err'); }
+        } catch (e) {
+          if (charged) refundCredits(tpl.credits);
+          againBtn.disabled = false;
+          toast(e.message, 'err');
+        }
       },
-    }, `换一批${state.retryFree ? '（首次免费）' : ` · 消耗 ${tpl.credits} 额度`}`);
+    }, `换一批${againFree ? '（首次免费）' : ` · 消耗 ${tpl.credits} 额度`}`);
     const zone = h('div', { style: 'margin-top:20px' },
       h('div', { class: 'section-head' },
         h('h2', {}, '生成完成'),

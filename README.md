@@ -3,7 +3,7 @@
 > **一个想法 + 选一个模板 = 一套可直接上架的品牌内容。**
 > 面向 0 基础电商从业者：不写提示词、不选模型、不调参数——上传产品图、点选微调、点生成。
 
-**当前版本：v0.1.2**（版本号规则 `v0.1.n`，每次更新递增一位；更新明细见 [`CHANGELOG.md`](./CHANGELOG.md)）
+**当前版本：v0.1.7**（版本号规则 `v0.1.n`，每次更新递增一位；更新明细见 [`CHANGELOG.md`](./CHANGELOG.md)）
 
 **品牌标识**：`frontend/public/brand/logo-square.png` —— 996 图标在上、996.chat slogan 在下的 1:1 正方形组合
 （`logo-icon.png` 为纯图标，用于浏览器 favicon）
@@ -103,11 +103,15 @@ v0.1.6 起，接口报错会**直接说明真实原因**，并在侧栏左下角
 |---|---|---|
 | 后端未响应（返回的不是接口数据） | `/api` 没落到后端（前端被单独部署） | 检查 Vercel 的 Root Directory 是否为仓库根 `/`，重新部署 |
 | 无法连接后端服务 | 请求未到达（断网 / CORS 拦截） | 若填了独立后端地址，给后端设置 `CORS_ORIGIN=<前端域名>` |
+| 请求超时 | 后端长时间无响应（冷启动 / 负载高） | 稍后重试 |
 | 请求的资源不存在 | 后端正常，但该模板 ID 没有 | 刷新模板库 |
 | 后端服务出错 | 后端 5xx | 看后端日志 |
 
 **一键自检**：打开站点 → 左下角状态标识 → 进入「用户设置 → 后端连接」→ 点「测试连接」，
-会直接返回模式、运行时与存储位置。
+会直接返回模式、运行时与存储位置（只探测，不会把填错的地址保存下来）。
+
+> **前后端分开部署时注意**：v0.1.7 起，生成任务的轮询也已走「用户设置」里配置的后端地址，
+> 不再回落到同域 `/api`。若生成界面一直转圈不出图，请确认该地址可访问且已放行 CORS。
 
 ---
 
@@ -150,12 +154,20 @@ backend/                     Express (端口 8787)
 frontend/                    Vite + 原生 JS 模块 (端口 5173)
   src/
     main.js                  应用外壳 + hash 路由 + 访问栈(统一返回) + 侧栏分组 + 额度浮层
-    api.js / ui.js / store.js / tour.js / tplMeta.js / version.js / announcements.js（轮播公告数据源）
+    api.js                   后端地址解析(运行时可配) + 请求超时 + 错误原因分类
+    errors.js                统一的接口错误页(说真话: 分原因提示 + 重试 + 去设置)
+    ui.js / store.js / tour.js / tplMeta.js / version.js / announcements.js（轮播公告数据源）
     styles/main.css          设计系统 (slate 灰阶 + 专业蓝, 变量化)
     views/  home / templates / templateDetail / create / studio / works / recharge / settings
+tools/                       验收脚本 (零依赖, Node 22 内置 WebSocket 驱动 Edge)
+  smoke.mjs                  端到端接口冒烟
+  vercel-sim.mjs             本地模拟 Vercel Serverless 路由还原
+  route-check.mjs            8 条路由 × 2 档断点批量体检
+  cross-origin-check.mjs     前后端分开部署验收(生成流程走配置的地址)
+  failure-mode-check.mjs     故障场景验收(报错必须说真话)
 design/
   direction-approved.md      设计方向 gate（选定理由 + 色彩推导论证）
-CHANGELOG.md                 更新日志 (v0.1.0)
+CHANGELOG.md                 更新日志 (v0.1.7)
 ```
 
 ### API 一览
@@ -198,6 +210,18 @@ CHANGELOG.md                 更新日志 (v0.1.0)
 - **首页上下比例**：实测网格行高 `520.5px / 173.5px`（精确 75% : 25%）
 - **额度浮层**：实测 `display:block`，含「充值」「用户设置」，定位在额度胶囊下方
 - **返回链路**：侧栏分类 → 模板详情 → 返回 → 正确回到 `/templates?cat=...`；我的作品 → 充值 → 返回 → 正确回到 `/works`
+
+### v0.1.7 自动化验收脚本
+
+除 `page-check.mjs` 外，另有三个批量验收脚本（同样零依赖，Node 22 内置 WebSocket 驱动 Edge）：
+
+| 脚本 | 覆盖 | 用法 |
+|---|---|---|
+| `tools/route-check.mjs` | 8 条路由 × 2 档断点的标题 / 横向溢出 / 控制台报错 | `node tools/route-check.mjs 1440 900` |
+| `tools/cross-origin-check.mjs` | **前后端分开部署**：驱动真实 UI 走「上传 → 生成 → 出图」，并断言轮询请求确实打向配置的地址 | `BASE_URL=http://127.0.0.1:4300 node tools/cross-origin-check.mjs` |
+| `tools/failure-mode-check.mjs` | **故障场景**：后端不可达 / 返回非 JSON 时，提示必须准确、不得误报「模板不存在」 | `BASE_URL=http://127.0.0.1:4300 node tools/failure-mode-check.mjs` |
+
+`tools/smoke.mjs`（端到端接口冒烟）与 `tools/vercel-sim.mjs`（本地模拟 Serverless 路由还原）同样保留可用。
 
 ## 切换到真实生成（由你操作）
 
