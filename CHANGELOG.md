@@ -3,9 +3,81 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.7**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.7`，
+当前版本：**v0.1.8**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.8`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
-后端版本号改为从 `backend/package.json` 读取，不再各处硬编码）
+后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.8 · 2026-10-26
+
+**主题**：新增 Shopify 套图模板（7 步出全套商品图）+ 模特库素材管理
+
+### 新增功能
+
+**1. Shopify 套图模板（`shopify-lookbook`）**
+
+7 步出全套 Shopify 商品图，支持两条生成线路：
+
+| 步骤 | 名称 | 内容 | 需要模特 |
+|---|---|---|---|
+| 01 | 列表主图 | 单人正面模特图（头部至大腿，正面印花无遮挡） | ✅ |
+| 02 | 背面展示 | 同一模特背面图（相同背景/光线） | ✅ |
+| 03 | 完整穿搭 | 全身/四分之三侧身（落肩/袖长/衣长） | ✅ |
+| 04 | 印花细节 | 核心图案近景 | ❌ |
+| 05 | 面料与做工 | 布料/领口/肩线特写 | ❌ |
+| 06 | 另一位模特 | 换性别/身形穿搭 | ✅ |
+| 07 | 品牌生活方式 | 场景故事图 | ✅ |
+
+**两条线路**：
+- **线路 a（Skill A）**：AI 自动建模，用户输入灵感 prompt 描述模特形象
+- **线路 b（Skill B）**：从模特库选择模特三视图作为形象参考
+
+提示词方法论来自 SkillA（首图建立模特）、SkillB（产品+模特三视图）、SkillC（定向微调）。
+
+**2. 模特库（素材库 · 自定义模特）**
+
+- **系统模特**：11 位内置三视图模特（5 女 + 6 男），全局共享
+- **自定义模特**：支持上传（正面/侧面/背面三视图）或后续生成，按 userId 隔离
+- 新增侧栏「素材库 → 模特库」入口
+- 模特卡片支持预览、删除
+
+**3. API 新增**
+
+| 方法 | 路径 | 说明 |
+|---|---|---|
+| GET | `/api/models` | 模特列表（系统 + 用户，按 userId 隔离） |
+| GET | `/api/models/:id` | 模特详情 |
+| POST | `/api/models` | 上传模特（multipart: front/side/back） |
+| PATCH | `/api/models/:id` | 更新模特信息 |
+| DELETE | `/api/models/:id` | 删除用户模特 |
+| GET | `/api/shopify/steps` | 获取 7 步定义 |
+| POST | `/api/shopify/prompt` | 生成某步提示词（Skill A/B） |
+| POST | `/api/shopify/retouch` | 生成微调提示词（Skill C） |
+
+**4. 生成服务增强**
+
+- `generateImage` 新增 `prompt` 参数，支持直接传入完整提示词（覆盖模板默认拼接）
+
+### 新增文件
+
+| 文件 | 说明 |
+|---|---|
+| `frontend/public/models/system/` | 11 位系统模特三视图（1536×864 JPEG，共约 1MB） |
+| `backend/src/modules/models/systemModels.js` | 系统模特元数据 |
+| `backend/src/modules/models/store.js` | 用户模特 CRUD 存储 |
+| `backend/src/modules/templates/shopify.js` | Shopify 套图模板 + 7 步提示词（Skill A/B/C） |
+| `frontend/src/views/models.js` | 模特库页面 |
+| `frontend/src/views/lookbook.js` | Shopify 套图创作流 |
+
+### 验证
+
+- `vite build` 通过（23 modules，73KB JS）
+- `tools/smoke.mjs` 端到端全绿（18 个模板）
+- `tools/vercel-sim.mjs` 4/4 通过
+- `tools/route-check.mjs`：1440px 与 375px 两档 × 10 条路由，全部无横向溢出、0 控制台报错
+- 浏览器实测：`/models` 显示 11 位系统模特 + 空的自定义区；`/lookbook` 显示 3 步创作流；
+  `/templates/shopify-lookbook` 显示模板详情与「开始出套图」按钮
 
 ---
 

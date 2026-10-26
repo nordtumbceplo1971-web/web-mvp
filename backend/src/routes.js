@@ -7,6 +7,9 @@ import { isMockTaskId, getMockTask, parseMockTaskId } from './modules/generation
 import { getTask, uploadFile, UpstreamError } from './upstream/client.js';
 import { optimizePrompt, OPTIMIZER_SYSTEM_PROMPT } from './modules/prompt/optimizer.js';
 import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork, storageMode } from './modules/works/store.js';
+import { systemModels } from './modules/models/systemModels.js';
+import { listModels, getModel, createModel, updateModel, deleteModel, saveModelImage, getModelImagePath, modelsStorageMode } from './modules/models/store.js';
+import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
 import { APP_VERSION } from './version.js';
 
 export const api = Router();
@@ -163,4 +166,94 @@ api.patch('/works/:id', (req, res) => {
   const updated = updateWork(req.params.id, allowed);
   if (!updated) return res.status(404).json({ error: { code: 'not_found', message: '作品不存在' } });
   res.json(updated);
+});
+
+// ---------- 模特库 (素材库 · 自定义模特) ----------
+api.get('/models', (req, res) => {
+  const userId = req.query.userId || null;
+  const userModels = listModels(userId);
+  res.json({
+    system: systemModels,
+    user: userModels,
+    storage: modelsStorageMode(),
+  });
+});
+
+api.get('/models/:id', (req, res) => {
+  const sys = systemModels.find((m) => m.id === req.params.id);
+  if (sys) return res.json(sys);
+  const m = getModel(req.params.id);
+  if (!m) return res.status(404).json({ error: { code: 'not_found', message: '模特不存在' } });
+  res.json(m);
+});
+
+api.get('/models/:id/image/:filename', (req, res) => {
+  const filePath = getModelImagePath(req.params.id, req.params.filename);
+  if (!filePath) return res.status(404).json({ error: { code: 'not_found', message: '图片不存在' } });
+  res.sendFile(filePath);
+});
+
+api.post('/models', upload.fields([
+  { name: 'front', maxCount: 1 }, { name: 'side', maxCount: 1 }, { name: 'back', maxCount: 1 },
+]), wrap(async (req, res) => {
+  const userId = req.body.userId || null;
+  const name = req.body.name || '未命名模特';
+  const desc = req.body.desc || '';
+  if (!req.files?.front) {
+    return res.status(400).json({ error: { code: 'no_file', message: '缺少正面图 (front)' } });
+  }
+  const model = createModel({ userId, name, desc, views: {} });
+  const views = {};
+  for (const view of ['front', 'side', 'back']) {
+    const file = req.files?.[view]?.[0];
+    if (!file) continue;
+    const dataUri = `data:${file.mimetype};base64,${file.buffer.toString('base64')}`;
+    const url = saveModelImage(model.id, view, dataUri);
+    if (url) views[view] = url;
+  }
+  if (!views.front) {
+    deleteModel(model.id, userId);
+    return res.status(500).json({ error: { code: 'save_failed', message: '图片保存失败' } });
+  }
+  model.views = { front: views.front, side: views.side ?? null, back: views.back ?? null };
+  model.cover = views.front;
+  updateModel(model.id, { cover: views.front });
+  const updated = getModel(model.id);
+  res.json(updated);
+}));
+
+api.patch('/models/:id', (req, res) => {
+  const updated = updateModel(req.params.id, req.body ?? {});
+  if (!updated) return res.status(404).json({ error: { code: 'not_found', message: '模特不存在' } });
+  res.json(updated);
+});
+
+api.delete('/models/:id', (req, res) => {
+  const userId = req.query.userId || null;
+  const ok = deleteModel(req.params.id, userId);
+  if (!ok) return res.status(404).json({ error: { code: 'not_found', message: '模特不存在或无权删除' } });
+  res.json({ deleted: true });
+});
+
+// ---------- Shopify 套图 (7 步提示词) ----------
+api.get('/shopify/steps', (req, res) => {
+  res.json({ steps: SHOPIFY_STEPS, templateId: SHOPIFY_TEMPLATE_ID });
+});
+
+api.post('/shopify/prompt', (req, res) => {
+  const { mode = 'a', step, ...opts } = req.body ?? {};
+  if (!SHOPIFY_STEPS.find((s) => s.id === step)) {
+    return res.status(400).json({ error: { code: 'bad_step', message: '步骤编号无效, 请传 01–07' } });
+  }
+  const prompt = composeShopifyPrompt(mode, step, opts);
+  res.json({ prompt, step, mode });
+});
+
+api.post('/shopify/retouch', (req, res) => {
+  const { step, issue } = req.body ?? {};
+  if (!SHOPIFY_STEPS.find((s) => s.id === step)) {
+    return res.status(400).json({ error: { code: 'bad_step', message: '步骤编号无效' } });
+  }
+  const prompt = composeShopifyRetouchPrompt(step, issue);
+  res.json({ prompt, step });
 });

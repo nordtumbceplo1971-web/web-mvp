@@ -19,6 +19,7 @@ export async function generateImage({
   templateId,
   slotValues = {},
   extraIdea = '',
+  prompt: promptOverride = null,
   aspectRatio,
   resolution,
   quality,
@@ -30,7 +31,7 @@ export async function generateImage({
   if (!template || template.type !== 'image') {
     const err = new Error('模板不存在或类型不是图片'); err.status = 404; throw err;
   }
-  const prompt = [composePrompt(template, slotValues), extraIdea?.trim()].filter(Boolean).join(' ');
+  const prompt = promptOverride || [composePrompt(template, slotValues), extraIdea?.trim()].filter(Boolean).join(' ');
 
   const params = {
     prompt,

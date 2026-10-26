@@ -87,12 +87,18 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
   );
 
   // ---- CTA ----
+  const isLookbook = tpl.id === 'shopify-lookbook';
   const cta = h('div', { class: 'card panel detail-cta' },
     h('div', {},
       h('div', { style: 'font-weight:700' }, '准备好产品图就可以开始了'),
-      h('div', { class: 'desc' }, `消耗 ${tpl.credits} 额度 · 约 ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
+      h('div', { class: 'desc' }, isLookbook
+        ? '7 步出全套 Shopify 商品图 · 选择线路 a (AI 建模) 或线路 b (模特库)'
+        : `消耗 ${tpl.credits} 额度 · 约 ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
     ),
-    h('button', { class: 'btn btn-primary btn-lg', onclick: () => navigate(`/create?tpl=${tpl.id}`) }, '做同款', icon('arrow-right', { size: 16 })),
+    h('button', {
+      class: 'btn btn-primary btn-lg',
+      onclick: () => navigate(isLookbook ? '/lookbook' : `/create?tpl=${tpl.id}`),
+    }, isLookbook ? '开始出套图' : '做同款', icon('arrow-right', { size: 16 })),
   );
 
   root.append(

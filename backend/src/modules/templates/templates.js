@@ -11,6 +11,8 @@
  * 用户全程不写 Prompt —— 槽位全部有默认值, 直接生成也能出图。
  */
 
+import { shopifyTemplateMeta, SHOPIFY_STEPS } from './shopify.js';
+
 export const categories = [
   { id: 'all', label: '全部', hint: '按「我要做的事」找模板' },
   { id: 'main-image', label: '产品主图', hint: '上架首图、白底图、场景图' },
@@ -32,6 +34,9 @@ const LIGHTING = {
 };
 
 export const templates = [
+  // ============ Shopify 套图 (多步骤) ============
+  shopifyTemplateMeta,
+
   // ============ 产品主图 ============
   {
     id: 'main-white',

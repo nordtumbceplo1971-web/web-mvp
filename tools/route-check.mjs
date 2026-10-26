@@ -16,8 +16,10 @@ const ROUTES = [
   ['模板库', 'templates'],
   ['模板详情', 'templates/main-white'],
   ['创作页', 'create?tpl=main-white'],
+  ['Shopify套图', 'lookbook'],
   ['自由工作台', 'studio'],
   ['我的作品', 'works'],
+  ['模特库', 'models'],
   ['充值页', 'recharge'],
   ['用户设置', 'settings'],
 ];
@@ -79,7 +81,18 @@ await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFac
 const expr = `(() => {
   const vw = document.documentElement.clientWidth;
   const out = { vw, scrollWidth: document.documentElement.scrollWidth, overflow: [] };
+  // 找到所有可横向滚动的祖先, 这些容器内的元素不算页面溢出
+  const scrollables = [...document.querySelectorAll('*')].filter((el) => {
+    const s = getComputedStyle(el);
+    return s.overflowX === 'auto' || s.overflowX === 'scroll';
+  });
+  const inScrollable = (el) => {
+    let p = el.parentElement;
+    while (p) { if (scrollables.includes(p)) return true; p = p.parentElement; }
+    return false;
+  };
   document.querySelectorAll('*').forEach((el) => {
+    if (inScrollable(el)) return;
     const r = el.getBoundingClientRect();
     if (r.right > vw + 1 || r.width > vw + 1) {
       const cls = (typeof el.className === 'string') ? el.className : '';

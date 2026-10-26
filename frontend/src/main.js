@@ -15,6 +15,8 @@ import { renderStudio } from './views/studio.js';
 import { renderWorks } from './views/works.js';
 import { renderRecharge } from './views/recharge.js';
 import { renderSettings } from './views/settings.js';
+import { renderModels } from './views/models.js';
+import { renderLookbook } from './views/lookbook.js';
 
 /**
  * 应用外壳 v3 (严肃商业 SaaS): 左侧功能导航 + 顶栏 + 内容区
@@ -31,8 +33,10 @@ const routes = [
   { path: '/templates', view: renderTemplates, nav: 'templates', title: '模板库' },
   { path: '/templates/:id', view: renderTemplateDetail, nav: 'templates', title: '模板详情' },
   { path: '/create', view: renderCreate, nav: 'templates', title: '模板创作' },
+  { path: '/lookbook', view: renderLookbook, nav: 'templates', title: 'Shopify 套图' },
   { path: '/studio', view: renderStudio, nav: 'studio', title: '生图改图' },
   { path: '/works', view: renderWorks, nav: 'works', title: '我的作品' },
+  { path: '/models', view: renderModels, nav: 'models', title: '模特库' },
   { path: '/recharge', view: renderRecharge, nav: 'recharge', title: '充值额度' },
   { path: '/settings', view: renderSettings, nav: 'settings', title: '用户设置' },
 ];
@@ -41,6 +45,11 @@ const routes = [
 const TOOL_LINKS = [
   { href: '/templates', label: '模板库', iconName: 'grid', tour: 'nav-templates' },
   { href: '/studio', label: '自由工作台', iconName: 'wand', tour: 'nav-studio' },
+];
+
+/** 侧栏 · 素材库 */
+const ASSET_LINKS = [
+  { href: '/models', label: '模特库', iconName: 'user', nav: 'models', tour: 'nav-models' },
 ];
 
 /** 顶栏 · 顶部导航 */
@@ -195,9 +204,19 @@ function renderShell() {
       );
     };
 
+    const assetLinks = ASSET_LINKS.map((l) =>
+      h('a', {
+        href: `#${l.href}`,
+        class: `side-link ${l.nav === active ? 'active' : ''}`,
+        'data-tour': l.tour || null,
+        onclick: (e) => { e.preventDefault(); navigate(l.href); },
+      }, icon(l.iconName, { size: 18 }), l.label));
+
     navEl.replaceChildren(
       h('div', { class: 'side-label' }, '功能导航'),
       ...toolLinks,
+      h('div', { class: 'side-label' }, '素材库'),
+      ...assetLinks,
       h('div', { class: 'side-label' }, '模板库'),
       groupBlock('image', '图片类目', 'image'),
       groupBlock('video', '视频类目', 'video'),
@@ -209,6 +228,10 @@ function renderShell() {
         onclick: (e) => { e.preventDefault(); navigate(l.href); },
       }, l.label)),
       ...TOOL_LINKS.map((l) => h('a', {
+        href: `#${l.href}`, class: l.nav === active ? 'active' : '',
+        onclick: (e) => { e.preventDefault(); navigate(l.href); },
+      }, l.label)),
+      ...ASSET_LINKS.map((l) => h('a', {
         href: `#${l.href}`, class: l.nav === active ? 'active' : '',
         onclick: (e) => { e.preventDefault(); navigate(l.href); },
       }, l.label)),

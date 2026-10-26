@@ -10,6 +10,7 @@ export const CATEGORY_TINT = {
 };
 
 export const TPL_ICONS = {
+  'shopify-lookbook': 'layers',
   'main-white': 'image',
   'main-scene': 'image-plus',
   'main-festival': 'gift',
