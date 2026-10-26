@@ -40,9 +40,14 @@ const call = async (method, path, body) => {
 const localSha = git('rev-parse HEAD');
 const parent = git('rev-parse HEAD~1');
 const localTree = git('rev-parse HEAD:');
-const author = { name: git('log -1 --format=%an'), email: git('log -1 --format=%ae'), date: git('log -1 --format=%aI').replace(/([+-]\d\d):(\d\d)$/, '$1$2') };
-const committer = { name: git('log -1 --format=%cn'), email: git('log -1 --format=%ce'), date: git('log -1 --format=%cI').replace(/([+-]\d\d):(\d\d)$/, '$1$2') };
-const message = execSync('git log -1 --format=%B', { cwd: 'D:/ai-server-mvp', encoding: 'utf8' });
+// 日期必须是严格 ISO 8601 (含时区冒号, 如 2026-10-26T15:05:41+08:00)
+// GitHub 会自行转成 git 内部的 +0800 形式, 因此重建出的 SHA 仍与本地一致
+const author = { name: git('log -1 --format=%an'), email: git('log -1 --format=%ae'), date: git('log -1 --format=%aI') };
+const committer = { name: git('log -1 --format=%cn'), email: git('log -1 --format=%ce'), date: git('log -1 --format=%cI') };
+// 注意: 必须用 cat-file 取原始 commit 对象里的 message, 不能用 `git log --format=%B`
+// —— %B 会多补一个结尾换行, 导致重建出的 commit SHA 与本地不一致(远程出现"影子提交")
+const rawCommit = execFileSync('git', ['cat-file', 'commit', 'HEAD'], { cwd: 'D:/ai-server-mvp', encoding: 'utf8' });
+const message = rawCommit.slice(rawCommit.indexOf('\n\n') + 2);
 
 // ---- 远程当前状态 ----
 const ref = await call('GET', `/git/ref/heads/main`);
