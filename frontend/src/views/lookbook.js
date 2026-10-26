@@ -265,6 +265,47 @@ export async function renderLookbook(root, { navigate, back }) {
     resultsZone,
   );
 
+  // ---------- 流程进度面板 (侧栏) ----------
+  const progressList = h('div', { class: 'progress-steps' });
+
+  function drawProgress() {
+    progressList.replaceChildren(...STEPS.map((s, i) => {
+      const r = state.results[s.id];
+      const status = r?.status ?? 'pending'; // pending | generating | completed | failed
+      const isLast = i === STEPS.length - 1;
+      return h('div', { class: `progress-step ${status}` },
+        h('div', { class: 'ps-track' },
+          h('div', { class: 'ps-dot' }, status === 'completed' ? '✓' : status === 'generating' ? '' : status === 'failed' ? '✕' : s.id),
+          !isLast ? h('div', { class: 'ps-line' }) : null,
+        ),
+        h('div', { class: 'ps-body' },
+          h('div', { class: 'ps-name' }, s.name),
+          h('div', { class: 'ps-status' }, status === 'completed' ? '已完成' : status === 'generating' ? '生成中…' : status === 'failed' ? '失败' : '待生成'),
+        ),
+        r?.url ? h('div', { class: 'ps-thumb' }, h('img', { src: r.url, alt: s.name })) : null,
+      );
+    }));
+  }
+
+  const progressPanel = h('div', { class: 'card panel progress-panel' },
+    h('h3', {}, icon('layers', { size: 16 }), ' 流程进度'),
+    h('div', { class: 'hint', id: 'progress-summary' }, '点击「一键生成 7 步」开始'),
+    progressList,
+  );
+
+  function updateProgressSummary() {
+    const done = Object.values(state.results).filter((r) => r.status === 'completed').length;
+    const failed = Object.values(state.results).filter((r) => r.status === 'failed').length;
+    const running = Object.values(state.results).some((r) => r.status === 'generating');
+    const el = progressPanel.querySelector('#progress-summary');
+    if (!el) return;
+    if (running) el.textContent = `生成中… 已完成 ${done}/7`;
+    else if (done === 7) el.textContent = '全部完成 ✅';
+    else if (failed > 0) el.textContent = `完成 ${done}/7 · 失败 ${failed}`;
+    else if (done > 0) el.textContent = `完成 ${done}/7`;
+    else el.textContent = '点击「一键生成 7 步」开始';
+  }
+
   function refreshGenerate() {
     const canGen = state.productImages.length > 0 && !state.generating;
     const cost = 2;
@@ -291,6 +332,8 @@ export async function renderLookbook(root, { navigate, back }) {
   ];
 
   function drawResults() {
+    drawProgress();
+    updateProgressSummary();
     resultsZone.replaceChildren(
       h('div', { class: 'lookbook-grid' },
         ...STEPS.map((s) => {
@@ -411,5 +454,11 @@ export async function renderLookbook(root, { navigate, back }) {
   drawModelPreview();
   drawInspiration();
 
-  root.append(header, stepper, productPanel, genPanel);
+  const sidebar = h('div', { class: 'lookbook-sidebar' }, progressPanel);
+  const layout = h('div', { class: 'lookbook-layout' },
+    h('div', { class: 'lookbook-main' }, productPanel, genPanel),
+    sidebar,
+  );
+
+  root.append(header, stepper, layout);
 }

@@ -977,6 +977,63 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
 .mp-model-desc { font-size: 13px; color: var(--ink-2); line-height: 1.5; }
 .inspiration-wrap .text-input { width: 100%; box-sizing: border-box; }
 
+/* ============================================================
+   Shopify 套图 · 布局 + 流程进度侧栏
+   ============================================================ */
+.lookbook-layout {
+  display: grid; grid-template-columns: 1fr 300px; gap: 18px; align-items: start;
+  max-width: 100%; overflow: hidden;
+}
+.lookbook-sidebar { position: sticky; top: 80px; min-width: 0; }
+.lookbook-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+
+.progress-panel h3 { display: flex; align-items: center; gap: 6px; }
+.progress-steps { display: flex; flex-direction: column; margin-top: 10px; }
+.progress-step {
+  display: flex; align-items: flex-start; gap: 10px; min-height: 44px;
+}
+.ps-track {
+  display: flex; flex-direction: column; align-items: center; width: 28px; flex-shrink: 0;
+}
+.ps-dot {
+  width: 28px; height: 28px; border-radius: 50%; display: flex; align-items: center;
+  justify-content: center; font-size: 11px; font-weight: 800;
+  background: var(--fill); color: var(--ink-3); border: 2px solid var(--line);
+  transition: all 0.3s;
+}
+.ps-line {
+  width: 2px; flex: 1; min-height: 16px; background: var(--line); transition: background 0.3s;
+}
+.ps-body { flex: 1; padding: 4px 0; }
+.ps-name { font-size: 13px; font-weight: 600; }
+.ps-status { font-size: 11px; color: var(--ink-3); margin-top: 1px; }
+.ps-thumb {
+  width: 36px; height: 36px; border-radius: 6px; overflow: hidden; flex-shrink: 0;
+  border: 1px solid var(--line); margin-top: 2px;
+}
+.ps-thumb img { width: 100%; height: 100%; object-fit: cover; }
+
+/* 状态样式 */
+.progress-step.completed .ps-dot { background: var(--green-deep); color: #fff; border-color: var(--green-deep); }
+.progress-step.completed .ps-line { background: var(--green-deep); }
+.progress-step.completed .ps-status { color: var(--green-deep); }
+.progress-step.generating .ps-dot {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+  animation: ps-pulse 1.2s ease-in-out infinite;
+}
+.progress-step.generating .ps-status { color: var(--brand); font-weight: 600; }
+.progress-step.failed .ps-dot { background: var(--danger); color: #fff; border-color: var(--danger); }
+.progress-step.failed .ps-status { color: var(--danger); }
+@keyframes ps-pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(37,99,235,0.3); }
+  50% { box-shadow: 0 0 0 6px rgba(37,99,235,0); }
+}
+
+@media (max-width: 960px) {
+  .lookbook-layout { grid-template-columns: 1fr; }
+  .lookbook-sidebar { position: static; }
+}
+
 .lookbook-results { margin-top: 16px; }
 .lookbook-grid {
   display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 14px;
