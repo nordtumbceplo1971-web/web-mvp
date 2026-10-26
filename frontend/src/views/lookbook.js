@@ -1,4 +1,4 @@
-import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES } from '../ui.js';
+import { h, toast, fileToDataURI, isMockUrl, pollTask } from '../ui.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
 import { icon } from '../icons.js';
@@ -6,10 +6,10 @@ import { getUserId } from './models.js';
 
 /**
  * Shopify 套图创作流
- * 流程: 上传产品 → 选择线路 (A/B) → 依次生成 01–07
+ * 流程: 上传产品 → 选模特(可选) → 生成 01–07
  *
- * 线路 a (Skill A): AI 自动建模, 用户输入灵感 prompt
- * 线路 b (Skill B): 从模特库选择模特三视图作为形象参考
+ * 不选模特 = 线路 a (Skill A): AI 自动建模
+ * 选了模特 = 线路 b (Skill B): 从模特库选模特三视图作为形象参考
  */
 export async function renderLookbook(root, { navigate, back }) {
   root.replaceChildren();
@@ -18,13 +18,13 @@ export async function renderLookbook(root, { navigate, back }) {
 
   // ---------- 状态 ----------
   const state = {
-    productImages: [],     // {dataUri, url, name, label}
-    mode: null,            // 'a' | 'b'
-    inspiration: '',       // 线路 a 的灵感 prompt
-    modelId: null,         // 线路 b 选择的模特 ID
+    productImages: [],
+    modelId: null,
     modelName: '',
     modelDesc: '',
-    results: {},           // stepId → {url, taskId, status}
+    modelCover: '',
+    inspiration: '',
+    results: {},
     generating: false,
   };
 
@@ -43,7 +43,7 @@ export async function renderLookbook(root, { navigate, back }) {
   );
 
   // ---------- 步骤条 ----------
-  const steps = [['1', '上传产品'], ['2', '选择线路'], ['3', '生成套图']];
+  const steps = [['1', '上传产品'], ['2', '选择模特'], ['3', '生成套图']];
   const stepEls = steps.map(([n, label]) => h('div', { class: 'step' }, h('span', { class: 'dot' }, n), label));
   const stepper = h('div', { class: 'stepper' },
     stepEls.flatMap((el, i) => i === 0 ? [el] : [h('span', { class: 'step-arrow' }, '→'), el]),
@@ -51,8 +51,7 @@ export async function renderLookbook(root, { navigate, back }) {
 
   function refreshStepper() {
     const hasProduct = state.productImages.length > 0;
-    const hasMode = !!state.mode;
-    const doneMap = [hasProduct, hasMode, false];
+    const doneMap = [hasProduct, false, false]; // step2 永远是"可选"状态
     stepEls.forEach((el, i) => {
       el.classList.toggle('done', doneMap[i]);
       el.classList.toggle('now', !doneMap[i] && (i === 0 || doneMap[i - 1]));
@@ -79,12 +78,6 @@ export async function renderLookbook(root, { navigate, back }) {
     h('div', { class: 'd' }, '上传产品正面图和/或背面图 · 支持 JPG / PNG / WebP · 最多 2 张'),
   );
 
-  const productPanel = h('div', { class: 'card panel' },
-    h('h3', {}, h('span', { class: 'step-no' }, '1'), '上传产品图'),
-    h('div', { class: 'hint' }, '上传产品正面图和背面图 (背面图可选, 用于步骤 02), 拍清楚一点效果更好'),
-    uploader, fileInput, thumbsWrap,
-  );
-
   async function addFiles(fileList) {
     const files = [...fileList].filter((f) => f.type.startsWith('image/')).slice(0, 2 - state.productImages.length);
     if (!files.length) return;
@@ -94,10 +87,8 @@ export async function renderLookbook(root, { navigate, back }) {
       state.productImages.push(item);
       drawThumbs();
       try {
-        const res = await fetch('/api/uploads', {
-          method: 'POST',
-          body: (() => { const fd = new FormData(); fd.append('file', file); return fd; })(),
-        });
+        const fd = new FormData(); fd.append('file', file);
+        const res = await fetch('/api/uploads', { method: 'POST', body: fd });
         const data = await res.json();
         if (data?.error) throw new Error(data.error.message);
         item.url = data.url;
@@ -127,112 +118,168 @@ export async function renderLookbook(root, { navigate, back }) {
     uploader.style.display = state.productImages.length >= 2 ? 'none' : '';
   }
 
-  // ---------- Step2: 选择线路 ----------
-  const modeDetail = h('div', { style: 'margin-top:14px' });
-  const modePanel = h('div', { class: 'card panel' },
-    h('h3', {}, h('span', { class: 'step-no' }, '2'), '选择线路'),
-    h('div', { class: 'hint' }, '线路 a: AI 自动建模 (需输入灵感) · 线路 b: 从模特库选模特'),
-    h('div', { class: 'mode-select' },
-      modeCard('a', 'AI 自动建模', '模型自动生成模特形象, 你只需输入灵感描述', 'sparkles', '#2563eb', '#eff6ff'),
-      modeCard('b', '模特库选模特', '从模特库选择模特三视图, 形象更稳定可控', 'user', '#7c3aed', '#f5f3ff'),
+  // ================================================================
+  // 模特库选择 + 预览 (整合进上传面板)
+  // ================================================================
+  const modelPickerRow = h('div', { class: 'model-picker-row', style: 'margin-top:16px' }, h('div', { class: 'home-loading', style: 'padding:12px' }, '加载模特库…'));
+
+  const modelPreview = h('div', { class: 'model-preview grey' },
+    h('div', { class: 'mp-placeholder' },
+      icon('user', { size: 32 }),
+      h('div', { class: 'mp-hint' }, '未选择模特'),
+      h('div', { class: 'mp-sub' }, '将使用 AI 自动建模 (线路 a)'),
     ),
-    modeDetail,
   );
 
-  function modeCard(id, title, desc, iconName, color, tint) {
-    return h('button', {
-      class: `mode-card ${state.mode === id ? 'active' : ''}`, type: 'button',
-      'data-mode': id,
-      onclick: () => {
-        state.mode = id;
-        modePanel.querySelectorAll('.mode-card').forEach((c) => c.classList.toggle('active', c.dataset.mode === id));
-        drawModeDetail();
-        refreshStepper();
-        refreshGenerate();
+  const modelSection = h('div', { class: 'model-section' },
+    h('div', { class: 'model-section-head' },
+      h('h4', {}, icon('user', { size: 15 }), '模特库'),
+      h('span', { class: 'desc', style: 'font-size:12px' }, '选择模特走线路 b · 不选走线路 a (AI 自动建模)'),
+    ),
+    modelPickerRow,
+    modelPreview,
+  );
+
+  // 加载模特库
+  fetch(`/api/models?userId=${encodeURIComponent(userId)}`)
+    .then((r) => r.json())
+    .then((data) => {
+      const all = [...(data.system ?? []), ...(data.user ?? [])];
+      if (!all.length) {
+        modelPickerRow.replaceChildren(h('div', { class: 'empty-state', style: 'padding:16px;font-size:13px' }, '暂无可用模特, 请先到模特库添加'));
+        return;
+      }
+      // "AI 自动建模" 选项 (清除选择)
+      const aiCard = h('button', {
+        class: `model-pick-item ${!state.modelId ? 'active' : ''}`, type: 'button',
+        'data-id': '',
+        onclick: () => selectModel(null),
       },
-    },
-      h('span', { class: 'mc-ico', style: `background:${tint};color:${color}` }, icon(iconName, { size: 20 })),
-      h('span', { class: 'mc-title' }, title),
-      h('span', { class: 'mc-desc' }, desc),
-    );
+        h('div', { class: 'mpi-cover ai-cover' }, icon('sparkles', { size: 22 })),
+        h('span', { class: 'mpi-name' }, 'AI 自动建模'),
+      );
+
+      const cards = all.map((m) => h('button', {
+        class: `model-pick-item ${state.modelId === m.id ? 'active' : ''}`, type: 'button',
+        'data-id': m.id,
+        onclick: () => selectModel(m),
+      },
+        h('div', { class: 'mpi-cover' }, h('img', { src: m.cover, alt: m.name, loading: 'lazy' })),
+        h('span', { class: 'mpi-name' }, m.name),
+      ));
+
+      modelPickerRow.replaceChildren(aiCard, ...cards);
+    })
+    .catch(() => {
+      modelPickerRow.replaceChildren(h('div', { class: 'empty-state', style: 'padding:16px;font-size:13px' }, '模特库加载失败'));
+    });
+
+  function selectModel(m) {
+    if (m) {
+      state.modelId = m.id;
+      state.modelName = m.name;
+      state.modelDesc = m.desc;
+      state.modelCover = m.cover;
+    } else {
+      state.modelId = null;
+      state.modelName = '';
+      state.modelDesc = '';
+      state.modelCover = '';
+    }
+    // 更新选中状态
+    modelPickerRow.querySelectorAll('.model-pick-item').forEach((c) => {
+      c.classList.toggle('active', c.dataset.id === (state.modelId ?? ''));
+    });
+    // 更新预览
+    drawModelPreview();
+    drawInspiration();
+    refreshGenerate();
   }
 
-  function drawModeDetail() {
-    if (state.mode === 'a') {
+  function drawModelPreview() {
+    if (state.modelId && state.modelCover) {
+      modelPreview.className = 'model-preview active';
+      modelPreview.replaceChildren(
+        h('div', { class: 'mp-img-wrap' },
+          h('img', { src: state.modelCover, alt: state.modelName }),
+        ),
+        h('div', { class: 'mp-info' },
+          h('div', { class: 'mp-model-name' }, state.modelName),
+          h('div', { class: 'mp-model-desc' }, state.modelDesc || '模特三视图参考'),
+          h('button', {
+            class: 'btn btn-ghost btn-sm', style: 'margin-top:6px',
+            onclick: () => selectModel(null),
+          }, '取消选择'),
+        ),
+      );
+    } else {
+      modelPreview.className = 'model-preview grey';
+      modelPreview.replaceChildren(
+        h('div', { class: 'mp-placeholder' },
+          icon('user', { size: 32 }),
+          h('div', { class: 'mp-hint' }, '未选择模特'),
+          h('div', { class: 'mp-sub' }, '将使用 AI 自动建模 (线路 a)'),
+        ),
+      );
+    }
+  }
+
+  // 灵感 prompt (仅 AI 自动建模时显示)
+  const inspirationWrap = h('div', { class: 'inspiration-wrap', style: 'margin-top:12px;display:none' });
+  function drawInspiration() {
+    if (state.modelId) {
+      inspirationWrap.style.display = 'none';
+      return;
+    }
+    inspirationWrap.style.display = '';
+    if (!inspirationWrap.children.length) {
       const input = h('textarea', {
-        class: 'text-input', rows: 3,
-        placeholder: '描述你想要的模特形象, 例: 20岁左右欧美白皮年轻男性, 身材苗条高挑, 金发碧眼, 潮牌街头气质',
+        class: 'text-input', rows: 2,
+        placeholder: '描述你想要的模特形象 (选填), 例: 20岁欧美白皮男性, 苗条高挑, 金发碧眼',
         oninput: () => { state.inspiration = input.value; },
       });
       input.value = state.inspiration;
-      modeDetail.replaceChildren(
-        h('div', { class: 'g-label', style: 'margin-bottom:6px' }, '灵感描述 (选填)'),
+      inspirationWrap.replaceChildren(
+        h('div', { class: 'g-label', style: 'margin-bottom:4px;font-size:12px' }, '灵感描述 (选填, 仅 AI 建模时生效)'),
         input,
-        h('div', { class: 'desc', style: 'margin-top:6px;font-size:12px' }, '不填则使用默认模特设定: 欧美年轻男性, 苗条高挑, 潮牌气质'),
       );
-    } else if (state.mode === 'b') {
-      const pickerGrid = h('div', { class: 'model-picker-grid', style: 'max-height:280px;overflow-y:auto' }, h('div', { class: 'home-loading' }, '加载模特库…'));
-      modeDetail.replaceChildren(
-        h('div', { class: 'g-label', style: 'margin-bottom:8px' }, '选择模特'),
-        pickerGrid,
-      );
-      // 加载模特库
-      fetch(`/api/models?userId=${encodeURIComponent(userId)}`)
-        .then((r) => r.json())
-        .then((data) => {
-          const all = [...(data.system ?? []), ...(data.user ?? [])];
-          if (!all.length) {
-            pickerGrid.replaceChildren(h('div', { class: 'empty-state' }, '暂无可用模特, 请先到模特库添加'));
-            return;
-          }
-          pickerGrid.replaceChildren(...all.map((m) => h('button', {
-            class: `model-pick ${state.modelId === m.id ? 'active' : ''}`, type: 'button',
-            onclick: () => {
-              state.modelId = m.id;
-              state.modelName = m.name;
-              state.modelDesc = m.desc;
-              pickerGrid.querySelectorAll('.model-pick').forEach((c) => c.classList.toggle('active', c.dataset.id === m.id));
-              refreshGenerate();
-            },
-            'data-id': m.id,
-          },
-            h('img', { src: m.cover, alt: m.name, loading: 'lazy' }),
-            h('span', { class: 'mp-name' }, m.name),
-          )));
-        })
-        .catch(() => {
-          pickerGrid.replaceChildren(h('div', { class: 'empty-state' }, '模特库加载失败'));
-        });
-    } else {
-      modeDetail.replaceChildren();
     }
   }
+
+  // ---------- 上传面板 (含模特库) ----------
+  const productPanel = h('div', { class: 'card panel' },
+    h('h3', {}, h('span', { class: 'step-no' }, '1'), '上传产品图'),
+    h('div', { class: 'hint' }, '上传产品正面图和背面图 (背面图可选), 拍清楚一点效果更好'),
+    uploader, fileInput, thumbsWrap,
+    modelSection,
+    inspirationWrap,
+  );
 
   // ---------- Step3: 生成 ----------
   const genControls = h('div', { class: 'gen-controls' });
   const resultsZone = h('div', { class: 'lookbook-results' });
   const genPanel = h('div', { class: 'card panel' },
-    h('h3', {}, h('span', { class: 'step-no' }, '3'), '生成套图'),
+    h('h3', {}, h('span', { class: 'step-no' }, '2'), '生成套图'),
     h('div', { class: 'hint' }, '按 01→07 顺序生成, 每步自动引用前序效果图保持一致性'),
     genControls,
     resultsZone,
   );
 
   function refreshGenerate() {
-    const canGen = state.productImages.length > 0 && !!state.mode && !state.generating;
+    const canGen = state.productImages.length > 0 && !state.generating;
     const cost = 2;
+    const modeLabel = state.modelId ? `线路 b · ${state.modelName}` : '线路 a · AI 自动建模';
     genControls.replaceChildren(
       h('div', { style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap' },
         h('button', {
           class: 'btn btn-primary btn-lg', disabled: !canGen,
           onclick: generateAll,
         }, icon('sparkles', { size: 16 }), state.generating ? '生成中…' : '一键生成 7 步'),
-        h('span', { style: 'color:var(--ink-3);font-size:13px' }, `每步 ${cost} 额度 · 共 7 步 · 当前余额 ${getCredits()}`),
+        h('span', { style: 'color:var(--ink-3);font-size:13px' }, `${modeLabel} · 每步 ${cost} 额度 · 余额 ${getCredits()}`),
       ),
     );
   }
 
-  // 7 步卡片
   const STEPS = [
     { id: '01', name: '列表主图', desc: '单人正面模特图' },
     { id: '02', name: '背面展示', desc: '同一模特背面图' },
@@ -257,9 +304,7 @@ export async function renderLookbook(root, { navigate, back }) {
               ),
             ),
             r?.url
-              ? h('div', { class: 'lb-result' },
-                h('img', { src: r.url, alt: s.name }),
-              )
+              ? h('div', { class: 'lb-result' }, h('img', { src: r.url, alt: s.name }))
               : r?.status === 'generating'
                 ? h('div', { class: 'lb-placeholder generating' }, h('div', { class: 'spinner' }), '生成中…')
                 : h('div', { class: 'lb-placeholder' }, h('span', { class: 'lb-wait' }, '待生成')),
@@ -279,16 +324,15 @@ export async function renderLookbook(root, { navigate, back }) {
     state.generating = true;
     refreshGenerate();
 
+    const mode = state.modelId ? 'b' : 'a';
     const stepPrompts = {};
     try {
-      // 先获取每步提示词
       for (const s of STEPS) {
         const res = await fetch('/api/shopify/prompt', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            mode: state.mode,
-            step: s.id,
+            mode, step: s.id,
             productDesc: 'T恤',
             inspiration: state.inspiration,
             modelDesc: state.modelDesc,
@@ -300,7 +344,6 @@ export async function renderLookbook(root, { navigate, back }) {
         stepPrompts[s.id] = data.prompt;
       }
 
-      // 逐步生成
       for (const s of STEPS) {
         if (!state.productImages.length) break;
         spendCredits(cost);
@@ -308,6 +351,10 @@ export async function renderLookbook(root, { navigate, back }) {
         drawResults();
 
         const imageUrls = state.productImages.map((im) => im.url).filter((u) => u && !isMockUrl(u));
+        // 线路 b 时把模特参考图也传入
+        if (state.modelId && state.modelCover) {
+          imageUrls.push(state.modelCover);
+        }
 
         try {
           const res = await fetch('/api/generate/image', {
@@ -316,10 +363,7 @@ export async function renderLookbook(root, { navigate, back }) {
             body: JSON.stringify({
               templateId: 'shopify-lookbook',
               prompt: stepPrompts[s.id],
-              aspect_ratio: '4:5',
-              resolution: '2K',
-              quality: 'high',
-              count: 1,
+              aspect_ratio: '4:5', resolution: '2K', quality: 'high', count: 1,
               imageUrls,
               title: `Shopify ${s.id} ${s.name}`,
             }),
@@ -327,7 +371,6 @@ export async function renderLookbook(root, { navigate, back }) {
           const gen = await res.json();
           if (gen?.error) throw new Error(gen.error.message);
 
-          // 轮询等待
           await new Promise((resolve) => {
             pollTask(gen.taskId, (st) => {
               if (st.isFinal) {
@@ -355,6 +398,7 @@ export async function renderLookbook(root, { navigate, back }) {
 
     state.generating = false;
     refreshGenerate();
+    drawInspiration();
     const completed = Object.values(state.results).filter((r) => r.status === 'completed').length;
     if (completed > 0) toast(`生成完成, 共 ${completed} 张`, 'ok');
   }
@@ -364,6 +408,8 @@ export async function renderLookbook(root, { navigate, back }) {
   refreshGenerate();
   drawResults();
   drawThumbs();
+  drawModelPreview();
+  drawInspiration();
 
-  root.append(header, stepper, productPanel, modePanel, genPanel);
+  root.append(header, stepper, productPanel, genPanel);
 }
