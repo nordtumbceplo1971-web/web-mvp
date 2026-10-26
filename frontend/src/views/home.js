@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { icon } from '../icons.js';
 import { tplCover, KIND_LABEL } from '../tplMeta.js';
 import { getCredits } from '../store.js';
+import { createAnnouncementBar } from '../announcements.js';
 
 /**
  * 首页 v3 (上下比例布局):
@@ -97,6 +98,13 @@ export function renderHome(root, { navigate }) {
   );
 
   root.append(h('div', { class: 'home-split' }, preview, quick));
+
+  // 轮播公告 (窄屏时顶栏放不下, 移到首页内容区顶部)
+  const annBlock = createAnnouncementBar();
+  if (annBlock) {
+    annBlock.classList.add('ann-bar-block');
+    root.insertBefore(annBlock, root.firstChild);
+  }
 
   // ---- 数据填充 ----
   api.listTemplates().then(({ items }) => {

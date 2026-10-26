@@ -160,6 +160,38 @@ h1, h2, h3 { line-height: 1.3; margin: 0; }
 .btn-back { flex-shrink: 0; }
 .btn-back[disabled] { opacity: 0.45; }
 
+/* ---------- 轮播公告 (顶栏 · 标题与右侧导航之间) ---------- */
+.ann-bar {
+  flex: 1; min-width: 0; max-width: 680px;
+  display: flex; align-items: center; gap: 9px;
+  margin-left: 20px; padding: 5px 12px;
+  background: var(--gold-soft); border: 1px solid var(--gold-border);
+  border-radius: var(--r-sm);
+  font-size: 13px; font-weight: 500; color: var(--gold);
+  transition: background 0.2s, border-color 0.2s, color 0.2s;
+}
+.ann-bar[data-level="info"] {
+  background: var(--brand-soft); border-color: var(--brand-border); color: var(--brand-deep);
+}
+.ann-ico { display: grid; place-items: center; opacity: 0.9; flex-shrink: 0; }
+.ann-text {
+  flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  transition: opacity 0.16s ease;
+}
+.ann-text.fade { opacity: 0; }
+.ann-text.linkable { cursor: pointer; text-decoration: underline dotted; }
+.ann-dots { display: flex; align-items: center; gap: 4px; flex-shrink: 0; }
+.ann-dot {
+  width: 6px; height: 6px; border-radius: 50%; border: 0; padding: 0;
+  background: currentColor; opacity: 0.28; cursor: pointer;
+  transition: opacity 0.15s, transform 0.15s;
+}
+.ann-dot:hover { opacity: 0.6; }
+.ann-dot.on { opacity: 1; transform: scale(1.15); }
+.ann-dot:focus-visible { outline: none; box-shadow: var(--ring); }
+/* 首页内容区横幅 (窄屏时顶栏公告隐藏, 由此处承担) */
+.ann-bar-block { display: none; max-width: none; margin: 0 0 14px; }
+
 /* ---------- 顶部导航 (首页 / 我的作品) ---------- */
 .top-nav { display: flex; align-items: center; gap: 2px; margin-right: 4px; }
 .top-nav-link {
@@ -773,6 +805,9 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .mobile-nav a.active { background: var(--brand); border-color: var(--brand); color: #fff; font-weight: 600; }
   .create-layout, .studio-layout { grid-template-columns: 1fr; }
   .gen-side { position: static; }
+  /* 窄屏: 顶栏放不下公告 → 移到首页内容区 */
+  .topbar .ann-bar { display: none; }
+  .ann-bar-block { display: flex; }
   /* 首页: 上下比例在小屏改为自然堆叠 */
   .home-split { grid-template-rows: auto auto; min-height: 0; }
   .home-preview { overflow: visible; padding-bottom: 18px; }

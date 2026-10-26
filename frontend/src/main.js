@@ -4,6 +4,7 @@ import { icon } from './icons.js';
 import { api } from './api.js';
 import { getCredits } from './store.js';
 import { startTour } from './tour.js';
+import { createAnnouncementBar } from './announcements.js';
 import { APP_VERSION } from './version.js';
 import { renderHome } from './views/home.js';
 import { renderTemplates } from './views/templates.js';
@@ -152,6 +153,8 @@ function renderShell() {
     h('div', { class: 'topbar-inner' },
       backBtn,
       pageTitle,
+      // 轮播公告 (顶栏 · 页面标题与右侧导航之间)
+      createAnnouncementBar(),
       h('div', { class: 'topbar-right' },
         topNav,
         creditsWrap,

@@ -127,7 +127,7 @@ backend/                     Express (端口 8787)
 frontend/                    Vite + 原生 JS 模块 (端口 5173)
   src/
     main.js                  应用外壳 + hash 路由 + 访问栈(统一返回) + 侧栏分组 + 额度浮层
-    api.js / ui.js / store.js / tour.js / tplMeta.js / version.js
+    api.js / ui.js / store.js / tour.js / tplMeta.js / version.js / announcements.js（轮播公告数据源）
     styles/main.css          设计系统 (slate 灰阶 + 专业蓝, 变量化)
     views/  home / templates / templateDetail / create / studio / works / recharge / settings
 design/
