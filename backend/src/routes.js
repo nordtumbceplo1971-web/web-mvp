@@ -3,23 +3,41 @@ import multer from 'multer';
 import { config, isMockMode } from './config.js';
 import { templates, categories, getTemplate, composePrompt } from './modules/templates/templates.js';
 import { generateImage, generateVideo } from './modules/generation/service.js';
-import { isMockTaskId, getMockTask } from './modules/generation/taskSimulator.js';
+import { isMockTaskId, getMockTask, parseMockTaskId } from './modules/generation/taskSimulator.js';
 import { getTask, uploadFile, UpstreamError } from './upstream/client.js';
 import { optimizePrompt, OPTIMIZER_SYSTEM_PROMPT } from './modules/prompt/optimizer.js';
-import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork } from './modules/works/store.js';
+import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork, storageMode } from './modules/works/store.js';
 
 export const api = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 50 * 1024 * 1024 } });
 
 const wrap = (fn) => (req, res, next) => Promise.resolve(fn(req, res, next)).catch(next);
 
+/**
+ * 对外可访问的基础地址 (反向代理/Serverless 下需取 x-forwarded-*)
+ * 例: Vercel 前面有网关 → req.protocol 可能是 http, 需用 x-forwarded-proto=https
+ */
+function publicBaseUrl(req) {
+  const proto = req.headers['x-forwarded-proto']?.split(',')[0]?.trim() || req.protocol;
+  const host = req.headers['x-forwarded-host']?.split(',')[0]?.trim() || req.get('host');
+  return `${proto}://${host}`;
+}
+
 // ---------- 系统 ----------
+api.get('/', (req, res) => {
+  res.json({ name: 'BrandStudio API', version: '0.1.2', docs: '/api/health' });
+});
+api.get('/index', (req, res) => {
+  res.json({ name: 'BrandStudio API', version: '0.1.2', docs: '/api/health' });
+});
 api.get('/health', (req, res) => {
   res.json({
     ok: true,
     mode: isMockMode() ? 'mock' : 'live',
     models: config.models,
     upstream: config.upstream.baseUrl,
+    storage: storageMode(),
+    runtime: process.env.VERCEL ? 'vercel-serverless' : 'node-server',
   });
 });
 
@@ -81,8 +99,15 @@ api.get('/tasks/:taskId', wrap(async (req, res) => {
 
   if (isMockTaskId(taskId)) {
     const work = findWorkByTask(taskId);
-    const meta = { created_at: work?.createdAt ?? Date.now(), type: work?.type ?? 'image', count: work?.count ?? 1, title: work?.title };
-    const task = getMockTask({ ...meta, task_id: taskId }, `${req.protocol}://${req.get('host')}`);
+    // 【Serverless】任务元信息从 taskId 自描述解析, 不依赖内存/磁盘, 跨实例也能正确推进
+    const parsed = parseMockTaskId(taskId);
+    const meta = {
+      created_at: parsed?.createdAt ?? work?.createdAt ?? Date.now(),
+      type: work?.type ?? parsed?.type ?? 'image',
+      count: work?.count ?? parsed?.count ?? 1,
+      title: work?.title,
+    };
+    const task = getMockTask({ ...meta, task_id: taskId }, publicBaseUrl(req));
     if (task.is_final && work && work.status === 'processing') {
       completeWorkByTask(taskId, { urls: task.data.map((d) => d.url), status: 'completed' });
     }

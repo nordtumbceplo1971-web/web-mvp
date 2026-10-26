@@ -10,6 +10,7 @@ const width = Number(process.argv[2] || 1440);
 const height = Number(process.argv[3] || 900);
 const hash = process.argv[4] || '';
 const PORT = 9333 + (width % 7);
+const BASE = process.env.BASE_URL || 'http://127.0.0.1:5173';
 
 const proc = spawn(EDGE, [
   '--headless=new', '--disable-gpu', '--no-sandbox',
@@ -65,7 +66,7 @@ const send = (method, params = {}) => new Promise((resolve, reject) => {
 await send('Runtime.enable');
 await send('Page.enable');
 await send('Emulation.setDeviceMetricsOverride', { width, height, deviceScaleFactor: 1, mobile: width < 700 });
-await send('Page.navigate', { url: `http://127.0.0.1:5173/#/${hash}` });
+await send('Page.navigate', { url: `${BASE}/#/${hash}` });
 await sleep(3000);
 
 const expr = `(() => {

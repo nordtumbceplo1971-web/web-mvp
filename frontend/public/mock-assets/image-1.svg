@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="800" height="800" viewBox="0 0 800 800">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#FFF4E8"/>
+      <stop offset="1" stop-color="#FFE3C8"/>
+    </linearGradient>
+  </defs>
+  <rect width="800" height="800" fill="url(#bg)"/>
+  <circle cx="400" cy="330" r="150" fill="#F96D02" opacity="0.9"/>
+  <rect x="250" y="480" width="300" height="26" rx="13" fill="#26221E" opacity="0.12"/>
+  <rect x="300" y="530" width="200" height="20" rx="10" fill="#26221E" opacity="0.08"/>
+  <text x="400" y="640" text-anchor="middle" font-family="Nunito, 'Noto Sans SC', sans-serif" font-size="34" font-weight="800" fill="#6B6259">生成结果 · 示意占位</text>
+  <text x="400" y="684" text-anchor="middle" font-family="Nunito, 'Noto Sans SC', sans-serif" font-size="20" font-weight="600" fill="#A69D92">MOCK 模式演示图 · 配置密钥后为真实生成</text>
+</svg>

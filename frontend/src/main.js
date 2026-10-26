@@ -300,12 +300,17 @@ function renderShell() {
     renderPath(path);
   });
 
-  // 服务模式标识 (MOCK / 正式)
+  // 服务模式标识 (MOCK / 正式 / 未连接)
   fetch('/api/health').then((r) => r.json()).then((j) => {
     const live = j?.mode === 'live';
     modeChip.classList.toggle('live', live);
     modeChip.replaceChildren(h('span', { class: 'dot' }), live ? '正式模式 · 已连接模型服务' : '演示模式 · 未配置 API 密钥');
-  }).catch(() => modeChip.replaceChildren(h('span', { class: 'dot' }), '服务未连接'));
+    modeChip.title = `运行时: ${j?.runtime ?? '未知'} · 存储: ${j?.storage ?? '未知'}`;
+  }).catch(() => {
+    modeChip.classList.add('offline');
+    modeChip.replaceChildren(h('span', { class: 'dot' }), '后端未连接');
+    modeChip.title = '未检测到 /api/health 服务 —— 请确认后端已部署 (Vercel: 部署 api/ 函数; 本地: 启动 backend)';
+  });
 
   app.append(
     h('div', { class: 'app-shell' },

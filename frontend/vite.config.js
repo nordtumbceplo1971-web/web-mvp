@@ -10,4 +10,13 @@ export default defineConfig({
       '/mock-assets': 'http://127.0.0.1:8787',
     },
   },
+  // 预览构建产物 (本地模拟线上: 静态资源 + /api 代理)
+  preview: {
+    host: '127.0.0.1',
+    port: 4173,
+    proxy: {
+      '/api': 'http://127.0.0.1:8787',
+      '/mock-assets': 'http://127.0.0.1:8787',
+    },
+  },
 });

@@ -1,6 +1,6 @@
 {
   "name": "brandstudio-backend",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "private": true,
   "description": "BrandStudio MVP backend — AI 电商内容生成平台（模块化, 前后端分离）",
   "type": "module",

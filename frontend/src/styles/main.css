@@ -140,6 +140,7 @@ h1, h2, h3 { line-height: 1.3; margin: 0; }
   background: var(--gold-soft); color: var(--gold); border: 1px solid var(--gold-border);
 }
 .mode-chip.live { background: var(--green-soft); color: var(--green-deep); border-color: #bbf7d0; }
+.mode-chip.offline { background: var(--danger-soft); color: var(--danger); border-color: #fecaca; }
 .mode-chip .dot { width: 6px; height: 6px; border-radius: 50%; background: currentColor; }
 .sidebar-foot .tip { font-size: 11px; color: var(--ink-3); margin-top: 8px; line-height: 1.5; }
 .sidebar-foot .ver { font-size: 11px; color: var(--ink-3); margin-top: 6px; opacity: 0.8; }

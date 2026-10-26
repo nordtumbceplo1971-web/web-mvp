@@ -4,25 +4,57 @@ import { fileURLToPath } from 'node:url';
 import crypto from 'node:crypto';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
-const DATA_DIR = path.join(__dirname, '..', '..', '..', 'data');
-const WORKS_FILE = path.join(DATA_DIR, 'works.json');
 
-function ensureDataDir() {
-  if (!fs.existsSync(DATA_DIR)) fs.mkdirSync(DATA_DIR, { recursive: true });
+/**
+ * 作品存储 (三级降级, 兼容 Serverless 只读文件系统)
+ * 1) WORKS_DATA_DIR 环境变量指定的目录
+ * 2) 本地开发: backend/data (可写磁盘, 数据持久)
+ * 3) Serverless: /tmp/brandstudio-data (实例内持久, 冷启动会丢)
+ * 4) 全部不可写 → 纯内存 (仍可完整演示, 但数据不跨实例/冷启动保留)
+ */
+function resolveDataDir() {
+  const candidates = [
+    process.env.WORKS_DATA_DIR,
+    path.join(__dirname, '..', '..', '..', 'data'),
+    path.join('/tmp', 'brandstudio-data'),
+  ].filter(Boolean);
+  for (const dir of candidates) {
+    try {
+      fs.mkdirSync(dir, { recursive: true });
+      fs.accessSync(dir, fs.constants.W_OK);
+      return dir;
+    } catch { /* 试下一个候选 */ }
+  }
+  return null;
 }
 
+const DATA_DIR = resolveDataDir();
+const WORKS_FILE = DATA_DIR ? path.join(DATA_DIR, 'works.json') : null;
+let memoryOnly = !DATA_DIR;
+let memoryWorks = [];
+
+/** 当前存储模式 (供 /api/health 展示, 便于排查部署问题) */
+export const storageMode = () => (memoryOnly ? 'memory' : (DATA_DIR ?? 'memory'));
+
 function readAll() {
-  ensureDataDir();
+  if (memoryOnly) return memoryWorks;
   try {
-    return JSON.parse(fs.readFileSync(WORKS_FILE, 'utf8'));
+    const parsed = JSON.parse(fs.readFileSync(WORKS_FILE, 'utf8'));
+    return Array.isArray(parsed) ? parsed : [];
   } catch {
     return [];
   }
 }
 
 function writeAll(works) {
-  ensureDataDir();
-  fs.writeFileSync(WORKS_FILE, JSON.stringify(works, null, 2), 'utf8');
+  if (memoryOnly) { memoryWorks = works; return; }
+  try {
+    fs.writeFileSync(WORKS_FILE, JSON.stringify(works, null, 2), 'utf8');
+  } catch (err) {
+    console.warn('[works] 磁盘写入失败, 降级为内存存储:', err.message);
+    memoryOnly = true;
+    memoryWorks = works;
+  }
 }
 
 export function listWorks({ type, page = 1, pageSize = 60 } = {}) {

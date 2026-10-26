@@ -3,8 +3,65 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.1**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.1`，
+当前版本：**v0.1.2**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.2`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示）
+
+---
+
+## v0.1.2 · 2026-10-26
+
+**主题**：全栈 Serverless 化 —— 前端已上 Vercel，补齐后端 `/api` 服务，站点可完整跑通全流程
+
+### 问题诊断
+
+前端已通过 GitHub 部署到 Vercel，但后端 Express（8787）未部署 → `/api/health` 请求失败 →
+侧栏左下角显示「服务未连接」。要看到完整运行效果，必须让 `/api/*` 在线上有服务承接。
+
+### 方案：同一 Vercel 项目一体化部署（前端静态 + `/api/*` Serverless Function）
+
+同域部署、无跨域、无需第二个平台账号；仓库已按此形态改造完毕。
+
+### 后端 Serverless 适配（关键改动）
+
+| # | 问题 | 方案 |
+|---|---|---|
+| 1 | MOCK 任务状态依赖内存 + 作品文件，冷启动后轮询永远停在 pending | **任务 ID 自描述**：`mock-{类型}-{张数}-{时间戳36进制}-{uuid}`，进度由 ID 解析得出，跨实例也能正确推进 |
+| 2 | 作品存 `backend/data/works.json`，Serverless 文件系统只读且实例级 | **三级降级存储**：`WORKS_DATA_DIR` → 本地 `backend/data` → `/tmp/brandstudio-data` → 纯内存；写失败自动降级 |
+| 3 | 反向代理下 `req.protocol` 为 http，占位图 URL 变 http 被浏览器按混合内容拦截 | 新增 `publicBaseUrl()`，读取 `x-forwarded-proto` / `x-forwarded-host` |
+| 4 | `/mock-assets` 在后端静态目录，函数只接管 `/api/*` | 同步一份到 `frontend/public/mock-assets/`，由 Vercel 静态托管 |
+| 5 | Express 应用直接 `listen`，无法作为函数导出 | 拆出 `backend/src/app.js`（`createApp()`），`index.js` 仅作本地常驻入口 |
+| 6 | 根目录无 package.json，函数解析不到 express 等依赖 | 新增根 `package.json`（后端依赖 + `npm run build` 脚本） |
+
+### 新增 / 变更文件
+
+| 文件 | 说明 |
+|---|---|
+| `api/[...path].js` | **新增**：Vercel Serverless Function 入口（catch-all），统一还原 `/api/*` 路径 |
+| `backend/src/app.js` | **新增**：Express 应用装配 `createApp()`（与运行形态解耦），含 CORS 白名单与 `x-forwarded-*` 处理 |
+| `backend/src/index.js` | 改为复用 `createApp()`，仅负责本地 `listen` |
+| `backend/src/modules/generation/taskSimulator.js` | 任务 ID 自描述 + `parseMockTaskId()`（无状态轮询） |
+| `backend/src/modules/works/store.js` | 三级降级存储 + `storageMode()` |
+| `backend/src/routes.js` | `/api/health` 增加 `storage` / `runtime` 字段；任务路由改用无状态解析 |
+| `vercel.json` | **新增**：build / output / functions 配置 |
+| `package.json`（根） | **新增**：后端依赖 + `build` / `dev` / `start` 脚本 |
+| `frontend/public/mock-assets/` | **新增**：占位素材静态副本（生产环境由 Vercel 托管） |
+| `frontend/vite.config.js` | 新增 `preview.proxy`，可本地预览构建产物 |
+| `frontend/src/main.js` | 连接状态提示优化：区分「后端未连接」（红色）与「演示/正式模式」，悬停显示运行时与存储方式 |
+
+### 部署方式（Vercel 控制台）
+
+Root Directory 改为 **`/`（仓库根目录）**，Build `npm run build`，Output `frontend/dist`，Install `npm install`
+（其余已写入 `vercel.json`，详见 README「部署到 Vercel」章节）。
+
+### 验证
+
+- `tools/vercel-sim.mjs`：本地以 Node 模拟 Serverless 调用，`/api/health`、`/api/templates`、`/api/works`、
+  `/index` 四条路径全部 200
+- `tools/smoke.mjs`（对构建产物 + 后端）：健康检查、模板库（17 模板 / 6 分类）、占位素材、MOCK 生成全流程
+  （创建 → 轮询 → 完成 → 出图 → 入库）**全部通过**
+- 无状态验证：构造一个**没有作品记录**且创建于 30 秒前的任务 ID，轮询直接返回 `completed`（模拟冷启动场景）
+- 构建产物侧栏实测显示「演示模式 · 未配置 API 密钥」，版本 v0.1.2
+- CDP 体检 1440 / 375：无横向溢出、0 控制台报错
 
 ---
 

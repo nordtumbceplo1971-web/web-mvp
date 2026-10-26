@@ -3,7 +3,7 @@
 > **一个想法 + 选一个模板 = 一套可直接上架的品牌内容。**
 > 面向 0 基础电商从业者：不写提示词、不选模型、不调参数——上传产品图、点选微调、点生成。
 
-**当前版本：v0.1.1**（版本号规则 `v0.1.n`，每次更新递增一位；更新明细见 [`CHANGELOG.md`](./CHANGELOG.md)）
+**当前版本：v0.1.2**（版本号规则 `v0.1.n`，每次更新递增一位；更新明细见 [`CHANGELOG.md`](./CHANGELOG.md)）
 
 **品牌标识**：`frontend/public/brand/logo-square.png` —— 996 图标在上、996.chat slogan 在下的 1:1 正方形组合
 （`logo-icon.png` 为纯图标，用于浏览器 favicon）
@@ -26,6 +26,67 @@ npm run dev
 打开 http://127.0.0.1:5173 —— 首次进入自动弹出 5 步新手引导（金色聚光 + 遮罩），可随时点右上角「新手引导」重看。
 
 **MOCK 模式**：未配置 `UPSTREAM_API_KEY` 时，生成/优化走本地模拟（约 9 秒出占位结果，明确标注「示意」，不产生任何费用）。配置密钥后自动切换为真实调用上游。
+
+---
+
+## 部署到 Vercel（前端 + API 同域一体部署）
+
+仓库已按「同一个 Vercel 项目同时托管静态前端与 Serverless API」改造完毕：
+静态页面来自 `frontend/dist`，`/api/*` 由根目录 `api/[...path].js`（Express 应用）承接，**同域、无跨域**。
+
+### 必改的一处设置：Root Directory
+
+之前只部署前端时 Root Directory 指向了 `frontend`，这样 Vercel 看不到根目录的 `api/` 函数，
+于是页面能打开但 `/api/health` 404 → 侧栏显示「后端未连接」。**把 Root Directory 改成仓库根目录即可。**
+
+| Vercel 设置项 | 值 |
+|---|---|
+| **Root Directory** | `/`（仓库根目录，**清空原来的 `frontend`**） |
+| Framework Preset | Other |
+| Install Command | `npm install` |
+| Build Command | `npm run build` |
+| Output Directory | `frontend/dist` |
+
+> 以上四项已写进仓库根目录 `vercel.json`，若 Vercel 控制台里手动改过，**控制台优先级更高**，请按表核对。
+
+### 环境变量（可选）
+
+| 变量 | 作用 | 建议 |
+|---|---|---|
+| `UPSTREAM_API_KEY` | 上游模型密钥 | **留空** = MOCK 演示模式，零费用、可完整跑通全流程；填入 = 真实调用（会产生费用） |
+| `CORS_ORIGIN` | 允许跨域来源 | 同域部署留空即可 |
+| `WORKS_DATA_DIR` | 作品持久化目录 | 默认自动降级（见下「数据持久化」） |
+
+### 部署后自检
+
+1. 打开站点 → 左下角应显示 **「演示模式 · 未配置 API 密钥」**（不再是「后端未连接」）
+2. 直接访问 `https://<你的域名>/api/health` → 应返回 `{"ok":true,"mode":"mock",...}`
+3. 走一遍「模板库 → 做同款 → 上传 → 生成」→ 约 9 秒出占位图（明确标注「示意」）
+
+### Serverless 适配要点（已内置）
+
+| 原问题 | 适配方案 |
+|---|---|
+| MOCK 任务状态存在内存/文件里，冷启动后轮询会永远停在 pending | 任务 ID 自描述（`mock-{类型}-{张数}-{时间戳36进制}-{uuid}`），进度纯靠 ID 解析，**跨实例也能正确推进** |
+| 作品存在 `backend/data/works.json`，Serverless 文件系统只读且实例级 | 三级降级：指定目录 → 本地 `backend/data` → `/tmp/brandstudio-data`（实例内持久）→ 纯内存 |
+| 反向代理下 `req.protocol` 是 http，导致占位图地址变成 http（浏览器按混合内容拦截） | 读取 `x-forwarded-proto` / `x-forwarded-host` 还原真实对外地址 |
+| `/mock-assets` 占位素材在后端静态目录，函数只接管 `/api/*` | 同步一份到 `frontend/public/mock-assets/`，由 Vercel 静态托管 |
+| 根目录缺少 package.json，函数找不到 express 等依赖 | 新增根 `package.json`（含后端依赖 + build 脚本），Vercel 安装后即可打包函数 |
+
+### 数据持久化说明
+
+Serverless 无状态，作品数据默认落在**函数实例的 `/tmp`**：同一实例内可见，冷启动或实例轮换后会丢失
+（演示完全够用，不影响跑通流程）。需要长期保存可任选其一：
+- Vercel KV / Upstash Redis（推荐，改 `backend/src/modules/works/store.js` 的存储实现）
+- 把后端部署到 Render / Railway 等常驻 Node 平台（自带磁盘），前端改为指向该域名
+
+### 备选方案：后端独立部署
+
+若不想用 Serverless，可把 `backend/` 部署到 **Render / Railway / Fly.io**（常驻 Node + 持久磁盘），
+前端在 `frontend/src/api.js` 的 `request()` 里把相对路径改为该后端的绝对地址即可
+（后端已支持 `CORS_ORIGIN` 白名单配置）。
+
+---
 
 ## 与需求的对应
 

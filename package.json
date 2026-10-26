@@ -1,0 +1,22 @@
+{
+  "name": "brandstudio-web",
+  "version": "0.1.2",
+  "private": true,
+  "type": "module",
+  "description": "BrandStudio · AI 电商自动化创作平台 (前端 + Serverless API 一体化部署)",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "cd frontend && npm install --no-audit --no-fund && npm run build",
+    "dev": "npm run dev --prefix frontend",
+    "dev:api": "npm run start --prefix backend",
+    "start": "npm run start --prefix backend"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.21.2",
+    "multer": "^1.4.5-lts.1"
+  }
+}
