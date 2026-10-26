@@ -1,0 +1,35 @@
+# ---------- 依赖 ----------
+node_modules/
+
+# ---------- 构建产物 ----------
+dist/
+build/
+.vite/
+
+# ---------- 运行时数据 ----------
+backend/data/
+*.log
+npm-debug.log*
+yarn-error.log*
+
+# ---------- 环境变量与密钥 (严禁提交) ----------
+.env
+.env.*
+!.env.example
+backend/.env
+backend/.env.local
+
+# ---------- 设计技能临时目录 (可从根目录 zip 重新解压) ----------
+.design-tmp/
+.skill-tmp/
+
+# ---------- 编辑器 / 系统 ----------
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# ---------- OS / 编辑器临时文件 ----------
+*.swp
+*~
