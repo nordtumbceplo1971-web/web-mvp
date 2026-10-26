@@ -1,20 +1,68 @@
-/** 后端 API 客户端 (前后端分离: 全部走 /api 代理) */
+/**
+ * 后端 API 客户端
+ *
+ * 后端地址(base)解析优先级:
+ * 1) 设置页本地配置 (localStorage: bs-api-base) —— 运行时可改, 无需重新构建
+ * 2) 部署期配置 (public/config.js: window.__APP_CONFIG__.apiBase)
+ * 3) 空字符串 —— 与前端同域的 /api (Vercel 一体化部署 / 本地开发)
+ */
+
+const RUNTIME_CFG = (typeof window !== 'undefined' && window.__APP_CONFIG__) || {};
+
+const trimBase = (v) => String(v ?? '').trim().replace(/\/+$/, '');
+
+/** 当前生效的后端地址 (空 = 同域) */
+export function getApiBase() {
+  try {
+    const local = localStorage.getItem('bs-api-base');
+    if (local !== null) return trimBase(local);
+  } catch { /* 隐私模式下忽略 */ }
+  return trimBase(RUNTIME_CFG.apiBase);
+}
+
+/** 设置后端地址 (留空 = 同域 /api) */
+export function setApiBase(v) {
+  try { localStorage.setItem('bs-api-base', trimBase(v)); } catch { /* ignore */ }
+}
+
+/** API 错误: 带原因分类, 便于界面给出准确提示 */
+export class ApiError extends Error {
+  constructor(message, { status = 0, reason = 'unknown', url = '', code = null } = {}) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.reason = reason; // network | no-api | not-found | server | http
+    this.url = url;
+    this.code = code;
+  }
+}
 
 async function request(path, { method = 'GET', body, formData } = {}) {
+  const url = `${getApiBase()}/api${path}`;
   const opts = { method };
   if (formData) opts.body = formData;
   else if (body !== undefined) {
     opts.headers = { 'Content-Type': 'application/json' };
     opts.body = JSON.stringify(body);
   }
-  const res = await fetch(`/api${path}`, opts);
+
+  let res;
+  try {
+    res = await fetch(url, opts);
+  } catch (e) {
+    throw new ApiError('无法连接后端服务', { status: 0, reason: 'network', url });
+  }
+
   let data = null;
-  try { data = await res.json(); } catch { /* ignore */ }
+  try { data = await res.json(); } catch { /* 非 JSON 响应(可能是前端 HTML / 404 页) */ }
+
   if (!res.ok || data?.error) {
-    const err = new Error(data?.error?.message || `请求失败 (${res.status})`);
-    err.code = data?.error?.code;
-    err.status = res.status;
-    throw err;
+    // 返回的不是 JSON → 多半是 /api 没落到后端(前端被单独部署时的典型症状)
+    const reason = data === null ? 'no-api'
+      : res.status === 404 ? 'not-found'
+        : res.status >= 500 ? 'server' : 'http';
+    const msg = data?.error?.message || `请求失败 (${res.status})`;
+    throw new ApiError(msg, { status: res.status, reason, url, code: data?.error?.code ?? null });
   }
   return data;
 }

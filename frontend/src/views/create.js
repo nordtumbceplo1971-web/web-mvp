@@ -1,5 +1,6 @@
 import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES } from '../ui.js';
 import { api } from '../api.js';
+import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
@@ -15,9 +16,17 @@ export async function renderCreate(root, { navigate, query, back }) {
   let tpl;
   try {
     tpl = await api.getTemplate(tplId);
-  } catch {
-    root.append(h('div', { class: 'empty-state' }, '模板不存在, ',
-      h('a', { href: '#/templates' }, '回模板库')));
+  } catch (e) {
+    // 区分「模板不存在」与「后端没部署 / 网络不通」等真实原因
+    root.append(h('div', { class: 'page-head' },
+      h('button', { class: 'btn btn-ghost btn-sm', onclick: () => goBack(), 'aria-label': '返回上一页' },
+        icon('arrow-left', { size: 15 }), '返回上一页'),
+    ));
+    renderApiError(root, e, {
+      resource: '模板',
+      onRetry: () => navigate(`/create?tpl=${tplId}`),
+      backTo: { label: '回模板库', href: '#/templates', onClick: () => navigate('/templates') },
+    });
     return;
   }
   const isVideo = tpl.type === 'video';

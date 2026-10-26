@@ -1,6 +1,7 @@
 import { h, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { getCredits, getProfile, setProfile, resetLocalData } from '../store.js';
+import { api, getApiBase, setApiBase } from '../api.js';
 import { APP_VERSION } from '../version.js';
 
 /** 用户设置页: 账户资料 / 创作偏好 / 本地数据 (MVP 演示: 偏好存本地) */
@@ -68,6 +69,58 @@ export function renderSettings(root, { navigate, back }) {
     ),
   );
 
+  // ---------- 后端连接 ----------
+  const apiBase = h('input', {
+    class: 'text-input', type: 'text', value: getApiBase(),
+    placeholder: '留空 = 与前端同域的 /api',
+  });
+  const connTip = h('div', { class: 'conn-tip' });
+  const testBtn = h('button', {
+    class: 'btn btn-blue btn-sm',
+    onclick: async () => {
+      setApiBase(apiBase.value);
+      connTip.className = 'conn-tip';
+      connTip.replaceChildren('正在检测…');
+      try {
+        const j = await api.health();
+        connTip.className = 'conn-tip ok';
+        connTip.replaceChildren(
+          `✓ 已连接 · 模式 ${j.mode === 'live' ? '正式' : '演示(MOCK)'} · 运行时 ${j.runtime ?? '未知'} · 存储 ${j.storage ?? '未知'}`,
+        );
+        toast('后端连接正常', 'ok');
+      } catch (e) {
+        connTip.className = 'conn-tip bad';
+        connTip.replaceChildren(`✗ ${e.reason === 'network' ? '无法连接' : e.reason === 'no-api' ? '未响应接口数据' : e.message}`);
+        toast('后端连接失败', 'err');
+      }
+    },
+  }, '测试连接');
+
+  const connPanel = h('div', { class: 'card panel' },
+    h('h3', {}, '后端连接'),
+    h('div', { class: 'desc', style: 'margin-bottom:10px' },
+      '前端与后端分开部署时, 在此填写后端地址 (无需重新构建); 同一域名一体化部署则留空即可。'),
+    h('div', { class: 'form-grid' },
+      h('label', { class: 'field' }, h('span', { class: 'g-label' }, '后端地址'), apiBase),
+    ),
+    h('div', { class: 'form-actions' },
+      testBtn,
+      h('button', {
+        class: 'btn btn-ghost',
+        onclick: () => {
+          setApiBase(apiBase.value);
+          toast('已保存, 正在刷新…', 'ok');
+          setTimeout(() => window.location.reload(), 600);
+        },
+      }, '保存并刷新'),
+      h('button', {
+        class: 'btn btn-ghost',
+        onclick: () => { apiBase.value = ''; setApiBase(''); connTip.replaceChildren(); },
+      }, '恢复同域'),
+    ),
+    connTip,
+  );
+
   // ---------- 账户信息 ----------
   const account = h('div', { class: 'card panel' },
     h('h3', {}, '账户信息'),
@@ -94,7 +147,7 @@ export function renderSettings(root, { navigate, back }) {
   root.append(
     header,
     h('div', { class: 'settings-layout' },
-      h('div', {}, form, danger),
+      h('div', {}, form, connPanel, danger),
       h('div', { class: 'settings-side' }, account),
     ),
   );

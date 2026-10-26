@@ -17,20 +17,21 @@ export function createApp() {
   const app = express();
 
   // ---- CORS: 同域部署 (Vercel) 无需跨域; 独立部署时用 CORS_ORIGIN 指定 ----
+  // CORS_ORIGIN 支持逗号分隔的多个来源, 或 * 表示放行全部
   const allowList = [
-    config.corsOrigin,
+    ...String(config.corsOrigin || '').split(',').map((s) => s.trim()).filter(Boolean),
     'http://127.0.0.1:5173',
     'http://localhost:5173',
     'http://localhost:8787',
     ...(process.env.VERCEL_URL ? [`https://${process.env.VERCEL_URL}`] : []),
   ].filter(Boolean);
-  const allowAll = !config.corsOrigin || config.corsOrigin === '*';
+  const allowAll = !config.corsOrigin || config.corsOrigin.trim() === '*';
   app.use(cors({ origin: allowAll ? true : allowList }));
 
   app.use(express.json({ limit: '2mb' }));
 
   app.get('/', (req, res) => {
-    res.json({ name: '996 Studio API', version: '0.1.5', docs: '/api/health' });
+    res.json({ name: '996 Studio API', version: '0.1.6', docs: '/api/health' });
   });
   app.use('/api', api);
 

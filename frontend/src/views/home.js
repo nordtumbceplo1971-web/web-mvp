@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { icon } from '../icons.js';
 import { tplCover, KIND_LABEL } from '../tplMeta.js';
 import { getCredits } from '../store.js';
+import { renderApiError } from '../errors.js';
 import { createAnnouncementBar } from '../announcements.js';
 
 /**
@@ -114,7 +115,15 @@ export function renderHome(root, { navigate }) {
       return;
     }
     grid.replaceChildren(...picked.map((tpl) => tplCard(tpl, navigate)));
-  }).catch(() => grid.replaceChildren(h('div', { class: 'home-loading' }, '模板加载失败, 请确认后端已启动')));
+  }).catch((e) => {
+    // 准确说明原因 (后端未部署 / 地址不对 / 网络不通), 不再只写「模板加载失败」
+    grid.replaceChildren();
+    renderApiError(grid, e, {
+      resource: '模板',
+      compact: true,
+      onRetry: () => navigate('/'),
+    });
+  });
 
   api.listWorks().then(({ items }) => {
     const today = new Date(); today.setHours(0, 0, 0, 0);

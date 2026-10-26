@@ -1,5 +1,6 @@
 import { h } from '../ui.js';
 import { api } from '../api.js';
+import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
 import { tplCover, KIND_LABEL } from '../tplMeta.js';
 
@@ -30,7 +31,13 @@ export async function renderTemplates(root, { navigate, query }) {
     categories = res.categories ?? [];
     items = res.items ?? [];
   } catch (e) {
-    body.replaceChildren(h('div', { class: 'empty-state' }, '模板加载失败: ', e.message));
+    // 后端未部署 / 地址不对 / 网络不通 —— 给出准确原因, 不再只说「加载失败」
+    body.replaceChildren();
+    renderApiError(body, e, {
+      resource: '模板库',
+      onRetry: () => navigate(`/templates${activeCat ? `?cat=${activeCat}` : ''}`),
+      backTo: { label: '去用户设置', href: '#/settings', onClick: () => navigate('/settings') },
+    });
     return;
   }
 

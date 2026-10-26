@@ -1,7 +1,7 @@
 import { h } from './ui.js';
 import './styles/main.css';
 import { icon } from './icons.js';
-import { api } from './api.js';
+import { api, getApiBase } from './api.js';
 import { getCredits } from './store.js';
 import { startTour } from './tour.js';
 import { createAnnouncementBar } from './announcements.js';
@@ -304,16 +304,21 @@ function renderShell() {
   });
 
   // 服务模式标识 (MOCK / 正式 / 未连接)
-  fetch('/api/health').then((r) => r.json()).then((j) => {
+  api.health().then((j) => {
     const live = j?.mode === 'live';
     modeChip.classList.toggle('live', live);
     modeChip.replaceChildren(h('span', { class: 'dot' }), live ? '正式模式 · 已连接模型服务' : '演示模式 · 未配置 API 密钥');
     modeChip.title = `运行时: ${j?.runtime ?? '未知'} · 存储: ${j?.storage ?? '未知'}`;
-  }).catch(() => {
+  }).catch((e) => {
+    const why = e?.reason === 'network' ? '网络不可达'
+      : e?.reason === 'no-api' ? '返回的不是接口数据(后端未部署?)'
+        : (e?.message || '未知错误');
     modeChip.classList.add('offline');
     modeChip.replaceChildren(h('span', { class: 'dot' }), '后端未连接');
-    modeChip.title = '未检测到 /api/health 服务 —— 请确认后端已部署 (Vercel: 部署 api/ 函数; 本地: 启动 backend)';
+    modeChip.title = `${why}\n接口: ${e?.url ?? `${getApiBase()}/api`}\n点击打开「用户设置」配置后端地址`;
   });
+  modeChip.style.cursor = 'pointer';
+  modeChip.addEventListener('click', () => navigate('/settings'));
 
   app.append(
     h('div', { class: 'app-shell' },

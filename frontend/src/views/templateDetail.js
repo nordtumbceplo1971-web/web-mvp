@@ -1,5 +1,6 @@
 import { h, toast } from '../ui.js';
 import { api } from '../api.js';
+import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
 import { tplCover, KIND_LABEL } from '../tplMeta.js';
 
@@ -14,14 +15,17 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
   let tpl;
   try {
     tpl = await api.getTemplate(tplId);
-  } catch {
+  } catch (e) {
     root.append(
       h('div', { class: 'page-head' },
         h('button', { class: 'btn btn-ghost btn-sm', onclick: () => back() }, icon('arrow-left', { size: 15 }), '返回上一页'),
       ),
-      h('div', { class: 'empty-state' }, '模板不存在, ',
-        h('a', { href: '#/templates', onclick: (e) => { e.preventDefault(); navigate('/templates'); } }, '回模板库')),
     );
+    renderApiError(root, e, {
+      resource: '模板',
+      onRetry: () => navigate(`/templates/${tplId}`),
+      backTo: { label: '回模板库', href: '#/templates', onClick: () => navigate('/templates') },
+    });
     return;
   }
 

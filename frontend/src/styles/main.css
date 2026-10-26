@@ -746,6 +746,27 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .empty-state { text-align: center; padding: 60px 20px; color: var(--ink-3); }
 .empty-state .ico { font-size: 44px; opacity: 0.6; }
 
+/* ---------- 接口错误 (区分后端未部署 / 资源不存在 / 服务端异常) ---------- */
+.api-error { padding: 44px 20px; }
+.api-error .ico { color: var(--line-strong); }
+.api-error-title { font-size: 16px; font-weight: 900; color: var(--ink); margin: 10px 0 6px; }
+.api-error .desc { color: var(--ink-2); max-width: 540px; margin: 0 auto; font-size: 13.5px; line-height: 1.8; }
+.api-error-detail { color: var(--ink-3); font-size: 12.5px; margin-top: 10px; }
+.api-error-meta {
+  color: var(--ink-3); font-size: 12px; margin-top: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+}
+.api-error-actions { display: flex; gap: 10px; justify-content: center; margin-top: 20px; }
+.api-error-compact { padding: 18px 16px; text-align: left; border: 1px solid var(--line); border-radius: var(--r-md); background: var(--fill); }
+.api-error-compact .api-error-title { font-size: 14px; margin: 0 0 6px; }
+.api-error-compact .desc { font-size: 12.5px; max-width: none; }
+.api-error-compact .api-error-actions { justify-content: flex-start; margin-top: 12px; }
+
+/* ---------- 设置页 · 后端连接 ---------- */
+.conn-tip { margin-top: 12px; font-size: 12.5px; color: var(--ink-3); }
+.conn-tip.ok { color: var(--green-deep); font-weight: 600; }
+.conn-tip.bad { color: var(--danger); font-weight: 600; }
+
 /* ============================================================
    新手引导遮罩
    ============================================================ */
