@@ -3,8 +3,34 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.0**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.0`，
+当前版本：**v0.1.1**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.1`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示）
+
+---
+
+## v0.1.1 · 2026-10-26
+
+**主题**：启用 996.chat 品牌标识（图标在上 + slogan 在下的 1:1 正方形组合）
+
+### 品牌标识上线
+
+- 采用 `996-chat-logo-creative-transparent.png` 作为 Web 应用 logo，原图按**图标 / slogan**两块拆分：
+  - 左块「996」图标 → `frontend/public/brand/logo-icon.png`（512×512，用于 favicon）
+  - 右块「996.chat」品牌 slogan → 与图标**等宽**叠放于下方
+- 合成正方形标识 `frontend/public/brand/logo-square.png`（512×512，1:1）：
+  - 图标在上（放大，占画布宽度 88%），slogan 在下且**宽度与图标完全一致**（按原始比例等比缩放，不拉伸变形）
+  - 上下间距 26px，整体高度 1199px ≈ 画布边长 → 严格 1:1 正方形
+- 侧栏品牌区替换原「B」色块：左侧为 52×52 正方形标识，右侧保留「BrandStudio / AI 电商内容工作台」文字，
+  文字改为中性墨色，让 logo 的蓝青渐变成为视觉焦点（悬停仍变品牌蓝）。
+- 浏览器图标（favicon）由内联 SVG「B」改为 `logo-icon.png`（小尺寸下仅图标更易辨识），
+  Apple Touch 图标使用 `logo-square.png`；页面标题更新为「996.chat · BrandStudio AI 电商内容工作室」。
+- 素材处理：16bit → 8bit、512×512、PNG 透明通道、`-strip` 去元数据，单文件 156KB / 118KB。
+
+### 验证
+
+- CDP 实测 1440 / 375 两档断点：`scrollWidth == clientWidth`，**无横向溢出**，控制台 0 报错
+- `vite build` 通过，`dist/brand/` 下两个素材正确产出
+- 侧栏实测：标识呈 1:1 正方形，图标在上、slogan 在下且等宽，无变形
 
 ---
 

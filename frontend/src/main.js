@@ -77,10 +77,13 @@ function renderShell() {
   const modeChip = h('div', { class: 'mode-chip' }, h('span', { class: 'dot' }), '检测服务中…');
   const sidebar = h('aside', { class: 'sidebar' },
     h('a', {
-      class: 'brand', href: '#/', 'aria-label': 'BrandStudio 首页',
+      class: 'brand', href: '#/', 'aria-label': '996.chat · BrandStudio 首页',
       onclick: (e) => { e.preventDefault(); navigate('/'); },
     },
-      h('span', { class: 'brand-mark' }, 'B'),
+      h('img', {
+        class: 'brand-logo', src: '/brand/logo-square.png', alt: '996.chat',
+        width: 52, height: 52, loading: 'eager', decoding: 'async',
+      }),
       h('span', { class: 'brand-name' }, 'BrandStudio', h('small', {}, 'AI 电商内容工作台')),
     ),
     navEl,
