@@ -351,14 +351,45 @@ export async function renderLookbook(root, { navigate, back }) {
   }
 
   // ---------- 素材分配 (按流程图) ----------
+  // 模特图是本地路径 (/models/system/xxx.jpg), 上游要求稳定 http(s) URL
+  // → 生成前自动上传获取公网 URL, 并缓存
+  const uploadedModelUrls = new Map();
+
+  async function ensurePublicUrl(localUrl) {
+    if (!localUrl) return null;
+    // 已是完整 http(s) URL 或 mock://  直接用
+    if (/^https?:\/\//.test(localUrl) || localUrl.startsWith('mock://')) return localUrl;
+    // 已上传过, 用缓存
+    if (uploadedModelUrls.has(localUrl)) return uploadedModelUrls.get(localUrl);
+    // 本地路径 → fetch 为 blob → 上传获取公网 URL
+    try {
+      const resp = await fetch(localUrl);
+      const blob = await resp.blob();
+      const fd = new FormData();
+      fd.append('file', blob, localUrl.split('/').pop() || 'model.jpg');
+      const res = await fetch('/api/uploads', { method: 'POST', body: fd });
+      const data = await res.json();
+      if (data?.error) throw new Error(data.error.message);
+      const publicUrl = data.url;
+      if (publicUrl && !publicUrl.startsWith('mock://')) {
+        uploadedModelUrls.set(localUrl, publicUrl);
+        return publicUrl;
+      }
+      return null; // mock 模式返回 mock://, 不能用于上游
+    } catch (e) {
+      console.warn('模特图上传失败:', e);
+      return null;
+    }
+  }
+
   function getAssetsForStep(stepId) {
     const productUrls = state.productImages.map((im) => im.url).filter((u) => u && !isMockUrl(u));
     const model1Url = state.model1?.cover;
     const model2Url = state.model2?.cover;
 
     switch (stepId) {
-      case '01': return { images: [...productUrls.slice(0, 1), model1Url].filter(Boolean), hasModel: !!state.model1 };
-      case '02': return { images: [...productUrls.slice(1, 2).length ? productUrls.slice(1, 2) : productUrls.slice(0, 1), model1Url].filter(Boolean), hasModel: !!state.model1 };
+      case '01': return { images: [productUrls[0], model1Url].filter(Boolean), hasModel: !!state.model1 };
+      case '02': return { images: [productUrls[1] || productUrls[0], model1Url].filter(Boolean), hasModel: !!state.model1 };
       case '03': return { images: [model1Url].filter(Boolean), hasModel: !!state.model1 };
       case '04': return { images: productUrls.slice(0, 1), hasModel: false };
       case '05': return { images: productUrls.slice(0, 1), hasModel: false };
@@ -366,6 +397,16 @@ export async function renderLookbook(root, { navigate, back }) {
       case '07': return { images: [productUrls[0], model1Url, model2Url].filter(Boolean), hasModel: !!state.model1 };
       default: return { images: productUrls, hasModel: false };
     }
+  }
+
+  // 将本地素材路径转为公网 URL
+  async function resolvePublicUrls(images) {
+    const resolved = [];
+    for (const url of images) {
+      const publicUrl = await ensurePublicUrl(url);
+      if (publicUrl) resolved.push(publicUrl);
+    }
+    return resolved;
   }
 
   // ---------- 生成 ----------
@@ -411,8 +452,9 @@ export async function renderLookbook(root, { navigate, back }) {
       const promptData = await promptRes.json();
       if (promptData?.error) throw new Error(promptData.error.message);
 
-      // 匹配素材
+      // 匹配素材并转为公网 URL
       const { images } = getAssetsForStep(s.id);
+      const publicUrls = await resolvePublicUrls(images);
 
       // 创建生成任务
       const genRes = await fetch('/api/generate/image', {
@@ -422,7 +464,7 @@ export async function renderLookbook(root, { navigate, back }) {
           templateId: 'shopify-lookbook',
           prompt: promptData.prompt,
           aspect_ratio: '4:5', resolution: '2K', quality: 'high', count: 1,
-          imageUrls: images,
+          imageUrls: publicUrls,
           title: `Shopify ${s.id} ${s.name}`,
         }),
       });
