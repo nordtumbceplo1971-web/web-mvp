@@ -191,7 +191,7 @@ export async function renderCreate(root, { navigate, query, back }) {
 
   // ---------- Step3 生成侧栏 ----------
   const aspectChips = [
-    ...(isVideo ? ['9:16', '16:9'] : ['1:1', '3:4', '9:16', '16:9']),
+    ...(isVideo ? ['9:16', '16:9'] : ['1:1', '3:4', '4:5', '9:16', '16:9']),
   ];
   const specRow1 = h('div', { class: 'row' },
     aspectChips.map((a) => specChip('aspect_ratio', a, a)),

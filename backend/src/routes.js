@@ -1,5 +1,9 @@
 import { Router } from 'express';
 import multer from 'multer';
+import { createRequire } from 'node:module';
+// archiver 是 CJS 包, ESM 下用 createRequire 引入 (named-export 探测不稳定)
+const require = createRequire(import.meta.url);
+const archiver = require('archiver');
 import { config, isMockMode } from './config.js';
 import { templates, categories, getTemplate, composePrompt } from './modules/templates/templates.js';
 import { generateImage, generateVideo } from './modules/generation/service.js';
@@ -256,4 +260,74 @@ api.post('/shopify/retouch', (req, res) => {
   }
   const prompt = composeShopifyRetouchPrompt(step, issue);
   res.json({ prompt, step });
+});
+
+// ---------- 套图打包下载 (ZIP) ----------
+api.post('/works/export-zip', async (req, res) => {
+  const { title = '996-studio-套图', items = [] } = req.body ?? {};
+  if (!Array.isArray(items) || !items.length) {
+    return res.status(400).json({ error: { code: 'empty_items', message: 'items 不能为空' } });
+  }
+
+  try {
+    const safeTitle = String(title).replace(/[\\/:*?"<>|\r\n]/g, '_').slice(0, 60) || 'export';
+    const archive = archiver('zip', { zlib: { level: 9 } });
+
+    // 先在内存里拼完整 zip (图为百 KB 级, 总量可控), 再一次性响应 ——
+    // 避免 pipe 流式输出后无法再设置响应头/状态码
+    const chunks = [];
+    archive.on('data', (c) => chunks.push(c));
+    const done = new Promise((resolve, reject) => {
+      archive.on('error', reject);
+      archive.on('end', resolve);
+    });
+
+    // 逐个拉取 CDN 图 → 写入 zip; 单张失败跳过不阻塞整体
+    const usedNames = new Set();
+    let packed = 0;
+    for (const it of items.slice(0, 50)) {
+      const url = String(it?.url || '');
+      if (!/^https?:\/\//.test(url)) continue;
+      try {
+        const resp = await fetch(url, { signal: AbortSignal.timeout(30_000) });
+        if (!resp.ok) continue;
+        const buf = Buffer.from(await resp.arrayBuffer());
+        const ct = resp.headers.get('content-type') || '';
+        const extFromCt = ct.includes('png') ? '.png' : ct.includes('webp') ? '.webp' : '.jpg';
+        let base = String(it?.name || 'image').replace(/[\\/:*?"<>|\r\n]/g, '_').slice(0, 60) || 'image';
+        if (!/\.(jpe?g|png|webp|gif)$/i.test(base)) base += extFromCt;
+        let name = base;
+        let n = 2;
+        while (usedNames.has(name.toLowerCase())) {
+          name = base.replace(/(\.\w+)$/, `-${n}$1`);
+          n += 1;
+        }
+        usedNames.add(name.toLowerCase());
+        archive.append(buf, { name });
+        packed += 1;
+      } catch (e) {
+        console.warn(`[export-zip] 跳过 ${url.slice(0, 60)}: ${e.message}`);
+      }
+    }
+    await archive.finalize();
+    await done;
+
+    if (!packed || !chunks.length) {
+      return res.status(502).json({ error: { code: 'fetch_failed', message: '所有图片拉取失败' } });
+    }
+
+    const zipBuf = Buffer.concat(chunks);
+    res.setHeader('Content-Type', 'application/zip');
+    res.setHeader('Content-Disposition', `attachment; filename="export.zip"; filename*=UTF-8''${encodeURIComponent(safeTitle)}.zip`);
+    res.setHeader('X-Packed-Count', String(packed));
+    res.setHeader('Content-Length', String(zipBuf.length));
+    res.end(zipBuf);
+  } catch (err) {
+    console.error('[export-zip]', err);
+    if (!res.headersSent) {
+      res.status(500).json({ error: { code: 'zip_failed', message: '打包失败' } });
+    } else {
+      res.end();
+    }
+  }
 });

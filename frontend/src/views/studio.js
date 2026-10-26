@@ -191,7 +191,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   // 规格 chips
   const specRow = h('div', { class: 'row' });
   function drawSpec() {
-    const aspects = ['1:1', '3:4', '9:16', '16:9'];
+    const aspects = ['1:1', '3:4', '4:5', '9:16', '16:9'];
     specRow.replaceChildren(
       ...aspects.map((a) => h('button', {
         class: `spec-chip ${state.aspect === a ? 'active' : ''}`,

@@ -310,14 +310,55 @@ export async function renderLookbook(root, { navigate, back }) {
     else el.textContent = '点击「一键生成」开始';
   }
 
+  // 打包下载 ZIP (已完成的结果)
+  async function downloadZip() {
+    const items = STEPS
+      .filter((s) => state.results[s.id]?.url)
+      .map((s) => ({ name: `${s.id}-${s.name}`, url: state.results[s.id].url }));
+    if (!items.length) { toast('暂无已完成的图', 'err'); return; }
+    toast(`正在打包 ${items.length} 张…`);
+    try {
+      const res = await fetch('/api/works/export-zip', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          title: `Shopify套图-${new Date().toISOString().slice(0, 10)}`,
+          items,
+        }),
+      });
+      if (!res.ok) {
+        const err = await res.json().catch(() => null);
+        throw new Error(err?.error?.message || `HTTP ${res.status}`);
+      }
+      const blob = await res.blob();
+      const a = document.createElement('a');
+      const objUrl = URL.createObjectURL(blob);
+      a.href = objUrl;
+      a.download = `Shopify套图-${new Date().toISOString().slice(0, 10)}.zip`;
+      document.body.append(a);
+      a.click();
+      a.remove();
+      setTimeout(() => URL.revokeObjectURL(objUrl), 5000);
+      toast(`已下载 ${items.length} 张的 ZIP`, 'ok');
+    } catch (e) {
+      toast(`打包失败: ${e.message}`, 'err');
+    }
+  }
+
   function refreshGenerate() {
     const canGen = state.productImages.length > 0 && !state.generating;
+    const doneCount = STEPS.filter((s) => state.results[s.id]?.url).length;
     genControls.replaceChildren(
       h('div', { style: 'display:flex;align-items:center;gap:12px;flex-wrap:wrap' },
         h('button', {
           class: 'btn btn-primary btn-lg', disabled: !canGen,
           onclick: generateAll,
         }, icon('sparkles', { size: 16 }), state.generating ? '生成中…' : '一键生成 7 步'),
+        h('button', {
+          class: 'btn btn-ghost-green btn-lg', disabled: !doneCount || state.generating,
+          onclick: downloadZip,
+          title: '把已完成的套图打包成 ZIP 下载',
+        }, icon('download', { size: 16 }), `打包下载 ZIP${doneCount ? ` (${doneCount})` : ''}`),
         h('span', { style: 'color:var(--ink-3);font-size:13px' }, `每步 2 额度 · 余额 ${getCredits()} · live 模式每步约 30-60 秒`),
       ),
     );
