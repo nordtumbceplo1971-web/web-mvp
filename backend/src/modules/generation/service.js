@@ -55,13 +55,14 @@ export async function generateImage({
     return { taskId: task.task_id, workId: work.id, prompt, params, model, mock: true };
   }
 
-  // attachments: 参考图公网 URL 数组 (字符串数组, 不是对象数组)
-  // params.images: 模型参数里的参考图 (同为 URL 数组)
+  // attachments: 参考图公网 URL 数组 (字符串数组)
+  // 注意: params.images 是 upload 类型(文件上传), 不能传 URL 数组
+  //       参考图统一走 attachments 字段
   const payload = {
     model_id: model,
     modality: 'image',
     operation: imageUrls.length ? 'edit' : 'generate',
-    params: imageUrls.length ? { ...params, images: imageUrls } : params,
+    params,
   };
   if (imageUrls.length) {
     payload.attachments = imageUrls;
