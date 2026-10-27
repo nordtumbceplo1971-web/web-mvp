@@ -479,6 +479,14 @@ main.container { flex: 1; padding: 24px 0 48px; }
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: rgba(15, 23, 42, 0.52);
 }
 
+/* 真实效果预览图（配了封面图的模板用图，不再显示色块占位） */
+.tc-preview.has-img { background: var(--fill); }
+.tc-img {
+  position: absolute; inset: 0;
+  width: 100%; height: 100%; object-fit: cover; object-position: center top;
+  display: block;
+}
+
 /* ---- 红色「一键复刻」快速入口 ---- */
 .tc-replicate {
   display: flex; align-items: center; justify-content: center; gap: 6px;

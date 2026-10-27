@@ -41,6 +41,15 @@ export function tplLogo(tpl) {
   return TPL_LOGOS[tpl.id] ?? null;
 }
 
+/** 模板效果预览图 (卡片上方 70% 展示); 未配图的模板回退到分类色块 + 图标 */
+const TPL_PREVIEWS = {
+  'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
+};
+
+export function tplPreview(tpl) {
+  return TPL_PREVIEWS[tpl.id] ?? null;
+}
+
 export function tplCover(tpl) {
   const t = CATEGORY_TINT[tpl.category] ?? { tint: '#f1f5f9', color: '#475569' };
   return { iconName: TPL_ICONS[tpl.id] ?? 'image', tint: t.tint, color: t.color };

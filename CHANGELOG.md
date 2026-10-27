@@ -3,9 +3,33 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.13**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.13`，
+当前版本：**v0.1.14**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.14`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.14 · 2026-10-27
+
+**主题**：Shopify 套图卡片换成真实效果预览图
+
+### 改动
+
+- **新增 `frontend/public/covers/shopify-lookbook.jpg`** —— 用 Shopify 套图的 7 步成品拼版
+  （01 列表主图 / 02 背面 / 03 完整穿搭 / 04-05 细节 / 06 第二模特 / 07 品牌生活方式）
+  作为卡片封面，原图 1920×2560 压缩至 600×800（138KB，卡片展示用）
+- **`frontend/src/tplMeta.js`** 新增 `TPL_PREVIEWS` + `tplPreview()`：模板可配置效果预览图，
+  与已有的 `tplLogo()` 同一套机制
+- **`frontend/src/tplCard.js`** 卡片预览区支持两种形态：
+  - 配了封面图 → 渲染 `<img class="tc-img">`（`object-fit: cover`），不再显示色块占位
+  - 未配图 → 保持分类色块渐变 + 图标 + 「效果预览」标识（其余模板不变）
+
+### 验证
+
+- Tabbit CLI 自动化：Shopify 卡片封面图加载成功（`600×800`，`naturalWidth > 0`）✓
+  ｜ 配了封面后色块占位不再渲染 ✓ ｜「图片模板」徽标仍保留 ✓
+  ｜ 其它模板未受影响（仍显示色块 + 图标）✓ ｜ **0 控制台报错**
+- 10 条路由体检全通过
 
 ---
 
