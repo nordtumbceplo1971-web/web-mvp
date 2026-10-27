@@ -3,9 +3,49 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.10**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.10`，
+当前版本：**v0.1.11**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.11`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.11 · 2026-10-27
+
+**主题**：Shopify 套图入口统一 —— 消除「同一模板两条流程」的割裂
+
+### 问题
+
+同一个 `shopify-lookbook` 模板被 3 个入口接到了 **2 条不同流程**，导致行为不一致：
+
+| 入口 | 原本跳转 | 原本效果 |
+|---|---|---|
+| 模板详情页「开始出套图」 | `/lookbook` | ✅ 7 步流程 + 模特选择 + ZIP 打包 |
+| 模板库卡片「做同款」 | `/create?tpl=shopify-lookbook` | ❌ 通用单图生成，**无模特选择** |
+| 首页 / 我的作品 | 同上 | ❌ 同上 |
+
+另外详情页「这张图会怎么拍」显示的是原始 `{{shopifyPrompt}}` 占位符
+（模板 `promptTemplate` 写了占位符但 `slots` 为空，`composePrompt` 换不出来）。
+
+### 修复
+
+**1. 入口统一分流（`frontend/src/views/create.js`）**
+
+通用创建页渲染前检测 `tpl.isLookbook`，命中即 `navigate('/lookbook')`。
+这样**任何入口**（模板库卡片 / 首页 / 我的作品 / 直接改 URL）都进同一条 7 步流程，
+不会再掉到通用单图页少掉模特选择。
+
+**2. 占位符替换（`backend/src/modules/templates/shopify.js`）**
+
+`promptTemplate` 由 `{{shopifyPrompt}}` 改为真实的 7 步流程总览描述，
+详情页「这张图会怎么拍」现在能正确展示这套模板会怎么出图。
+（单张提示词仍由 `composeShopifyPrompt` 按步骤动态生成，不受影响）
+
+### 验证
+
+- Tabbit CLI 自动化：通用入口自动跳 `/lookbook` ✓ → 落地页含模特库 + 「+」卡片 + 步骤条 ✓
+  → 详情页 CTA「开始出套图」跳 `/lookbook` ✓ → 提示词预览不再是 `{{shopifyPrompt}}` ✓
+  → 普通模板（白底主图）仍走通用创建页 ✓（回归）→ **0 控制台报错**
+- 10 条路由体检全通过
 
 ---
 

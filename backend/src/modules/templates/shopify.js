@@ -115,7 +115,17 @@ export const shopifyTemplateMeta = {
   needLabel: '1-2 张产品图 (正面/背面)',
   needImages: 1,
   defaults: { model: 'primary', aspect_ratio: '4:5', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
-  promptTemplate: '{{shopifyPrompt}}',
+  // 7 步流程模板: 单张提示词由 composeShopifyPrompt 按步骤动态生成, 这里只写给「详情页 → 这张图会怎么拍」看的总览
+  promptTemplate:
+    '7 步出全套 Shopify 商品图 (每步各自一套提示词): ' +
+    '01 列表主图·单人正面模特上身, 头部至大腿, 衣服完整, 正面印花无遮挡 · ' +
+    '02 背面展示·同一模特转身, 背景距离光线与 01 一致, 完整展示背面图案 · ' +
+    '03 完整穿搭·全身或四分之三侧身, 呈现落肩、袖长、衣长与搭配效果 · ' +
+    '04 印花细节·核心图案近景, 看清边缘、颜色与印刷表面 · ' +
+    '05 面料与做工·布料、领口、肩线特写, 表现厚度与纹理 · ' +
+    '06 另一位模特·换性别或不同身形穿搭, 帮助判断中性款上身效果 · ' +
+    '07 品牌生活方式·街头/咖啡馆等场景, 表达系列故事。' +
+    '全程竖版 4:5, 1600×2000px, 高细节高端潮牌电商视觉, 产品印花/文字/颜色/版型严格服从产品图。',
   slots: [],
   isLookbook: true,
   steps: SHOPIFY_STEPS,

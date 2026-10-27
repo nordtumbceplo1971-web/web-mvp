@@ -30,6 +30,13 @@ export async function renderCreate(root, { navigate, query, back }) {
     });
     return;
   }
+  // 多步骤模板 (Shopify 套图) 有专属流程页, 不能走通用单图生成 —— 任何入口都统一分流过去,
+  // 否则模板库卡片 / 首页 / 我的作品会落到通用页, 少了模特选择与 7 步流程
+  if (tpl.isLookbook) {
+    navigate('/lookbook');
+    return;
+  }
+
   const isVideo = tpl.type === 'video';
   const needImages = tpl.needImages ?? 1;
   const { iconName, tint, color: colorTint } = tplCover(tpl);
