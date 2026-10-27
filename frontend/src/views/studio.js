@@ -2,6 +2,7 @@ import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGE
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
+import { IMAGE_ASPECTS, resolveAspect } from '../aspect.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
 
@@ -42,7 +43,7 @@ export async function renderStudio(root, { navigate, query, back }) {
     prompt: '',
     originalPrompt: '',
     optimized: false,
-    aspect: '1:1',
+    aspect: resolveAspect('1:1'),
     count: 1,
     resolution: '2K',
   };
@@ -122,7 +123,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
   function applyTemplateDefaults(t) {
     if (t.type === 'image') {
-      state.aspect = t.defaults.aspect_ratio === '9:21' ? '9:16' : t.defaults.aspect_ratio;
+      state.aspect = resolveAspect(t) ?? '1:1';
       state.resolution = t.defaults.resolution === '1K' ? '2K' : t.defaults.resolution;
     } else {
       state.aspect = t.defaults.aspect_ratio;
@@ -191,7 +192,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   // 规格 chips
   const specRow = h('div', { class: 'row' });
   function drawSpec() {
-    const aspects = ['1:1', '3:4', '4:5', '9:16', '16:9'];
+    const aspects = IMAGE_ASPECTS;
     specRow.replaceChildren(
       ...aspects.map((a) => h('button', {
         class: `spec-chip ${state.aspect === a ? 'active' : ''}`,

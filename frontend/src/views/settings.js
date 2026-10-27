@@ -1,6 +1,7 @@
 import { h, toast } from '../ui.js';
 import { icon } from '../icons.js';
 import { getCredits, getProfile, setProfile, resetLocalData } from '../store.js';
+import { IMAGE_ASPECTS } from '../aspect.js';
 import { api, getApiBase, setApiBase } from '../api.js';
 import { describeApiError } from '../errors.js';
 import { APP_VERSION } from '../version.js';
@@ -27,14 +28,23 @@ export function renderSettings(root, { navigate, back }) {
   const brand = h('input', { class: 'text-input', type: 'text', value: profile.brand, placeholder: '例: 极简生活馆' });
 
   // ---------- 创作偏好 ----------
-  const aspect = select(['1:1', '3:4', '9:16', '16:9'], profile.aspectRatio);
+  // 图片比例与创作页 (create.js / studio.js) 的图片 chips 保持一致, 含 4:5
+  const aspect = select(
+    [{ v: '', label: '跟随模板' }, ...IMAGE_ASPECTS.map((v) => ({ v }))],
+    profile.aspectRatio,
+  );
   const resolution = select(['2K', '4K'], profile.resolution);
   const duration = select([4, 6, 8], profile.videoDuration, (v) => `${v} 秒`);
   const autoSave = h('input', { type: 'checkbox', checked: profile.autoSave });
 
+  /** options: 原始值数组, 或 { v, label } 对象数组 (label 可省略) */
   function select(options, value, fmt = (v) => v) {
     const sel = h('select', { class: 'text-input' },
-      ...options.map((o) => h('option', { value: String(o), selected: String(o) === String(value) }, fmt(o))));
+      ...options.map((o) => {
+        const v = (o && typeof o === 'object') ? o.v : o;
+        const label = (o && typeof o === 'object' && o.label != null) ? o.label : fmt(v);
+        return h('option', { value: String(v), selected: String(v) === String(value) }, label);
+      }));
     return sel;
   }
 
@@ -59,6 +69,7 @@ export function renderSettings(root, { navigate, back }) {
             nickname: nickname.value.trim() || '电商创作者',
             brand: brand.value.trim(),
             aspectRatio: aspect.value,
+            aspectRatioSet: !!aspect.value,
             resolution: resolution.value,
             videoDuration: Number(duration.value),
             autoSave: autoSave.checked,

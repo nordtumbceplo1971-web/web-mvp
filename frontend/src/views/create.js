@@ -2,6 +2,7 @@ import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGE
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
+import { IMAGE_ASPECTS, VIDEO_ASPECTS, resolveAspect } from '../aspect.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
 
@@ -41,7 +42,7 @@ export async function renderCreate(root, { navigate, query, back }) {
     extraIdea: '',
     spec: { ...(isVideo
       ? { aspect_ratio: tpl.defaults.aspect_ratio, resolution: tpl.defaults.resolution, duration: tpl.defaults.duration }
-      : { aspect_ratio: tpl.defaults.aspect_ratio, resolution: tpl.defaults.resolution, count: tpl.defaults.count, quality: tpl.defaults.quality }) },
+      : { aspect_ratio: resolveAspect(tpl), resolution: tpl.defaults.resolution, count: tpl.defaults.count, quality: tpl.defaults.quality }) },
     retryFree: true,       // 「换一批」首次免费 (PRD 核心原则 4)
   };
   for (const s of tpl.slots) {
@@ -190,9 +191,7 @@ export async function renderCreate(root, { navigate, query, back }) {
   }
 
   // ---------- Step3 生成侧栏 ----------
-  const aspectChips = [
-    ...(isVideo ? ['9:16', '16:9'] : ['1:1', '3:4', '4:5', '9:16', '16:9']),
-  ];
+  const aspectChips = isVideo ? VIDEO_ASPECTS : IMAGE_ASPECTS;
   const specRow1 = h('div', { class: 'row' },
     aspectChips.map((a) => specChip('aspect_ratio', a, a)),
   );

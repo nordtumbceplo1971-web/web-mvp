@@ -48,6 +48,7 @@ export const templates = [
     credits: 2,
     needLabel: '1 张产品图',
     needImages: 1,
+    lockAspect: true,   // 平台白底图规范固定 1:1, 不受用户全局比例偏好影响
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
       '电商白底主图: {{product}}置于纯白无缝背景(#FFFFFF)中央, 正面微俯视角, 产品占画面约70%, {{lighting}}, 色彩准确还原, 材质细节清晰锐利, 商业广告级静物摄影, 8K超清, 符合电商平台白底图规范。',
@@ -127,6 +128,7 @@ export const templates = [
     credits: 3,
     needLabel: '1 张产品图',
     needImages: 1,
+    lockAspect: true,   // 详情页长图固定 9:21 竖版, 不受用户全局比例偏好影响
     defaults: { model: 'primary', aspect_ratio: '9:21', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
       '电商详情页首屏长图: {{product}}居中偏上构图, {{scene}}, 画面下方三分之一留白用于卖点文案排版, {{lighting}}, 信息层级清晰, 高级电商详情页设计感, 8K超清。',

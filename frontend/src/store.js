@@ -38,7 +38,7 @@ export function addCredits(n) {
 const DEFAULT_PROFILE = {
   nickname: '电商创作者',
   brand: '',
-  aspectRatio: '1:1',
+  aspectRatio: '',        // 空 = 跟随模板自带比例; 非空 = 用户指定的图片默认比例
   resolution: '2K',
   videoDuration: 6,
   autoSave: true,
@@ -49,7 +49,11 @@ export function getProfile() {
     const raw = localStorage.getItem(PROFILE_KEY);
     if (!raw) return { ...DEFAULT_PROFILE };
     const v = JSON.parse(raw);
-    return { ...DEFAULT_PROFILE, ...(v && typeof v === 'object' ? v : {}) };
+    const merged = { ...DEFAULT_PROFILE, ...(v && typeof v === 'object' ? v : {}) };
+    // aspectRatio 早期是「死设置」(只存不生效), 旧存档里的值不视为用户显式指定,
+    // 否则升级后所有历史用户会被突然按 1:1 出图。显式指定以 aspectRatioSet 为准。
+    if (!merged.aspectRatioSet) merged.aspectRatio = '';
+    return merged;
   } catch {
     return { ...DEFAULT_PROFILE };
   }
