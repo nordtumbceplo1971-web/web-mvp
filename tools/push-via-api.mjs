@@ -7,11 +7,14 @@ import { execSync, execFileSync } from 'node:child_process';
 
 const REPO = 'nordtumbceplo1971-web/web-mvp';
 const API = `https://api.github.com/repos/${REPO}`;
-const git = (cmd) => execSync(`git ${cmd}`, { cwd: 'D:/ai-server-mvp', encoding: 'utf8' }).trim();
+const CWD = 'D:/ai-server-mvp';
+const git = (cmd) => execSync(`git ${cmd}`, { cwd: CWD, encoding: 'utf8' }).trim();
+/** 用参数数组调用 git (路径含中文/空格时不能走 shell 拼接) */
+const gitArgs = (args) => execFileSync('git', args, { cwd: CWD, encoding: 'utf8' });
 
 // ---- 凭证: 从 git credential helper 取 ----
 const cred = execSync('git credential fill', {
-  cwd: 'D:/ai-server-mvp',
+  cwd: CWD,
   input: 'protocol=https\nhost=github.com\n\n',
   encoding: 'utf8',
 });
@@ -46,7 +49,7 @@ const author = { name: git('log -1 --format=%an'), email: git('log -1 --format=%
 const committer = { name: git('log -1 --format=%cn'), email: git('log -1 --format=%ce'), date: git('log -1 --format=%cI') };
 // 注意: 必须用 cat-file 取原始 commit 对象里的 message, 不能用 `git log --format=%B`
 // —— %B 会多补一个结尾换行, 导致重建出的 commit SHA 与本地不一致(远程出现"影子提交")
-const rawCommit = execFileSync('git', ['cat-file', 'commit', 'HEAD'], { cwd: 'D:/ai-server-mvp', encoding: 'utf8' });
+const rawCommit = execFileSync('git', ['cat-file', 'commit', 'HEAD'], { cwd: CWD, encoding: 'utf8' });
 const message = rawCommit.slice(rawCommit.indexOf('\n\n') + 2);
 
 // ---- 远程当前状态 ----
@@ -54,13 +57,14 @@ const ref = await call('GET', `/git/ref/heads/main`);
 console.log(`远程 main 当前为 ${ref.object.sha.slice(0, 7)}（本地父提交 ${parent.slice(0, 7)}）`);
 
 // ---- 变更文件 → blob (直接取 git 对象里的原始内容, 保证 blob/tree/commit SHA 与本地一致) ----
-const files = git('diff --name-only HEAD~1 HEAD').split('\n').filter(Boolean);
+// 注意: 用 -z 分隔输出, 避免 git 对非 ASCII 路径做八进制转义
+const files = gitArgs(['diff', '--name-only', '-z', 'HEAD~1', 'HEAD']).split('\0').filter(Boolean);
 const treeEntries = [];
 for (const path of files) {
-  const mode = git(`ls-tree HEAD -- "${path}"`).split(/\s+/)[0];
-  const localBlob = git(`rev-parse "HEAD:${path}"`);
+  const mode = gitArgs(['ls-tree', 'HEAD', '--', path]).split(/\s+/)[0];
+  const localBlob = gitArgs(['rev-parse', `HEAD:${path}`]).trim();
   // 从 git 对象库读原始字节 (避免工作区的 CRLF/LF 差异)
-  const buf = execFileSync('git', ['cat-file', 'blob', `HEAD:${path}`], { cwd: 'D:/ai-server-mvp' });
+  const buf = execFileSync('git', ['cat-file', 'blob', `HEAD:${path}`], { cwd: CWD });
   const blob = await call('POST', '/git/blobs', {
     content: buf.toString('base64'),
     encoding: 'base64',
