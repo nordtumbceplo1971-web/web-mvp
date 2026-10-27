@@ -3,9 +3,37 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.26**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.26`，
+当前版本：**v0.1.27**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.27`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.27 · 2026-10-27
+
+**主题**：TVC 模板改用视频封面（悬停播放 · 16:9 宽卡占两槽位）
+
+### 需求
+
+范例.mp4 作为 TVC 模板的封面：悬停自动播放，移出后视频进度清零、清零缓存；
+默认视频首帧作为封面内容。16:9 的卡片占用普通卡片两个槽位显示。
+
+### 改动
+
+1. **视频封面**（`frontend/src/tplCard.js` + `frontend/src/tplMeta.js`）：
+   TVC 模板预览区用 `<video>` 带 poster 首帧封面（默认静止显示首帧）；
+   悬停（含键盘聚焦）自动播放（静音循环），移出时暂停 + `currentTime = 0` + `load()` 丢弃缓冲缓存，回到首帧封面
+2. **16:9 宽卡**（`frontend/src/styles/main.css` `.tc-wide`）：视频卡 `grid-column: span 2` 占两个槽位，
+   预览窗随卡宽走 16:9；窄屏两列时占满整行、单列时回退普通槽位
+3. **视频素材转码**（`frontend/public/covers/tvc-preview.mp4`）：
+   原片 H.264 High@L5.1 封装被 Chromium 媒体栈拒绝（Format error），已用 ffmpeg 转码为
+   H.264 Main@4.0 + faststart 兼容版（2.5MB）；首帧导出为 `tvc-preview-poster.jpg` 封面图
+
+### 验收
+
+- CDP E2E 全绿：视频元素 + poster 首帧封面 + 宽卡 656px（2×320+16 两槽位）+ 预览窗 16:9（654×368）
+  + 默认暂停在首帧；悬停自动播放且时间推进；移出暂停、进度清零、`load()` 清缓存被调用；二次悬停从头重播；运行时报错 0
+- 同源页面实测视频 1280×720 可播（readyState 4），Range 请求 206 正常
 
 ---
 

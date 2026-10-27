@@ -41,10 +41,15 @@ export function tplLogo(tpl) {
   return TPL_LOGOS[tpl.id] ?? null;
 }
 
-/** 模板效果预览图 (卡片上方 70% 展示); 未配图的模板回退到分类色块 + 图标 */
+/** 模板效果预览图 (卡片上方 70% 展示); 未配图的模板回退到分类色块 + 图标
+    video: 视频封面 (默认显示 poster 首帧, 悬停自动播放); wide: 16:9 宽卡, 占两个槽位 */
 const TPL_PREVIEWS = {
   'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
   'main-white': { src: '/covers/main-white.jpg', alt: '白底主图效果预览 · 正面平铺' },
+  'video-tvc': {
+    video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg', wide: true,
+    alt: 'TVC 广告大片效果预览 · 悬停播放',
+  },
 };
 
 export function tplPreview(tpl) {

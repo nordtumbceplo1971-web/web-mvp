@@ -55,24 +55,30 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
   );
 
   const card = h('article', {
-    class: 'card card-hover tpl-card2', role: 'button', tabindex: 0,
+    class: `card card-hover tpl-card2${preview?.wide ? ' tc-wide' : ''}`, role: 'button', tabindex: 0,
     onclick: goDetail,
     onkeydown: (e) => { if (e.key === 'Enter') goDetail(); },
     ...cardAttrs,
   },
     h('div', {
-      class: `tc-preview${preview ? ' has-img' : ''}`,
+      class: `tc-preview${preview ? ' has-img' : ''}${preview?.wide ? ' wide' : ''}`,
       style: preview ? '' : `background:linear-gradient(150deg, ${tint} 0%, #ffffff 100%)`,
     },
       h('span', { class: 'pill pill-line kind' }, KIND_LABEL[tpl.type]),
-      preview
-        ? h('img', { class: 'tc-img', src: preview.src, alt: preview.alt || tpl.title, loading: 'lazy' })
-        : h('div', { class: 'tc-art' },
-          h('div', { class: 'tc-art-blob' }),
-          h('div', { class: 'tc-art-blob b2' }),
-          h('span', { class: 'tc-art-ico', style: `color:${color}` }, icon(iconName, { size: 34 })),
-          h('span', { class: 'tc-art-label' }, '效果预览'),
-        ),
+      preview?.video
+        ? h('video', {
+          class: 'tc-img tc-video', src: preview.video, poster: preview.poster,
+          muted: true, loop: true, playsinline: true, preload: 'metadata',
+          'aria-label': preview.alt || tpl.title,
+        })
+        : preview
+          ? h('img', { class: 'tc-img', src: preview.src, alt: preview.alt || tpl.title, loading: 'lazy' })
+          : h('div', { class: 'tc-art' },
+            h('div', { class: 'tc-art-blob' }),
+            h('div', { class: 'tc-art-blob b2' }),
+            h('span', { class: 'tc-art-ico', style: `color:${color}` }, icon(iconName, { size: 34 })),
+            h('span', { class: 'tc-art-label' }, '效果预览'),
+          ),
       h('button', {
         class: 'tc-replicate', type: 'button',
         onclick: (e) => { e.stopPropagation(); replicate(); },
@@ -86,6 +92,22 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
     ),
     info,
   );
+
+  // 视频封面: 悬停自动播放, 移出暂停 + 进度清零 + 清空缓冲缓存 (回到首帧封面)
+  const video = preview?.video ? card.querySelector('video.tc-video') : null;
+  if (video) {
+    video.muted = true; // 悬停自动播放须静音 (浏览器自动播放策略)
+    const play = () => { video.play().catch(() => { /* 自动播放被拦截时保持首帧 */ }); };
+    const reset = () => {
+      video.pause();
+      video.currentTime = 0;
+      video.load(); // 丢弃已缓冲数据, 下次悬停从头加载播放
+    };
+    card.addEventListener('mouseenter', play);
+    card.addEventListener('mouseleave', reset);
+    card.addEventListener('focusin', play);
+    card.addEventListener('focusout', reset);
+  }
 
   // 描述不溢出时收起「展开」按钮，避免多余控件
   requestAnimationFrame(() => {
