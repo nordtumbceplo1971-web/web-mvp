@@ -1,6 +1,6 @@
 {
   "name": "996-studio-backend",
-  "version": "0.1.22",
+  "version": "0.1.23",
   "private": true,
   "description": "996 Studio backend — AI 电商内容生成平台（模块化, 前后端分离）",
   "type": "module",
