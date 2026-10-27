@@ -50,6 +50,24 @@ export function tplPreview(tpl) {
   return TPL_PREVIEWS[tpl.id] ?? null;
 }
 
+/** 模板成品图集 (详情页「效果预览」); 图在 frontend/public/flows/<模板id>/ */
+const TPL_FLOWS = {
+  'shopify-lookbook': [
+    { src: '/flows/shopify-lookbook/product.jpg', cap: '产品图', alt: '产品原图 · 正/背面拼版' },
+    { src: '/flows/shopify-lookbook/step-01.jpg', cap: '01 列表主图', alt: '01 列表主图效果' },
+    { src: '/flows/shopify-lookbook/step-02.jpg', cap: '02 背面展示', alt: '02 背面展示效果' },
+    { src: '/flows/shopify-lookbook/step-03.jpg', cap: '03 完整穿搭', alt: '03 完整穿搭效果' },
+    { src: '/flows/shopify-lookbook/step-04.jpg', cap: '04 印花细节', alt: '04 印花细节效果' },
+    { src: '/flows/shopify-lookbook/step-05.jpg', cap: '05 面料做工', alt: '05 面料与做工效果' },
+    { src: '/flows/shopify-lookbook/step-06.jpg', cap: '06 另一模特', alt: '06 另一位模特效果' },
+    { src: '/flows/shopify-lookbook/step-07.jpg', cap: '07 品牌生活', alt: '07 品牌生活方式效果' },
+  ],
+};
+
+export function tplFlow(tpl) {
+  return TPL_FLOWS[tpl.id] ?? null;
+}
+
 export function tplCover(tpl) {
   const t = CATEGORY_TINT[tpl.category] ?? { tint: '#f1f5f9', color: '#475569' };
   return { iconName: TPL_ICONS[tpl.id] ?? 'image', tint: t.tint, color: t.color };

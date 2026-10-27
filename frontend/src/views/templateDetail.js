@@ -2,7 +2,7 @@ import { h, toast } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
-import { tplCover, KIND_LABEL } from '../tplMeta.js';
+import { tplCover, tplFlow, KIND_LABEL } from '../tplMeta.js';
 
 /**
  * 模板详情页 (独立路由 /templates/:id)
@@ -43,6 +43,14 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
     ),
     h('span', { class: 'pill pill-line' }, KIND_LABEL[tpl.type]),
   );
+
+  // ---- 效果预览 + 制作流程 (有成品图集的模板才显示, 如 Shopify 套图) ----
+  const flowShots = tplFlow(tpl);
+  const flowSection = [];
+  if (flowShots) {
+    flowSection.push(flowPreviewPanel(flowShots));
+    if ((tpl.steps ?? []).length) flowSection.push(flowStepsPanel(tpl));
+  }
 
   // ---- 准备信息 ----
   const facts = h('div', { class: 'card panel fact-card' },
@@ -104,8 +112,83 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
   root.append(
     header,
     h('div', { class: 'detail-layout' },
-      h('div', {}, facts, promptPanel, slotPanel, tipsPanel),
+      h('div', {}, ...flowSection, facts, promptPanel, slotPanel, tipsPanel),
       h('div', { class: 'detail-side' }, cta, relatedPanel(tpl, navigate)),
+    ),
+  );
+}
+
+/* ---------- 效果预览 + 制作流程 (详情页分块展示) ---------- */
+
+/** 点小图看大图 (全局 lightbox 单例) */
+function openLightbox(src, alt, caption) {
+  let box = document.getElementById('tpl-lightbox');
+  if (!box) {
+    const close = () => box.classList.remove('open');
+    box = h('div', {
+      id: 'tpl-lightbox', class: 'lightbox', role: 'dialog', 'aria-modal': 'true',
+      onclick: close,
+    },
+      h('div', { class: 'lb-inner', onclick: (e) => e.stopPropagation() },
+        h('img', { class: 'lb-img', alt: '' }),
+        h('div', { class: 'lb-cap' }),
+        h('button', { class: 'lb-close', type: 'button', 'aria-label': '关闭大图', onclick: close }, '✕'),
+      ),
+    );
+    document.addEventListener('keydown', (e) => { if (e.key === 'Escape') close(); });
+    document.body.append(box);
+  }
+  const img = box.querySelector('.lb-img');
+  img.src = src;
+  img.alt = alt;
+  box.querySelector('.lb-cap').textContent = caption ?? alt;
+  box.classList.add('open');
+}
+
+/** 效果预览: 产品图 → 01…07 成品缩略图 (小图网格, 点击放大) */
+function flowPreviewPanel(shots) {
+  return h('section', { class: 'card panel flow-panel' },
+    h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
+    h('p', { class: 'flow-note' }, '产品图 → 01…07, 每一步都是本模板的真实产出 · 点小图看大图'),
+    h('div', { class: 'flow-gallery' },
+      ...shots.map((s, i) => h('button', {
+        class: `flow-shot${i === 0 ? ' is-product' : ''}`, type: 'button', title: `${s.cap} · 点击看大图`,
+        onclick: () => openLightbox(s.src, s.alt, s.cap),
+      },
+        h('img', { src: s.src, alt: s.alt, loading: 'lazy' }),
+        h('span', { class: 'fs-cap' }, s.cap),
+      )),
+    ),
+  );
+}
+
+/** 制作流程: 产品原图 + 分步时间线 */
+function flowStepsPanel(tpl) {
+  const steps = tpl.steps ?? [];
+  return h('section', { class: 'card panel flow-panel' },
+    h('h3', {}, icon('layers', { size: 15 }), ` 制作流程 · ${steps.length} 步出全套`),
+    h('div', { class: 'flow-steps' },
+      h('div', { class: 'flow-step is-input' },
+        h('span', { class: 'fs-no' }, '输入'),
+        h('div', { class: 'fs-body' },
+          h('div', { class: 'fs-head' },
+            h('b', {}, '产品原图'),
+            h('span', { class: 'pill pill-line' }, tpl.needLabel),
+          ),
+          h('p', { class: 'fs-desc' }, '全程作为产品外观、印花、颜色与版型的唯一参考, 每一步都不得改产品'),
+        ),
+      ),
+      ...steps.map((s) => h('div', { class: 'flow-step' },
+        h('span', { class: 'fs-no' }, s.id),
+        h('div', { class: 'fs-body' },
+          h('div', { class: 'fs-head' },
+            h('b', {}, s.name),
+            s.needModel ? h('span', { class: 'pill pill-soft' }, '需要模特') : null,
+            (s.refSteps ?? []).length ? h('span', { class: 'pill pill-line' }, `参考 ${s.refSteps.join(' / ')}`) : null,
+          ),
+          h('p', { class: 'fs-desc' }, s.desc),
+        ),
+      )),
     ),
   );
 }
