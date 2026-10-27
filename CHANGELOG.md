@@ -3,9 +3,41 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.17**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.17`，
+当前版本：**v0.1.18**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.18`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.18 · 2026-10-27
+
+**主题**：「一键复刻」改悬浮玻璃能量胶囊 —— 平时隐藏、悬停浮出
+
+### 需求
+
+1. 鼠标没悬停在模板卡片上时不显示「一键复刻」；悬停时图片动态放大 + 「一键复刻」浮出
+2. 按钮配色改成电量 / 活力 / 动力感，圆角、透明层
+
+### 改动
+
+1. **交互**（`frontend/src/tplCard.js`、`frontend/src/styles/main.css`）：
+   「一键复刻」从卡片中缝的红色横条改为**悬浮在预览图底部**的胶囊按钮。
+   默认 `opacity: 0` + `pointer-events: none`，卡片 `:hover` / `:focus-within` 时
+   浮出（上移 + 缩放回弹）；触屏设备（`hover: none`）常显兜底
+2. **图片动态感**：悬停时预览图 `scale(1.06)` 缓慢放大（0.5s ease），
+   被预览区 `overflow: hidden` 裁住
+3. **能量感配色**：电光青 → 翠绿 → 柠檬绿半透明渐变（`rgba(34,211,238) → rgba(16,185,129) → rgba(132,204,22)`）
+   + `backdrop-filter: blur(12px) saturate(1.35)` 玻璃透明层（背后图片透出）
+   + 圆角胶囊（`border-radius: 999px`）+ 白色描边 + 内高光；
+   按钮自身 hover 走一道高光扫过 + 绿色光晕
+
+### 验收
+
+- 默认态实测：`opacity: 0`、`pointer-events: none`，画面上不出现按钮
+- 悬停实测：胶囊浮出（`opacity: 1`、水平居中偏移 0px、距预览底 15px），
+  图片 `transform: scale(1.06)`
+- 计算样式：圆角 999px、玻璃 `blur(12px) saturate(1.35)`、能量渐变三段色正确
+- 点击胶囊直达创作流（Shopify 套图正确分流 `/lookbook`）；0 运行时报错
 
 ---
 

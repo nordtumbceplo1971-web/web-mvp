@@ -6,9 +6,8 @@ import { tplCover, tplLogo, tplPreview, KIND_LABEL } from './tplMeta.js';
  * 模板卡片（统一版式，首页预览区与模板库共用）
  *
  *   ┌──────────────────────┐
- *   │   效果预览区 (约70%)   │  分类色块 + 图标占位，预留 preview 图位
- *   ├──────────────────────┤
- *   │   一键复刻 (红色条)     │  快速入口，点它直接开始出图
+ *   │   效果预览区 (约70%)   │  hover 时图片微放大
+ *   │    ╭─ 一键复刻 ─╮     │  玻璃能量胶囊, 平时隐藏, hover 才浮出
  *   ├──────────────────────┤
  *   │  模板名称      [logo]  │  蓝框 logo 在右，名称在左
  *   │  ┌────────────────┐  │
@@ -74,14 +73,14 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
           h('span', { class: 'tc-art-ico', style: `color:${color}` }, icon(iconName, { size: 34 })),
           h('span', { class: 'tc-art-label' }, '效果预览'),
         ),
-    ),
-    h('button', {
-      class: 'tc-replicate', type: 'button',
-      onclick: (e) => { e.stopPropagation(); replicate(); },
-    },
-      h('span', { class: 'tr-ico' }, icon('sparkles', { size: 15 })),
-      h('span', { class: 'tr-label' }, '一键复刻'),
-      h('span', { class: 'tr-go' }, icon('arrow-right', { size: 15 })),
+      h('button', {
+        class: 'tc-replicate', type: 'button',
+        onclick: (e) => { e.stopPropagation(); replicate(); },
+      },
+        h('span', { class: 'tr-ico' }, icon('sparkles', { size: 15 })),
+        h('span', { class: 'tr-label' }, '一键复刻'),
+        h('span', { class: 'tr-go' }, icon('arrow-right', { size: 15 })),
+      ),
     ),
     info,
   );
