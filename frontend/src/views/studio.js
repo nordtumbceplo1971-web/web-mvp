@@ -46,6 +46,7 @@ export async function renderStudio(root, { navigate, query, back }) {
     aspect: resolveAspect('1:1'),
     count: 1,
     resolution: '2K',
+    tasks: [],           // 图片任务队列: {id, title, templateTitle, status, progress, urls, error, isVideo}
   };
 
   // ---------- 顶部 ----------
@@ -225,25 +226,122 @@ export async function renderStudio(root, { navigate, query, back }) {
     genBtn.textContent = credits < cost ? '额度不足' : '生成图片';
   }
 
-  const toolsPanel = h('div', { class: 'studio-tools' },
+  // ---------- 图片任务队列（预览窗口右侧，可展开/收起，竖状排列） ----------
+  let taskSeq = 0;
+  const queueList = h('div', { class: 'tq-list' });
+  const queueCount = h('span', { class: 'pill pill-soft' }, '0 个任务');
+  const queueToggle = h('button', {
+    class: 'tq-toggle', type: 'button', title: '收起 / 展开任务队列',
+    'aria-label': '收起 / 展开任务队列',
+    onclick: () => setQueueOpen(!queueOpen),
+  }, icon('chevron-right', { size: 16 }));
+
+  const queuePanel = h('div', { class: 'card panel tq-panel' },
+    h('div', { class: 'tq-head' },
+      h('h3', {}, icon('layers', { size: 15 }), ' 图片任务队列'),
+      queueCount,
+      queueToggle,
+    ),
+    queueList,
+  );
+
+  let queueOpen = true;
+  function setQueueOpen(open) {
+    queueOpen = open;
+    queuePanel.classList.toggle('collapsed', !open);
+    queueList.style.display = open ? '' : 'none';
+    queueToggle.innerHTML = '';
+    queueToggle.append(icon(open ? 'chevron-down' : 'chevron-right', { size: 16 }));
+  }
+
+  const TASK_STATUS = {
+    processing: { label: '生成中', cls: 'running' },
+    completed: { label: '已完成', cls: 'done' },
+    failed: { label: '失败', cls: 'failed' },
+    queued: { label: '排队中', cls: 'queued' },
+  };
+
+  function drawQueue() {
+    queueCount.textContent = `${state.tasks.length} 个任务`;
+    if (!state.tasks.length) {
+      queueList.replaceChildren(h('div', { class: 'tq-empty' }, '还没有任务，点「生成图片」开始'));
+      return;
+    }
+    queueList.replaceChildren(...state.tasks.map((t) => {
+      const meta = TASK_STATUS[t.status] ?? TASK_STATUS.processing;
+      return h('button', {
+        class: `tq-item ${meta.cls}`, type: 'button',
+        onclick: () => showTask(t),
+      },
+        h('div', { class: 'tq-thumb' },
+          t.urls?.[0]
+            ? h('img', { src: t.urls[0], alt: t.title, loading: 'lazy' })
+            : h('span', { class: 'tq-ico' }, icon(t.status === 'failed' ? 'x' : 'image', { size: 15 })),
+          t.status === 'processing' ? h('i', { class: 'tq-bar', style: `width:${Math.max(6, t.progress || 0)}%` }) : null,
+        ),
+        h('div', { class: 'tq-meta' },
+          h('div', { class: 'tq-title' }, t.title),
+          h('div', { class: 'tq-sub' },
+            h('span', { class: `tq-tag ${meta.cls}` }, meta.label),
+            t.templateTitle ? h('span', { class: 'tq-tpl' }, t.templateTitle) : null,
+          ),
+        ),
+      );
+    }));
+  }
+
+  function addTask(partial) {
+    const t = {
+      id: ++taskSeq, status: 'queued', progress: 0, urls: [], error: null,
+      templateTitle: '', title: '未命名任务',
+      ...partial,
+    };
+    state.tasks.unshift(t);
+    drawQueue();
+    return t;
+  }
+
+  /** 把某个任务的结果/进度显示到中间预览窗口 */
+  function showTask(t) {
+    if (t.status === 'completed' && t.urls?.length) {
+      drawResults(t.urls, t.isVideo);
+      return;
+    }
+    if (t.status === 'failed') {
+      canvas.replaceChildren(h('div', { class: 'canvas-empty' },
+        '生成失败: ', t.error || '未知原因', h('br'), '额度已退回'));
+      return;
+    }
+    canvas.replaceChildren(h('div', { class: 'card panel generating' },
+      h('div', { class: 'spinner' }),
+      h('div', { class: 'gen-stage' }, '正在按你的想法拍摄…'),
+      h('div', { class: 'progress-bar' }, h('i', { style: `width:${Math.max(4, t.progress || 0)}%` })),
+    ));
+  }
+
+  // ---------- 左列: 1 参考图 → 3 你的想法 ----------
+  const leftPanel = h('div', { class: 'studio-left' },
     h('div', { class: 'card panel' },
       h('h3', {}, h('span', { class: 'step-no' }, '1'), '参考图'),
       h('div', { class: 'hint' }, '改背景 / 换场景类需求需要; 不传就是纯文生图'),
       uploader, fileInput, thumbsWrap,
     ),
-    h('div', { class: 'card panel' },
-      h('h3', {}, h('span', { class: 'step-no' }, '2'), '需求模板'),
-      h('div', { class: 'hint' }, '选中的模板会用它的专业提示词框架, 你写的想法会融进去'),
-      quickGrid,
-    ),
     h('div', { class: 'card panel prompt-box' },
       h('h3', {}, h('span', { class: 'step-no' }, '3'), '你的想法'),
+      h('div', { class: 'hint' }, '用大白话描述你想要的图; 不会写就点「优化提示词」'),
       promptArea,
       h('div', { class: 'optimize-row' }, optimizeBtn, optimizeNote),
       optimizePreview,
       h('div', { style: 'margin-top:14px' }, specRow),
       h('div', { style: 'margin-top:16px' }, summary, genBtn),
     ),
+  );
+
+  // ---------- 2 模板需求（预览窗口下方） ----------
+  const templatePanel = h('div', { class: 'card panel' },
+    h('h3', {}, h('span', { class: 'step-no' }, '2'), '需求模板'),
+    h('div', { class: 'hint' }, '选中的模板会用它的专业提示词框架, 你写的想法会融进去'),
+    quickGrid,
   );
 
   // ---------- 右侧画布 ----------
@@ -265,6 +363,15 @@ export async function renderStudio(root, { navigate, query, back }) {
 
     const template = quickTemplates.find((t) => t.id === state.templateId) ?? quickTemplates[0];
     const isVideo = template.type === 'video';
+
+    // 每次生成都入队, 右侧「图片任务队列」竖状追踪
+    const task = addTask({
+      title: state.prompt.slice(0, 16) || template.title,
+      templateTitle: template.title,
+      isVideo,
+      status: 'processing',
+    });
+
     const genPanel = h('div', { class: 'card panel generating' },
       h('div', { class: 'spinner' }),
       h('div', { class: 'gen-stage' }, '正在按你的想法拍摄…'),
@@ -287,18 +394,31 @@ export async function renderStudio(root, { navigate, query, back }) {
     };
     try {
       const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
+      task.taskId = res.taskId;
       const poll = pollTask(res.taskId, (st) => {
         genPanel.querySelector('.progress-bar i').style.width = `${Math.max(6, st.progress)}%`;
+        task.progress = st.progress;
         if (st.isFinal && st.status === 'completed') {
+          task.status = 'completed';
+          task.urls = st.urls;
           refreshGen();
+          drawQueue();
           drawResults(st.urls, isVideo);
         } else if (st.isFinal) {
+          task.status = 'failed';
+          task.error = st.error || '未知原因';
           refundCredits(cost); refreshGen();
+          drawQueue();
           canvas.replaceChildren(h('div', { class: 'canvas-empty' }, '生成失败: ', st.error || '未知原因', h('br'), '额度已退回'));
+        } else {
+          drawQueue();
         }
       });
       void poll;
     } catch (e) {
+      task.status = 'failed';
+      task.error = e.message;
+      drawQueue();
       refundCredits(cost); refreshGen();
       toast(e.message, 'err');
       canvas.replaceChildren(h('div', { class: 'canvas-empty' }, '生成失败, 请重试'));
@@ -331,9 +451,16 @@ export async function renderStudio(root, { navigate, query, back }) {
   drawQuick();
   drawSpec();
   drawThumbs();
+  drawQueue();
+  setQueueOpen(true);
   refreshGen();
   root.append(
     header,
-    h('div', { class: 'studio-layout', style: 'margin-top:18px' }, toolsPanel, canvas),
+    // 三栏: 左=1参考图+3你的想法 / 中=预览窗口+2模板需求 / 右=图片任务队列
+    h('div', { class: 'studio-layout', style: 'margin-top:18px' },
+      leftPanel,
+      h('div', { class: 'studio-main' }, canvas, templatePanel),
+      queuePanel,
+    ),
   );
 }
