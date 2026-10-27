@@ -111,8 +111,10 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
 
   root.append(
     header,
+    // 效果预览 + 制作流程: 全宽模块, 压在双栏 (含右下「同类模板」导航卡) 之上
+    flowSection.length ? h('div', { class: 'flow-section' }, ...flowSection) : null,
     h('div', { class: 'detail-layout' },
-      h('div', {}, ...flowSection, facts, promptPanel, slotPanel, tipsPanel),
+      h('div', {}, facts, promptPanel, slotPanel, tipsPanel),
       h('div', { class: 'detail-side' }, cta, relatedPanel(tpl, navigate)),
     ),
   );
@@ -162,32 +164,26 @@ function flowPreviewPanel(shots) {
   );
 }
 
-/** 制作流程: 产品原图 + 分步时间线 */
+/** 制作流程: 产品原图 + 分步横向时间线 (一排, 不占竖向大片空间) */
 function flowStepsPanel(tpl) {
   const steps = tpl.steps ?? [];
   return h('section', { class: 'card panel flow-panel' },
     h('h3', {}, icon('layers', { size: 15 }), ` 制作流程 · ${steps.length} 步出全套`),
     h('div', { class: 'flow-steps' },
-      h('div', { class: 'flow-step is-input' },
-        h('span', { class: 'fs-no' }, '输入'),
-        h('div', { class: 'fs-body' },
-          h('div', { class: 'fs-head' },
-            h('b', {}, '产品原图'),
-            h('span', { class: 'pill pill-line' }, tpl.needLabel),
-          ),
-          h('p', { class: 'fs-desc' }, '全程作为产品外观、印花、颜色与版型的唯一参考, 每一步都不得改产品'),
-        ),
+      h('div', { class: 'flow-node is-input' },
+        h('div', { class: 'fn-top' }, h('span', { class: 'fs-no' }, '输入'), h('b', {}, '产品原图')),
+        h('p', { class: 'fs-desc' }, '外观、印花、颜色与版型的唯一参考, 每一步都不得改产品'),
+        h('div', { class: 'fs-tags' }, h('span', { class: 'pill pill-line' }, tpl.needLabel)),
       ),
-      ...steps.map((s) => h('div', { class: 'flow-step' },
-        h('span', { class: 'fs-no' }, s.id),
-        h('div', { class: 'fs-body' },
-          h('div', { class: 'fs-head' },
-            h('b', {}, s.name),
+      ...steps.map((s) => h('div', { class: 'flow-node' },
+        h('div', { class: 'fn-top' }, h('span', { class: 'fs-no' }, s.id), h('b', {}, s.name)),
+        h('p', { class: 'fs-desc' }, s.desc),
+        (s.needModel || (s.refSteps ?? []).length)
+          ? h('div', { class: 'fs-tags' },
             s.needModel ? h('span', { class: 'pill pill-soft' }, '需要模特') : null,
             (s.refSteps ?? []).length ? h('span', { class: 'pill pill-line' }, `参考 ${s.refSteps.join(' / ')}`) : null,
-          ),
-          h('p', { class: 'fs-desc' }, s.desc),
-        ),
+          )
+          : null,
       )),
     ),
   );

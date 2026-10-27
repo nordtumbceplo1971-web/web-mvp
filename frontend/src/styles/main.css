@@ -478,13 +478,14 @@ main.container { flex: 1; padding: 24px 0 48px; }
 /* ---- 「一键复刻」悬浮玻璃能量胶囊 ----
    默认隐藏, hover / 键盘聚焦卡片才浮出 (触屏设备常显兜底)
    色调: 电光青 → 翠绿 → 柠檬绿 的能量渐变 + 半透明玻璃层, 走活力/动力感
+   动效: 能量环沿胶囊椭圆轮廓环绕转圈 (::after 的 conic 弧光)
 */
 .tc-replicate {
   position: absolute; left: 50%; bottom: 14px; z-index: 3;
   display: flex; align-items: center; gap: 8px;
   padding: 9px 16px 9px 10px;
   border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 999px;
-  cursor: pointer; isolation: isolate; overflow: hidden;
+  cursor: pointer; isolation: isolate;
   color: #fff;
   background:
     linear-gradient(135deg, rgba(34, 211, 238, 0.78) 0%, rgba(16, 185, 129, 0.82) 52%, rgba(132, 204, 22, 0.86) 100%);
@@ -495,20 +496,37 @@ main.container { flex: 1; padding: 24px 0 48px; }
     inset 0 0 12px rgba(255, 255, 255, 0.18),
     0 12px 26px -10px rgba(16, 185, 129, 0.65);
   opacity: 0; transform: translate(-50%, 14px) scale(0.94); pointer-events: none;
-  transition: opacity 0.26s ease, transform 0.26s ease, box-shadow 0.26s ease;
+  transition: opacity 0.26s ease, transform 0.26s ease;
 }
 .tpl-card2:hover .tc-replicate,
 .tpl-card2:focus-within .tc-replicate {
   opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto;
 }
-/* 能量高光扫过 (只在按钮自身 hover 时走一遍) */
-.tc-replicate::before {
-  content: ''; position: absolute; top: -30%; bottom: -30%; left: -60%; width: 46%;
-  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.5), transparent);
-  transform: skewX(-18deg); opacity: 0; pointer-events: none;
-  transition: left 0.55s ease, opacity 0.3s ease;
+/* 能量环: 环绕胶囊椭圆轮廓转圈 (conic 弧光 + mask 挖出环形) */
+.tc-replicate::after {
+  content: ''; position: absolute; inset: -3px; border-radius: 999px;
+  padding: 2.5px;
+  background: conic-gradient(
+    from 0deg,
+    transparent 0deg 190deg,
+    rgba(163, 230, 53, 0.9) 255deg,
+    rgba(34, 211, 238, 1) 315deg,
+    rgba(255, 255, 255, 0.95) 342deg,
+    transparent 360deg
+  );
+  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  pointer-events: none; opacity: 0;
+  transition: opacity 0.25s ease;
 }
-.tc-replicate:hover::before { left: 118%; opacity: 1; }
+.tpl-card2:hover .tc-replicate::after,
+.tpl-card2:focus-within .tc-replicate::after {
+  opacity: 1;
+  animation: tr-orbit 1.8s linear infinite;
+}
+@keyframes tr-orbit { to { transform: rotate(360deg); } }
 .tc-replicate > * { position: relative; z-index: 1; }
 .tc-replicate .tr-ico {
   flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
@@ -525,12 +543,6 @@ main.container { flex: 1; padding: 24px 0 48px; }
   transition: transform 0.2s ease, opacity 0.2s ease;
 }
 .tc-replicate:hover .tr-go { transform: translateX(3px); opacity: 1; }
-.tc-replicate:hover {
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.6),
-    0 16px 30px -10px rgba(52, 211, 153, 0.75),
-    0 0 0 3px rgba(52, 211, 153, 0.25);
-}
 .tc-replicate:active { transform: translate(-50%, 1px) scale(0.98); }
 .tc-replicate:focus-visible {
   outline: none;
@@ -584,11 +596,12 @@ main.container { flex: 1; padding: 24px 0 48px; }
    模板详情 · 效果预览 + 制作流程 分块
    ============================================================ */
 .flow-panel { padding: 16px 18px 18px; }
+.flow-section { display: flex; flex-direction: column; gap: 14px; margin-bottom: 18px; }
 .flow-panel h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; }
 .flow-note { margin: 6px 0 12px; font-size: 12.5px; color: var(--ink-3); }
 
-/* ---- 效果预览: 小图网格 (产品图 + 7 步成品), 点击放大 ---- */
-.flow-gallery { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; }
+/* ---- 效果预览: 一排 8 张小图 (产品图 + 7 步成品), 点击放大 ---- */
+.flow-gallery { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
 .flow-shot {
   position: relative; padding: 0; overflow: hidden; cursor: zoom-in;
   border: 1px solid var(--line); border-radius: var(--r-md); background: var(--fill);
@@ -603,38 +616,54 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .flow-shot.is-product img { object-fit: contain; }
 .flow-shot.is-product:hover img { transform: none; }
 .flow-shot .fs-cap {
-  position: absolute; left: 0; right: 0; bottom: 0; padding: 14px 8px 6px;
-  font-size: 11px; font-weight: 600; color: #fff; text-align: left; letter-spacing: 0.02em;
-  background: linear-gradient(transparent, rgba(15, 23, 42, 0.68));
+  position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 6px 4px;
+  font-size: 10.5px; font-weight: 600; color: #fff; text-align: left; letter-spacing: 0.01em;
+  background: linear-gradient(transparent, rgba(15, 23, 42, 0.7));
 }
 .flow-shot:focus-visible { outline: none; box-shadow: var(--ring); }
 
-/* ---- 制作流程: 产品原图 + 分步时间线 ---- */
-.flow-steps { display: flex; flex-direction: column; }
-.flow-step { position: relative; display: flex; gap: 12px; padding: 9px 0; }
-.flow-step:not(:last-child)::before {
-  content: ''; position: absolute; left: 15px; top: 41px; bottom: -2px;
-  width: 2px; background: var(--line);
+/* ---- 制作流程: 一排横向时间线 (输入 + 7 步), 不占大片竖向空间 ---- */
+.flow-steps { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+.flow-node { position: relative; min-width: 0; }
+/* 圆徽之间的横向连线 */
+.flow-node:not(:last-child)::after {
+  content: ''; position: absolute; left: 32px; right: -10px; top: 15px; height: 2px;
+  background: linear-gradient(90deg, var(--brand-border), var(--line));
+}
+.flow-node.is-input:not(:last-child)::after {
+  left: 52px;
+  background: repeating-linear-gradient(90deg, var(--line-strong) 0 4px, transparent 4px 9px);
+}
+.fn-top { display: flex; align-items: center; gap: 8px; position: relative; z-index: 1; }
+.fn-top b {
+  font-size: 13px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
 }
 .fs-no {
-  position: relative; z-index: 1; flex-shrink: 0;
-  width: 32px; height: 32px; border-radius: 50%;
+  flex-shrink: 0; width: 30px; height: 30px; border-radius: 50%;
   display: grid; place-items: center;
-  background: var(--brand-soft); color: var(--brand-deep); border: 1px solid var(--brand-border);
-  font-size: 11.5px; font-weight: 800;
+  background: var(--card); color: var(--brand-deep); border: 1.5px solid var(--brand-border);
+  font-size: 11px; font-weight: 800;
 }
-.flow-step.is-input .fs-no {
-  width: auto; min-width: 32px; padding: 0 8px; border-radius: 999px;
+.flow-node.is-input .fs-no {
+  width: auto; padding: 0 9px; border-radius: 999px;
   background: var(--gold-soft); color: var(--gold); border-color: var(--gold-border);
-  font-size: 11px; letter-spacing: 0.04em;
+  font-size: 10.5px; letter-spacing: 0.04em;
 }
-.flow-step.is-input::before {
-  background: repeating-linear-gradient(180deg, var(--line-strong) 0 4px, transparent 4px 9px);
+.flow-node .fs-desc {
+  margin: 7px 0 0; font-size: 11.5px; color: var(--ink-2); line-height: 1.55;
+  display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
-.fs-body { flex: 1; min-width: 0; padding-top: 4px; }
-.fs-head { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
-.fs-head b { font-size: 14px; }
-.fs-desc { margin: 3px 0 0; font-size: 12.5px; color: var(--ink-2); line-height: 1.6; }
+.flow-node .fs-tags { display: flex; gap: 5px; flex-wrap: wrap; margin-top: 6px; }
+.flow-node .fs-tags .pill { font-size: 10px; padding: 1px 7px; }
+@media (max-width: 1240px) {
+  .flow-gallery { grid-template-columns: repeat(4, 1fr); }
+  .flow-steps { grid-template-columns: repeat(4, 1fr); row-gap: 18px; }
+  .flow-node:not(:last-child)::after { display: none; }
+}
+@media (max-width: 680px) {
+  .flow-gallery { grid-template-columns: repeat(2, 1fr); }
+  .flow-steps { grid-template-columns: repeat(2, 1fr); }
+}
 
 /* ---- 点小图看大图 ---- */
 .lightbox {
