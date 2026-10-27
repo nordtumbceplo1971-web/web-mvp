@@ -1,6 +1,6 @@
 {
   "name": "996-studio-web",
-  "version": "0.1.23",
+  "version": "0.1.24",
   "private": true,
   "type": "module",
   "description": "996 Studio · AI 电商自动化创作平台 (前端 + Serverless API 一体化部署)",

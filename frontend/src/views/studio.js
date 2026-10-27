@@ -35,9 +35,11 @@ export async function renderStudio(root, { navigate, query, back }) {
     });
     return;
   }
-  // 创作模式: 首页底部「图片生成 / 视频生成」分别直达
-  const mode = query.get('mode') === 'video' ? 'video' : 'image';
-  const quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
+  // 创作模式: 首页底部「图片生成 / 视频生成」直达, 顶部 switch 可运行时切换
+  let mode = query.get('mode') === 'video' ? 'video' : 'image';
+  let quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
+  // 每个模式各自记住上次选中的模板, 切换回来不丢
+  const lastTplByMode = { image: '', video: '' };
 
   const state = {
     images: [],            // {dataUri, url}
@@ -54,21 +56,38 @@ export async function renderStudio(root, { navigate, query, back }) {
   };
 
   // ---------- 顶部 ----------
+  const hTitle = h('h1', {}, mode === 'video' ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作');
+  const hSub = h('div', { class: 'ph-sub' }, mode === 'video'
+    ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
+    : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写');
+
+  // 图片 / 视频 switch 切换 (滑块式)
+  const msThumb = h('span', { class: 'ms-thumb' });
+  const msImageBtn = h('button', {
+    class: `ms-opt ${mode === 'image' ? 'active' : ''}`, type: 'button',
+    onclick: () => setMode('image'),
+  }, icon('image', { size: 14 }), '图片生成');
+  const msVideoBtn = h('button', {
+    class: `ms-opt ${mode === 'video' ? 'active' : ''}`, type: 'button',
+    onclick: () => setMode('video'),
+  }, icon('video', { size: 14 }), '视频生成');
+  const modeSwitch = h('div', { class: `mode-switch ${mode === 'video' ? 'video' : ''}`, role: 'tablist', 'aria-label': '创作模式切换' },
+    msThumb, msImageBtn, msVideoBtn,
+  );
+
   const header = h('div', { class: 'page-head' },
     h('button', {
       class: 'btn btn-ghost btn-sm', onclick: () => goBack(), 'aria-label': '返回上一页', title: '返回上一页',
     }, icon('arrow-left', { size: 15 }), '返回上一页'),
     h('div', { class: 'ph-icon', style: 'background:var(--brand-soft);color:var(--brand)' }, icon('wand', { size: 22 })),
-    h('div', { class: 'ph-title' },
-      h('h1', {}, mode === 'video' ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作'),
-      h('div', { class: 'ph-sub' }, mode === 'video'
-        ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
-        : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写'),
-    ),
+    h('div', { class: 'ph-title' }, hTitle, hSub),
+    modeSwitch,
   );
 
   // ---------- 左侧工具箱 ----------
   const thumbsWrap = h('div', { class: 'upload-thumbs' });
+  const upTitle = h('div', { class: 't' }, mode === 'video' ? '上传参考图 / 首帧图（最多 2 张)' : '上传参考图（产品图/原图，最多 2 张)');
+  const upDesc = h('div', { class: 'd' }, mode === 'video' ? '图生视频用; 不传就是纯文字描述出片' : '改图类模板需要; 纯文生图可不上传');
   const uploader = h('div', {
     class: 'uploader', style: 'padding:22px 16px', 'data-tour': 'studio-upload',
     onclick: () => fileInput.click(),
@@ -77,8 +96,8 @@ export async function renderStudio(root, { navigate, query, back }) {
     ondrop: (e) => { e.preventDefault(); uploader.classList.remove('dragover'); addFiles(e.dataTransfer.files); },
   },
     h('div', { class: 'up-ico' }, icon('upload', { size: 20 })),
-    h('div', { class: 't' }, mode === 'video' ? '上传参考图 / 首帧图（最多 2 张)' : '上传参考图（产品图/原图，最多 2 张)'),
-    h('div', { class: 'd' }, mode === 'video' ? '图生视频用; 不传就是纯文字描述出片' : '改图类模板需要; 纯文生图可不上传'),
+    upTitle,
+    upDesc,
   );
   const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: true, style: 'display:none', onchange: (e) => { addFiles(e.target.files); fileInput.value = ''; } });
 
@@ -203,20 +222,26 @@ export async function renderStudio(root, { navigate, query, back }) {
   const specRow = h('div', { class: 'row' });
   function drawSpec() {
     if (mode === 'video') {
-      // 视频: 画幅 + 时长 (取当前模板支持的时长) + 分辨率
+      // 视频: 画幅 + 时长 (取当前模板支持的时长) + 分辨率 (720p/1080p, 与后端校验白名单对齐)
       const tpl = quickTemplates.find((t) => t.id === state.templateId);
+      const durations = tpl?.durationOptions ?? [4, 6, 8];
+      if (!durations.includes(state.duration)) state.duration = durations[0];
+      if (!['720p', '1080p'].includes(state.resolution)) state.resolution = tpl?.defaults?.resolution ?? '720p';
       specRow.replaceChildren(
         ...VIDEO_ASPECTS.map((a) => h('button', {
           class: `spec-chip ${state.aspect === a ? 'active' : ''}`,
           onclick: () => { state.aspect = a; drawSpec(); },
         }, a)),
         h('span', { style: 'width:6px' }),
-        ...(tpl?.durationOptions ?? [4, 6, 8]).map((d) => h('button', {
+        ...durations.map((d) => h('button', {
           class: `spec-chip ${state.duration === d ? 'active' : ''}`,
           onclick: () => { state.duration = d; drawSpec(); },
         }, `${d} 秒`)),
         h('span', { style: 'width:6px' }),
-        h('button', { class: 'spec-chip active' }, tpl?.defaults?.resolution ?? '720p'),
+        ...['720p', '1080p'].map((r) => h('button', {
+          class: `spec-chip ${state.resolution === r ? 'active' : ''}`,
+          onclick: () => { state.resolution = r; drawSpec(); },
+        }, r)),
       );
       return;
     }
@@ -264,9 +289,10 @@ export async function renderStudio(root, { navigate, query, back }) {
     onclick: () => setQueueOpen(!queueOpen),
   }, icon('chevron-right', { size: 16 }));
 
+  const queueTitleText = h('span', {}, mode === 'video' ? ' 视频任务队列' : ' 图片任务队列');
   const queuePanel = h('div', { class: 'card panel tq-panel' },
     h('div', { class: 'tq-head' },
-      h('h3', {}, icon('layers', { size: 15 }), mode === 'video' ? ' 视频任务队列' : ' 图片任务队列'),
+      h('h3', {}, icon('layers', { size: 15 }), queueTitleText),
       queueCount,
       queueToggle,
     ),
@@ -348,15 +374,17 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
 
   // ---------- 左列: 1 参考图 → 3 你的想法 ----------
+  const uploadHint = h('div', { class: 'hint' }, '改背景 / 换场景类需求需要; 不传就是纯文生图');
+  const promptHint = h('div', { class: 'hint' }, '用大白话描述你想要的图; 不会写就点「优化提示词」');
   const leftPanel = h('div', { class: 'studio-left' },
     h('div', { class: 'card panel' },
       h('h3', {}, h('span', { class: 'step-no' }, '1'), '参考图'),
-      h('div', { class: 'hint' }, '改背景 / 换场景类需求需要; 不传就是纯文生图'),
+      uploadHint,
       uploader, fileInput, thumbsWrap,
     ),
     h('div', { class: 'card panel prompt-box' },
       h('h3', {}, h('span', { class: 'step-no' }, '3'), '你的想法'),
-      h('div', { class: 'hint' }, '用大白话描述你想要的图; 不会写就点「优化提示词」'),
+      promptHint,
       promptArea,
       h('div', { class: 'optimize-row' }, optimizeBtn, optimizeNote),
       optimizePreview,
@@ -466,7 +494,56 @@ export async function renderStudio(root, { navigate, query, back }) {
     toast('生成完成', 'ok');
   }
 
+  // ---------- 图片 / 视频 switch 切换 ----------
+  function setMode(next) {
+    if (next === mode) return;
+    lastTplByMode[mode] = state.templateId;
+    mode = next;
+    quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
+
+    // 恢复该模式上次选的模板; 记不住就用默认
+    const remembered = quickTemplates.find((t) => t.id === lastTplByMode[mode]);
+    const fallback = (mode === 'image'
+      ? quickTemplates.find((t) => t.id === 'retouch-bg')
+      : quickTemplates[0]) ?? quickTemplates[0];
+    const tpl = remembered ?? fallback;
+    state.templateId = tpl?.id ?? '';
+    if (tpl) applyTemplateDefaults(tpl); // 参数按模板默认值对齐 (视频: 画幅/时长/分辨率)
+
+    redrawModeUI();
+    // URL 同步, replaceState 不触发 hashchange → 不会重渲染
+    history.replaceState(null, '', `#/studio?mode=${mode}`);
+  }
+
+  /** 按当前 mode 重绘所有文案 / 列表 / 规格 (生成队列保留) */
+  function redrawModeUI() {
+    const isVideo = mode === 'video';
+    modeSwitch.classList.toggle('video', isVideo);
+    msImageBtn.classList.toggle('active', !isVideo);
+    msVideoBtn.classList.toggle('active', isVideo);
+    hTitle.textContent = isVideo ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作';
+    hSub.textContent = isVideo
+      ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
+      : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写';
+    upTitle.textContent = isVideo ? '上传参考图 / 首帧图（最多 2 张)' : '上传参考图（产品图/原图，最多 2 张)';
+    upDesc.textContent = isVideo ? '图生视频用; 不传就是纯文字描述出片' : '改图类模板需要; 纯文生图可不上传';
+    uploadHint.textContent = isVideo ? '图生视频的首帧 / 参考图; 不传就是纯文字描述出片' : '改背景 / 换场景类需求需要; 不传就是纯文生图';
+    promptHint.textContent = isVideo
+      ? '用大白话描述你想要的视频; 不会写就点「优化提示词」'
+      : '用大白话描述你想要的图; 不会写就点「优化提示词」';
+    promptArea.placeholder = isVideo
+      ? '用大白话描述你想要的视频, 例:\n模特穿着这件 T 恤在城市街头走动, 镜头慢慢拉近, 阳光感'
+      : '用大白话描述你想要的图, 例:\n把这双鞋放在大理石台面上, 旁边放一杯咖啡, 亮一点';
+    queueTitleText.textContent = isVideo ? ' 视频任务队列' : ' 图片任务队列';
+
+    drawQuick();
+    drawSpec();
+    drawQueue();
+    refreshGen();
+  }
+
   // 初始: 从 query 带入的模板预填提示词 + 套用模板默认规格
+  lastTplByMode[mode] = state.templateId;
   const initialTpl = quickTemplates.find((t) => t.id === state.templateId);
   if (initialTpl) {
     applyTemplateDefaults(initialTpl);

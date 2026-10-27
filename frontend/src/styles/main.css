@@ -733,6 +733,34 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .ph-title h1 { font-size: 21px; font-weight: 900; letter-spacing: -0.01em; }
 .ph-sub { color: var(--ink-2); font-size: 13.5px; margin-top: 2px; }
 
+/* ---------- 自由工作台 · 图片/视频 switch 切换 (页头右侧, 头重脚轻) ---------- */
+.mode-switch {
+  margin-left: auto; flex-shrink: 0;
+  position: relative; display: inline-flex; align-items: center;
+  padding: 4px; border-radius: 999px;
+  background: var(--fill); border: 1px solid var(--line);
+}
+.mode-switch .ms-thumb {
+  position: absolute; top: 4px; left: 4px;
+  width: calc(50% - 4px); height: calc(100% - 8px);
+  border-radius: 999px; background: var(--brand);
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.18s ease, background 0.18s ease;
+}
+.mode-switch.video .ms-thumb { transform: translateX(100%); background: var(--ink); }
+.ms-opt {
+  position: relative; z-index: 1;
+  display: inline-flex; align-items: center; justify-content: center; gap: 6px;
+  width: 112px; /* 固定等宽, 滑块 50% 平移才能严丝合缝 */
+  border: 0; background: none; color: var(--ink-2);
+  font-size: 13px; font-weight: 600; white-space: nowrap;
+  padding: 7px 0; border-radius: 999px;
+  transition: color 0.15s;
+}
+.ms-opt:hover { color: var(--ink); }
+.ms-opt.active { color: #fff; }
+.ms-opt.active:hover { color: #fff; }
+
 /* ============================================================
    模板库: 图片类目 / 视频类目 分组
    ============================================================ */
