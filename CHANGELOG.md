@@ -3,9 +3,52 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.8**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.8`，
+当前版本：**v0.1.9**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.9`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.9 · 2026-10-27
+
+**主题**：模特库「+」卡片 —— 用户自己上传模特 / 用想法让 AI 生成模特
+
+### 新增功能
+
+**1. 模特库末尾「+」卡片**
+
+模特选择行与「我的模特」网格末尾各新增一张虚线「+」卡片，点击打开共享弹窗
+`frontend/src/views/modelAddDialog.js`，两个 Tab 二选一：
+
+| Tab | 行为 |
+|---|---|
+| 上传图片 | 选正面图 → `POST /api/models`（multipart，落盘 `data/models/{id}/front.jpg`）|
+| AI 生成 | 填「你想要什么样的模特」→ `POST /api/models/generate` → 轮询任务 → 出图后自动入库 |
+
+生成/上传的模特都按 `userId` 隔离，只对本人可见；套图页新增后立即回填到当前槽位并刷新模特库。
+
+**2. 模特生成提示词模板（按用户配好的 Skill D）**
+
+`backend/src/modules/models/modelGenerator.js` 采用 `SkillD_AI模特库_生图提示词.md`（用户配置）
+的通用提示词模板：16:9 横向画布三视图（左半全身像 / 右上半身正面 / 右下转身背对），
+纯白基础款 + 浅灰无缝影棚背景 + 85mm editorial 质感，并附通用负面提示词（负向锁定）。
+用户只填主体描述（年龄/性别/长相/气质），其余由模板固定。
+
+**3. 新增后端接口**
+
+- `POST /api/models/generate` —— 想法 → 模板 → 图片模型（`aspect_ratio=16:9` / 2K / high），返回 `taskId` 供前端轮询
+- `POST /api/models` 支持 `frontUrl` 公网 URL 直存（AI 生成完成后无需再下载落盘）
+
+### 修复
+
+- 上传模特时 `views` 三视图路径未落库（只有 `cover` 有值），已改为随 `cover` 一并持久化
+- 弹窗切换 Tab 后提交按钮文案不跟随（仍显示「上传」），现随 Tab 更新为「上传」/「生成模特」
+- `getUserId()` 从 `views/models.js` 抽到 `frontend/src/userId.js`，消除 `models.js ↔ modelAddDialog.js` 循环依赖
+
+### 验证
+
+- `tools/model-generate-e2e.mjs`：live 模式真实出图（约 67s）→ 入库 → 用户隔离 → 删除清理，全通过
+- Tabbit CLI 自动化验收：`+` 卡片位置、弹窗双 Tab、上传路径、AI 生成路径、套图页选中回填，0 控制台报错
 
 ---
 

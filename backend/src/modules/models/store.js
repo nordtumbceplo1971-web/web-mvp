@@ -97,6 +97,13 @@ export function updateModel(id, patch) {
   if (patch.name !== undefined) models[idx].name = String(patch.name).slice(0, 40);
   if (patch.desc !== undefined) models[idx].desc = String(patch.desc).slice(0, 200);
   if (patch.cover !== undefined) models[idx].cover = patch.cover;
+  if (patch.views !== undefined) {
+    models[idx].views = {
+      front: patch.views.front ?? null,
+      side: patch.views.side ?? null,
+      back: patch.views.back ?? null,
+    };
+  }
   writeAll(models);
   return models[idx];
 }

@@ -14,6 +14,7 @@ import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork, 
 import { systemModels } from './modules/models/systemModels.js';
 import { listModels, getModel, createModel, updateModel, deleteModel, saveModelImage, getModelImagePath, modelsStorageMode } from './modules/models/store.js';
 import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
+import { composeModelPrompt } from './modules/models/modelGenerator.js';
 import { APP_VERSION } from './version.js';
 
 export const api = Router();
@@ -203,6 +204,22 @@ api.post('/models', upload.fields([
   const userId = req.body.userId || null;
   const name = req.body.name || '未命名模特';
   const desc = req.body.desc || '';
+
+  // 方式一: 直接给公网 URL (AI 生成完成的模特图, 已是 CDN 直链)
+  const frontUrl = String(req.body.frontUrl || '').trim();
+  if (/^https?:\/\//.test(frontUrl)) {
+    const model = createModel({
+      userId, name, desc,
+      views: {
+        front: frontUrl,
+        side: String(req.body.sideUrl || '').trim() || null,
+        back: String(req.body.backUrl || '').trim() || null,
+      },
+    });
+    return res.json(model);
+  }
+
+  // 方式二: 上传本地文件
   if (!req.files?.front) {
     return res.status(400).json({ error: { code: 'no_file', message: '缺少正面图 (front)' } });
   }
@@ -219,11 +236,32 @@ api.post('/models', upload.fields([
     deleteModel(model.id, userId);
     return res.status(500).json({ error: { code: 'save_failed', message: '图片保存失败' } });
   }
-  model.views = { front: views.front, side: views.side ?? null, back: views.back ?? null };
-  model.cover = views.front;
-  updateModel(model.id, { cover: views.front });
+  const savedViews = { front: views.front, side: views.side ?? null, back: views.back ?? null };
+  updateModel(model.id, { cover: views.front, views: savedViews });
   const updated = getModel(model.id);
   res.json(updated);
+}));
+
+// AI 生成模特形象参考图 (按用户想法 + 模特生成模板 → 图片模型)
+api.post('/models/generate', wrap(async (req, res) => {
+  const { idea, userId = null, name, desc } = req.body ?? {};
+  let prompt;
+  try {
+    prompt = composeModelPrompt(idea);
+  } catch (e) {
+    return res.status(400).json({ error: { code: 'empty_idea', message: e.message } });
+  }
+  const out = await generateImage({
+    templateId: 'shopify-lookbook',
+    prompt,
+    aspectRatio: '16:9',   // 模特库规格: 16:9 横向三视图
+    resolution: '2K',
+    quality: 'high',
+    count: 1,
+    imageUrls: [],
+    title: name || `模特 ${String(idea).slice(0, 16)}`,
+  });
+  res.json({ taskId: out.taskId, prompt, model: out.model, mock: out.mock, userId, desc: desc || String(idea || '') });
 }));
 
 api.patch('/models/:id', (req, res) => {

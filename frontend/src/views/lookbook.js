@@ -2,7 +2,8 @@ import { h, toast, fileToDataURI, isMockUrl, pollTask } from '../ui.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
 import { icon } from '../icons.js';
-import { getUserId } from './models.js';
+import { getUserId } from '../userId.js';
+import { openAddModelDialog } from './modelAddDialog.js';
 
 /**
  * Shopify 套图创作流 (7 步)
@@ -165,36 +166,61 @@ export async function renderLookbook(root, { navigate, back }) {
     modelSlot2.replaceChildren(...[slotEl('model2', '第二模特 (06/07)', state.model2)]);
   }
 
-  // 加载模特库
-  fetch(`/api/models?userId=${encodeURIComponent(userId)}`)
-    .then((r) => r.json())
-    .then((data) => {
+  // 加载模特库 (新增模特后可重新加载)
+  async function loadModelLibrary() {
+    try {
+      const data = await (await fetch(`/api/models?userId=${encodeURIComponent(userId)}`)).json();
       const all = [...(data.system ?? []), ...(data.user ?? [])];
       if (!all.length) {
         modelPickerRow.replaceChildren(h('div', { class: 'empty-state', style: 'padding:16px;font-size:13px' }, '暂无可用模特'));
         return;
       }
-      modelPickerRow.replaceChildren(...all.map((m) => h('button', {
-        class: 'model-pick-item', type: 'button',
-        onclick: () => {
-          const model = { id: m.id, name: m.name, desc: m.desc, cover: m.cover };
-          if (pickerTarget === 'model1') {
-            state.model1 = model;
-            pickerTarget = 'model2';
-          } else {
-            state.model2 = model;
-            pickerTarget = 'model1';
-          }
-          drawSlots(); refreshGenerate();
+      modelPickerRow.replaceChildren(
+        ...all.map((m) => h('button', {
+          class: 'model-pick-item', type: 'button',
+          onclick: () => {
+            const model = { id: m.id, name: m.name, desc: m.desc, cover: m.cover };
+            if (pickerTarget === 'model1') {
+              state.model1 = model;
+              pickerTarget = 'model2';
+            } else {
+              state.model2 = model;
+              pickerTarget = 'model1';
+            }
+            drawSlots(); refreshGenerate();
+          },
         },
-      },
-        h('div', { class: 'mpi-cover' }, h('img', { src: m.cover, alt: m.name, loading: 'lazy' })),
-        h('span', { class: 'mpi-name' }, m.name),
-      )));
-    })
-    .catch(() => {
+          h('div', { class: 'mpi-cover' }, h('img', { src: m.cover, alt: m.name, loading: 'lazy' })),
+          h('span', { class: 'mpi-name' }, m.name),
+        )),
+        // 末尾 "+" 卡片: 自己上传 或 用想法让 AI 生成模特
+        h('button', {
+          class: 'model-pick-item add-card', type: 'button',
+          title: '上传模特图片, 或用想法让 AI 生成一个模特',
+          onclick: () => openAddModelDialog({
+            onDone: (model) => {
+              const m = { id: model.id, name: model.name, desc: model.desc, cover: model.cover };
+              if (pickerTarget === 'model1') {
+                state.model1 = m;
+                pickerTarget = 'model2';
+              } else {
+                state.model2 = m;
+                pickerTarget = 'model1';
+              }
+              drawSlots(); refreshGenerate();
+              loadModelLibrary();
+            },
+          }),
+        },
+          h('div', { class: 'mpi-cover add-cover' }, icon('plus', { size: 22 })),
+          h('span', { class: 'mpi-name' }, '添加模特'),
+        ),
+      );
+    } catch {
       modelPickerRow.replaceChildren(h('div', { class: 'empty-state', style: 'padding:16px;font-size:13px' }, '模特库加载失败'));
-    });
+    }
+  }
+  loadModelLibrary();
 
   // 灵感 prompt (仅无模特或需要 AI 补模特时)
   const inspirationWrap = h('div', { class: 'inspiration-wrap', style: 'margin-top:12px;display:none' });

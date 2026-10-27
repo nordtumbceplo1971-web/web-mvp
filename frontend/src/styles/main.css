@@ -938,6 +938,17 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #eff6ff, #e0e7ff); color: var(--brand);
 }
+
+/* "+" 卡片: 上传 / AI 生成模特 */
+.model-pick-item.add-card, .model-card.add-card {
+  border-style: dashed; border-color: var(--line-strong); background: var(--fill);
+  cursor: pointer; transition: border-color 0.2s, color 0.2s;
+}
+.model-pick-item.add-card:hover, .model-card.add-card:hover { border-color: var(--brand); color: var(--brand); }
+.mpi-cover.add-cover, .model-cover.add-cover {
+  display: flex; align-items: center; justify-content: center;
+  background: linear-gradient(135deg, #eff6ff, #e0e7ff); color: var(--brand);
+}
 .mpi-name {
   display: block; padding: 5px 4px; font-size: 10px; font-weight: 600;
   text-align: center; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;

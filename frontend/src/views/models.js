@@ -1,6 +1,10 @@
 import { h, toast, fileToDataURI } from '../ui.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
+import { getUserId } from '../userId.js';
+import { openAddModelDialog } from './modelAddDialog.js';
+
+export { getUserId };
 
 /**
  * 模特库 (素材库 · 自定义模特)
@@ -81,15 +85,29 @@ export async function renderModels(root, { navigate, back }) {
   }
 
   function drawUser() {
+    const addCard = h('button', {
+      class: 'model-card add-card', type: 'button',
+      title: '上传模特图片, 或用想法让 AI 生成一个模特',
+      onclick: () => openAddModelDialog({ onDone: () => load() }),
+    },
+      h('div', { class: 'model-cover add-cover' }, icon('plus', { size: 24 })),
+      h('div', { class: 'model-body' },
+        h('div', { class: 'model-name', style: 'text-align:center' }, '添加模特'),
+        h('div', { class: 'model-desc', style: 'text-align:center' }, '上传图片 或 AI 生成'),
+      ),
+    );
     if (!userModels.length) {
-      userGrid.replaceChildren(h('div', { class: 'empty-state', style: 'padding:30px' },
-        h('div', { class: 'ico' }, icon('user', { size: 36 })),
-        h('div', { style: 'margin-top:8px;color:var(--ink-2);font-weight:700' }, '还没有自定义模特'),
-        h('div', { style: 'font-size:13px;margin-top:4px;color:var(--ink-3)' }, '上传或生成模特后可在 Shopify 套图等模板中使用'),
-      ));
+      userGrid.replaceChildren(
+        h('div', { class: 'empty-state', style: 'padding:30px' },
+          h('div', { class: 'ico' }, icon('user', { size: 36 })),
+          h('div', { style: 'margin-top:8px;color:var(--ink-2);font-weight:700' }, '还没有自定义模特'),
+          h('div', { style: 'font-size:13px;margin-top:4px;color:var(--ink-3)' }, '上传或生成模特后可在 Shopify 套图等模板中使用'),
+        ),
+        addCard,
+      );
       return;
     }
-    userGrid.replaceChildren(...userModels.map((m) => modelCard(m, true)));
+    userGrid.replaceChildren(...userModels.map((m) => modelCard(m, true)), addCard);
   }
 
   function modelCard(m, isUser) {
@@ -220,16 +238,4 @@ export async function renderModels(root, { navigate, back }) {
   await load();
 }
 
-/** 用户 ID (localStorage 隔离, 无登录体系) */
-export function getUserId() {
-  try {
-    let id = localStorage.getItem('bs-user-id');
-    if (!id) {
-      id = `u-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-      localStorage.setItem('bs-user-id', id);
-    }
-    return id;
-  } catch {
-    return 'anonymous';
-  }
-}
+/** 用户 ID 见 ../userId.js (模特库与套图页共用) */
