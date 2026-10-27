@@ -34,7 +34,7 @@ const routes = [
   { path: '/templates/:id', view: renderTemplateDetail, nav: 'templates', title: '模板详情' },
   { path: '/create', view: renderCreate, nav: 'templates', title: '模板创作' },
   { path: '/lookbook', view: renderLookbook, nav: 'templates', title: 'Shopify 套图' },
-  { path: '/studio', view: renderStudio, nav: 'studio', title: '生图改图' },
+  { path: '/studio', view: renderStudio, nav: 'studio', title: '自由工作台' },
   { path: '/works', view: renderWorks, nav: 'works', title: '我的作品' },
   { path: '/models', view: renderModels, nav: 'models', title: '模特库' },
   { path: '/recharge', view: renderRecharge, nav: 'recharge', title: '充值额度' },

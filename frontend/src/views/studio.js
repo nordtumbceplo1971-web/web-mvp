@@ -2,7 +2,7 @@ import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGE
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
-import { IMAGE_ASPECTS, resolveAspect } from '../aspect.js';
+import { IMAGE_ASPECTS, VIDEO_ASPECTS, resolveAspect } from '../aspect.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
 
@@ -30,22 +30,26 @@ export async function renderStudio(root, { navigate, query, back }) {
     );
     renderApiError(root, e, {
       resource: '模板库',
-      onRetry: () => navigate('/studio'),
+      onRetry: () => navigate(`/studio${query.get('mode') === 'video' ? '?mode=video' : ''}`),
       backTo: { label: '去用户设置', href: '#/settings', onClick: () => navigate('/settings') },
     });
     return;
   }
-  const quickTemplates = allTemplates.filter((t) => t.type === 'image' || t.type === 'video');
+  // 创作模式: 首页底部「图片生成 / 视频生成」分别直达
+  const mode = query.get('mode') === 'video' ? 'video' : 'image';
+  const quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
 
   const state = {
     images: [],            // {dataUri, url}
-    templateId: query.get('tpl') || 'retouch-bg',
+    templateId: query.get('tpl')
+      || (mode === 'image' && quickTemplates.some((t) => t.id === 'retouch-bg') ? 'retouch-bg' : (quickTemplates[0]?.id ?? '')),
     prompt: '',
     originalPrompt: '',
     optimized: false,
-    aspect: resolveAspect('1:1'),
+    aspect: resolveAspect(mode === 'video' ? '9:16' : '1:1'),
     count: 1,
     resolution: '2K',
+    duration: 6,
     tasks: [],           // 图片任务队列: {id, title, templateTitle, status, progress, urls, error, isVideo}
   };
 
@@ -56,8 +60,10 @@ export async function renderStudio(root, { navigate, query, back }) {
     }, icon('arrow-left', { size: 15 }), '返回上一页'),
     h('div', { class: 'ph-icon', style: 'background:var(--brand-soft);color:var(--brand)' }, icon('wand', { size: 22 })),
     h('div', { class: 'ph-title' },
-      h('h1', {}, '自由工作台 · 生图 / 改图'),
-      h('div', { class: 'ph-sub' }, '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写'),
+      h('h1', {}, mode === 'video' ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作'),
+      h('div', { class: 'ph-sub' }, mode === 'video'
+        ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
+        : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写'),
     ),
   );
 
@@ -71,8 +77,8 @@ export async function renderStudio(root, { navigate, query, back }) {
     ondrop: (e) => { e.preventDefault(); uploader.classList.remove('dragover'); addFiles(e.dataTransfer.files); },
   },
     h('div', { class: 'up-ico' }, icon('upload', { size: 20 })),
-    h('div', { class: 't' }, '上传参考图（产品图/原图，最多 2 张)'),
-    h('div', { class: 'd' }, '改图类模板需要; 纯文生图可不上传'),
+    h('div', { class: 't' }, mode === 'video' ? '上传参考图 / 首帧图（最多 2 张)' : '上传参考图（产品图/原图，最多 2 张)'),
+    h('div', { class: 'd' }, mode === 'video' ? '图生视频用; 不传就是纯文字描述出片' : '改图类模板需要; 纯文生图可不上传'),
   );
   const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: true, style: 'display:none', onchange: (e) => { addFiles(e.target.files); fileInput.value = ''; } });
 
@@ -128,7 +134,8 @@ export async function renderStudio(root, { navigate, query, back }) {
       state.resolution = t.defaults.resolution === '1K' ? '2K' : t.defaults.resolution;
     } else {
       state.aspect = t.defaults.aspect_ratio;
-      state.resolution = '720p';
+      state.resolution = t.defaults.resolution ?? '720p';
+      state.duration = t.defaults.duration ?? 6;
     }
     drawSpec();
     refreshGen();
@@ -137,7 +144,9 @@ export async function renderStudio(root, { navigate, query, back }) {
   // 提示词 + 优化按钮 (需求 9)
   const promptArea = h('textarea', {
     class: 'text-input', rows: 5,
-    placeholder: '用大白话描述你想要的图, 例:\n把这双鞋放在大理石台面上, 旁边放一杯咖啡, 亮一点',
+    placeholder: mode === 'video'
+      ? '用大白话描述你想要的视频, 例:\n模特穿着这件 T 恤在城市街头走动, 镜头慢慢拉近, 阳光感'
+      : '用大白话描述你想要的图, 例:\n把这双鞋放在大理石台面上, 旁边放一杯咖啡, 亮一点',
     oninput: () => { state.prompt = promptArea.value; refreshGen(); },
   });
   const optimizeBtn = h('button', {
@@ -193,6 +202,24 @@ export async function renderStudio(root, { navigate, query, back }) {
   // 规格 chips
   const specRow = h('div', { class: 'row' });
   function drawSpec() {
+    if (mode === 'video') {
+      // 视频: 画幅 + 时长 (取当前模板支持的时长) + 分辨率
+      const tpl = quickTemplates.find((t) => t.id === state.templateId);
+      specRow.replaceChildren(
+        ...VIDEO_ASPECTS.map((a) => h('button', {
+          class: `spec-chip ${state.aspect === a ? 'active' : ''}`,
+          onclick: () => { state.aspect = a; drawSpec(); },
+        }, a)),
+        h('span', { style: 'width:6px' }),
+        ...(tpl?.durationOptions ?? [4, 6, 8]).map((d) => h('button', {
+          class: `spec-chip ${state.duration === d ? 'active' : ''}`,
+          onclick: () => { state.duration = d; drawSpec(); },
+        }, `${d} 秒`)),
+        h('span', { style: 'width:6px' }),
+        h('button', { class: 'spec-chip active' }, tpl?.defaults?.resolution ?? '720p'),
+      );
+      return;
+    }
     const aspects = IMAGE_ASPECTS;
     specRow.replaceChildren(
       ...aspects.map((a) => h('button', {
@@ -213,17 +240,18 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
 
   const summary = h('div', { class: 'gen-summary' });
-  const genBtn = h('button', { class: 'btn btn-primary btn-lg', style: 'width:100%', 'data-tour': 'studio-generate', onclick: generate }, '生成图片');
+  const genBtn = h('button', { class: 'btn btn-primary btn-lg', style: 'width:100%', 'data-tour': 'studio-generate', onclick: generate }, mode === 'video' ? '生成视频' : '生成图片');
 
   function refreshGen() {
     const credits = getCredits();
-    const cost = 2 * state.count;
+    const isVideo = mode === 'video';
+    const cost = isVideo ? 2 : 2 * state.count;
     summary.replaceChildren(
       h('div', {}, h('b', {}, '本次消耗: '), `${cost} 额度 · 余额 ${credits}`),
-      h('div', { style: 'margin-top:4px' }, h('b', {}, '模型: '), 'gpt-image-2.5 图片'),
+      h('div', { style: 'margin-top:4px' }, h('b', {}, '模型: '), isVideo ? 'veo-4-omni 视频' : 'gpt-image-2.5 图片'),
     );
     genBtn.disabled = credits < cost;
-    genBtn.textContent = credits < cost ? '额度不足' : '生成图片';
+    genBtn.textContent = credits < cost ? '额度不足' : (isVideo ? '生成视频' : '生成图片');
   }
 
   // ---------- 图片任务队列（预览窗口右侧，可展开/收起，竖状排列） ----------
@@ -238,7 +266,7 @@ export async function renderStudio(root, { navigate, query, back }) {
 
   const queuePanel = h('div', { class: 'card panel tq-panel' },
     h('div', { class: 'tq-head' },
-      h('h3', {}, icon('layers', { size: 15 }), ' 图片任务队列'),
+      h('h3', {}, icon('layers', { size: 15 }), mode === 'video' ? ' 视频任务队列' : ' 图片任务队列'),
       queueCount,
       queueToggle,
     ),
@@ -264,7 +292,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   function drawQueue() {
     queueCount.textContent = `${state.tasks.length} 个任务`;
     if (!state.tasks.length) {
-      queueList.replaceChildren(h('div', { class: 'tq-empty' }, '还没有任务，点「生成图片」开始'));
+      queueList.replaceChildren(h('div', { class: 'tq-empty' }, `还没有任务，点「${mode === 'video' ? '生成视频' : '生成图片'}」开始`));
       return;
     }
     queueList.replaceChildren(...state.tasks.map((t) => {
@@ -357,7 +385,7 @@ export async function renderStudio(root, { navigate, query, back }) {
 
   async function generate() {
     if (genBtn.disabled) return;
-    const cost = 2 * state.count;
+    const cost = mode === 'video' ? 2 : 2 * state.count;
     spendCredits(cost);
     genBtn.disabled = true;
 
@@ -389,8 +417,8 @@ export async function renderStudio(root, { navigate, query, back }) {
       title: state.prompt.slice(0, 16) || template.title,
       aspect_ratio: state.aspect,
       count: isVideo ? undefined : state.count,
-      resolution: isVideo ? '720p' : state.resolution,
-      ...(isVideo ? { duration: 6 } : {}),
+      resolution: state.resolution,
+      ...(isVideo ? { duration: state.duration } : {}),
     };
     try {
       const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
@@ -438,9 +466,10 @@ export async function renderStudio(root, { navigate, query, back }) {
     toast('生成完成', 'ok');
   }
 
-  // 初始: 从 query 带入的模板预填提示词
+  // 初始: 从 query 带入的模板预填提示词 + 套用模板默认规格
   const initialTpl = quickTemplates.find((t) => t.id === state.templateId);
   if (initialTpl) {
+    applyTemplateDefaults(initialTpl);
     try {
       const r = await api.previewPrompt(initialTpl.id, {});
       state.prompt = r.prompt;

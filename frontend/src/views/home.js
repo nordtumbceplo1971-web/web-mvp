@@ -58,10 +58,10 @@ export function renderHome(root, { navigate }) {
       iconName: 'image',
       tint: '#eff6ff',
       color: '#2563eb',
-      desc: '白底主图 · 场景主图 · 模特上身 · 详情套图 —— 上传产品图, 一步出图',
+      desc: '白底主图 · 场景主图 · 模特上身 · 详情套图 —— 自由工作台 · 图片创作',
       tags: ['产品主图', '系列套图', '模特上身', '生图改图'],
-      href: '/templates?type=image',
-      cta: '选模板出图',
+      href: '/studio?mode=image',
+      cta: '进入工作台',
     },
     {
       key: 'video',
@@ -69,10 +69,10 @@ export function renderHome(root, { navigate }) {
       iconName: 'video',
       tint: '#ecfdf5',
       color: '#16a34a',
-      desc: '种草卖家秀 · 模特上身视频 · TVC 广告 —— 多语言口播, 直接成片',
+      desc: '种草卖家秀 · 模特上身视频 · TVC 广告 —— 自由工作台 · 视频创作',
       tags: ['种草视频', '上身视频', 'TVC 广告', '开箱视频'],
-      href: '/templates?type=video',
-      cta: '选模板出片',
+      href: '/studio?mode=video',
+      cta: '进入工作台',
     },
   ];
 
