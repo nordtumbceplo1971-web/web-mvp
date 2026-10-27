@@ -44,6 +44,7 @@ export function tplLogo(tpl) {
 /** 模板效果预览图 (卡片上方 70% 展示); 未配图的模板回退到分类色块 + 图标 */
 const TPL_PREVIEWS = {
   'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
+  'main-white': { src: '/covers/main-white.jpg', alt: '白底主图效果预览 · 正面平铺' },
 };
 
 export function tplPreview(tpl) {

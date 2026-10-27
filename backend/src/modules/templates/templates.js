@@ -51,7 +51,7 @@ export const templates = [
     lockAspect: true,   // 平台白底图规范固定 1:1, 不受用户全局比例偏好影响
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '电商白底主图: {{product}}置于纯白无缝背景(#FFFFFF)中央, 正面微俯视角, 产品占画面约70%, {{lighting}}, 色彩准确还原, 材质细节清晰锐利, 商业广告级静物摄影, 8K超清, 符合电商平台白底图规范。',
+      '根据图片的图片参考，输出白底的的产品主图（如果主体图有正反面，那就是用正面输出产品主图）。保持与原图产品的整体形态和细节的一致性，形态，材质等元素都要完美还原。',
     slots: [
       { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一双米白色帆布鞋', defaultValue: '产品' },
       LIGHTING,
