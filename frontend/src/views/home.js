@@ -1,7 +1,7 @@
 import { h } from '../ui.js';
 import { api } from '../api.js';
 import { icon } from '../icons.js';
-import { tplCover, KIND_LABEL } from '../tplMeta.js';
+import { tplCard } from '../tplCard.js';
 import { getCredits } from '../store.js';
 import { renderApiError } from '../errors.js';
 import { createAnnouncementBar } from '../announcements.js';
@@ -114,7 +114,7 @@ export function renderHome(root, { navigate }) {
       grid.replaceChildren(h('div', { class: 'home-loading' }, '暂无模板, 请确认后端已启动'));
       return;
     }
-    grid.replaceChildren(...picked.map((tpl) => tplCard(tpl, navigate)));
+    grid.replaceChildren(...picked.map((tpl) => tplCard(tpl, { navigate })));
   }).catch((e) => {
     // 准确说明原因 (后端未部署 / 地址不对 / 网络不通), 不再只写「模板加载失败」
     grid.replaceChildren();
@@ -151,34 +151,5 @@ function statMini(k, v, unit) {
   return h('div', { class: 'home-stat' },
     h('span', { class: 'k' }, k),
     h('span', { class: 'v' }, v, h('small', {}, unit)),
-  );
-}
-
-function tplCard(tpl, navigate) {
-  const { iconName, tint, color } = tplCover(tpl);
-  const go = () => navigate(`/create?tpl=${tpl.id}`);
-  return h('div', {
-    class: 'card card-hover tpl-card tpl-card-preview', role: 'button', tabindex: 0,
-    onclick: go, onkeydown: (e) => e.key === 'Enter' && go(),
-  },
-    h('div', { class: 'tpl-cover', style: `background:${tint}` },
-      h('span', { class: 'pill pill-line kind' }, KIND_LABEL[tpl.type]),
-      h('span', { class: 'ico-chip', style: `color:${color}` }, icon(iconName, { size: 22 })),
-    ),
-    h('div', { class: 'tpl-body' },
-      h('h3', {}, tpl.title),
-      h('div', { class: 'sub' }, tpl.subtitle),
-      h('div', { class: 'tpl-meta' },
-        h('span', { class: 'pill pill-line' }, `${tpl.timeLabel}`),
-        h('span', { class: 'pill pill-line' }, `${tpl.credits} 额度`),
-      ),
-      h('div', { class: 'tpl-cta' },
-        h('button', { class: 'btn btn-primary btn-sm', style: 'flex:1', onclick: (e) => { e.stopPropagation(); go(); } }, '做同款'),
-        h('button', {
-          class: 'btn btn-ghost btn-sm', 'aria-label': '查看详情',
-          onclick: (e) => { e.stopPropagation(); navigate(`/templates/${tpl.id}`); },
-        }, '详情'),
-      ),
-    ),
   );
 }

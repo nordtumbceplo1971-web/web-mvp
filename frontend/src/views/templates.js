@@ -2,7 +2,7 @@ import { h } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
-import { tplCover, KIND_LABEL } from '../tplMeta.js';
+import { tplCard } from '../tplCard.js';
 
 /**
  * 模板库 v2: 「图片类目」「视频类目」两大板块分组展示
@@ -119,30 +119,10 @@ export async function renderTemplates(root, { navigate, query }) {
   }
 
   function card(tpl) {
-    const { iconName, tint, color } = tplCover(tpl);
-    return h('div', { class: 'card card-hover tpl-card' },
-      h('div', { class: 'tpl-cover', style: `background:${tint}` },
-        h('span', { class: 'pill pill-line kind' }, KIND_LABEL[tpl.type]),
-        h('span', { class: 'ico-chip', style: `color:${color}` }, icon(iconName, { size: 24 })),
-      ),
-      h('div', { class: 'tpl-body' },
-        h('h3', {}, tpl.title),
-        h('div', { class: 'sub' }, tpl.subtitle),
-        h('div', { class: 'tpl-meta' },
-          h('span', { class: 'pill pill-line' }, tpl.timeLabel),
-          h('span', { class: 'pill pill-line' }, `${tpl.credits} 额度`),
-          h('span', { class: 'pill pill-line' }, `需${tpl.needLabel}`),
-        ),
-        h('div', { class: 'tpl-cta' },
-          h('button', {
-            class: 'btn btn-primary btn-sm', style: 'flex:1',
-            'data-tour': tpl.id === 'main-white' ? 'first-tpl-cta' : null,
-            onclick: () => navigate(`/create?tpl=${tpl.id}`),
-          }, '做同款'),
-          h('button', { class: 'btn btn-ghost btn-sm', onclick: () => navigate(`/templates/${tpl.id}`) }, '详情'),
-        ),
-      ),
-    );
+    return tplCard(tpl, {
+      navigate,
+      cardAttrs: { 'data-tour': tpl.id === 'main-white' ? 'first-tpl-cta' : null },
+    });
   }
 
   drawChips();

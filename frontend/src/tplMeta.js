@@ -32,6 +32,15 @@ export const TPL_ICONS = {
 
 export const KIND_LABEL = { image: '图片模板', video: '视频模板' };
 
+/** 模板 logo (蓝框内展示); 未配 logo 的模板回退到分类图标 */
+const TPL_LOGOS = {
+  'shopify-lookbook': { src: '/brand/shopify-logo.svg', alt: 'Shopify' },
+};
+
+export function tplLogo(tpl) {
+  return TPL_LOGOS[tpl.id] ?? null;
+}
+
 export function tplCover(tpl) {
   const t = CATEGORY_TINT[tpl.category] ?? { tint: '#f1f5f9', color: '#475569' };
   return { iconName: TPL_ICONS[tpl.id] ?? 'image', tint: t.tint, color: t.color };
