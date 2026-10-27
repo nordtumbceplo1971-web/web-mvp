@@ -777,8 +777,15 @@ main.container { flex: 1; padding: 24px 0 48px; }
 }
 .opt-tag .sw { width: 12px; height: 12px; border-radius: 50%; border: 1px solid rgba(31,35,41,0.1); }
 .tip-panel .guide-hint { margin-top: 8px; }
-.detail-cta { display: flex; align-items: center; gap: 14px; justify-content: space-between; flex-wrap: wrap; }
-.detail-cta .desc { font-size: 12.5px; color: var(--ink-3); margin-top: 4px; }
+/* 开工卡片: 头重脚轻, 主交互开关放页头右侧 */
+.head-cta {
+  margin-left: auto; flex-shrink: 0;
+  display: flex; align-items: center; gap: 18px;
+  padding: 12px 14px 12px 18px;
+}
+.head-cta .hc-title { font-size: 13.5px; font-weight: 800; }
+.head-cta .hc-desc { font-size: 12px; color: var(--ink-3); margin-top: 3px; max-width: 340px; line-height: 1.55; }
+.head-cta .btn { flex-shrink: 0; }
 .related-list { display: flex; flex-direction: column; gap: 8px; margin-top: 10px; }
 .related-item {
   display: flex; align-items: center; gap: 10px; width: 100%;
@@ -1147,6 +1154,7 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .tpl-grid { grid-template-columns: repeat(2, 1fr); }
   .detail-layout, .recharge-layout, .settings-layout { grid-template-columns: 1fr; }
   .detail-side, .recharge-side, .settings-side { position: static; }
+  .head-cta { width: 100%; margin-left: 0; justify-content: space-between; }
   .pkg-grid { grid-template-columns: repeat(3, 1fr); }
 }
 @media (max-width: 960px) {

@@ -31,7 +31,22 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
 
   const { iconName, tint, color } = tplCover(tpl);
 
-  // ---- 顶部: 统一返回 + 标题 ----
+  // ---- 开工卡片 (头重脚轻: 主交互开关放页面顶部) ----
+  const isLookbook = tpl.id === 'shopify-lookbook';
+  const cta = h('div', { class: 'card head-cta' },
+    h('div', { class: 'hc-text' },
+      h('div', { class: 'hc-title' }, '准备好产品图就可以开始了'),
+      h('div', { class: 'hc-desc' }, isLookbook
+        ? '7 步出全套 Shopify 商品图 · 选择线路 a (AI 建模) 或线路 b (模特库)'
+        : `消耗 ${tpl.credits} 额度 · 约 ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
+    ),
+    h('button', {
+      class: 'btn btn-primary',
+      onclick: () => navigate(isLookbook ? '/lookbook' : `/create?tpl=${tpl.id}`),
+    }, isLookbook ? '开始出套图' : '做同款', icon('arrow-right', { size: 16 })),
+  );
+
+  // ---- 顶部: 统一返回 + 标题 + 开工卡片 ----
   const header = h('div', { class: 'page-head' },
     h('button', {
       class: 'btn btn-ghost btn-sm', onclick: () => back(), 'aria-label': '返回上一页', title: '返回上一页',
@@ -42,6 +57,7 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
       h('div', { class: 'ph-sub' }, tpl.subtitle),
     ),
     h('span', { class: 'pill pill-line' }, KIND_LABEL[tpl.type]),
+    cta,
   );
 
   // ---- 效果预览 + 制作流程 (有成品图集的模板才显示, 如 Shopify 套图) ----
@@ -94,28 +110,13 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
     h('div', { class: 'guide-hint' }, tpl.tips),
   );
 
-  // ---- CTA ----
-  const isLookbook = tpl.id === 'shopify-lookbook';
-  const cta = h('div', { class: 'card panel detail-cta' },
-    h('div', {},
-      h('div', { style: 'font-weight:700' }, '准备好产品图就可以开始了'),
-      h('div', { class: 'desc' }, isLookbook
-        ? '7 步出全套 Shopify 商品图 · 选择线路 a (AI 建模) 或线路 b (模特库)'
-        : `消耗 ${tpl.credits} 额度 · 约 ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
-    ),
-    h('button', {
-      class: 'btn btn-primary btn-lg',
-      onclick: () => navigate(isLookbook ? '/lookbook' : `/create?tpl=${tpl.id}`),
-    }, isLookbook ? '开始出套图' : '做同款', icon('arrow-right', { size: 16 })),
-  );
-
   root.append(
     header,
     // 效果预览 + 制作流程: 全宽模块, 压在双栏 (含右下「同类模板」导航卡) 之上
     flowSection.length ? h('div', { class: 'flow-section' }, ...flowSection) : null,
     h('div', { class: 'detail-layout' },
       h('div', {}, facts, promptPanel, slotPanel, tipsPanel),
-      h('div', { class: 'detail-side' }, cta, relatedPanel(tpl, navigate)),
+      h('div', { class: 'detail-side' }, relatedPanel(tpl, navigate)),
     ),
   );
 }
