@@ -78,7 +78,11 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
     h('button', {
       class: 'tc-replicate', type: 'button',
       onclick: (e) => { e.stopPropagation(); replicate(); },
-    }, icon('sparkles', { size: 15 }), '一键复刻', icon('arrow-right', { size: 15 })),
+    },
+      h('span', { class: 'tr-ico' }, icon('sparkles', { size: 15 })),
+      h('span', { class: 'tr-label' }, '一键复刻'),
+      h('span', { class: 'tr-go' }, icon('arrow-right', { size: 15 })),
+    ),
     info,
   );
 

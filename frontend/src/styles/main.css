@@ -475,16 +475,74 @@ main.container { flex: 1; padding: 24px 0 48px; }
   display: block;
 }
 
-/* ---- 红色「一键复刻」快速入口 ---- */
+/* ---- 「一键复刻」快速入口: 深红缎面 CTA ----
+   刻意避开廉价的高饱和塑料渐变:
+   1. 基色压深成酒红→绯红的纵向缎面, 顶部一条细高光、底部一条暗边, 立刻有厚度
+   2. hover 走一道斜向高光扫过 + 轻微上浮 + 暖色投影, 而不是整体提亮(提亮最塑料)
+   3. 按下时改为内凹暗压, 而不是简单位移
+*/
 .tc-replicate {
-  display: flex; align-items: center; justify-content: center; gap: 6px;
+  position: relative; overflow: hidden; isolation: isolate;
+  display: flex; align-items: center; gap: 10px;
   width: 100%; border: 0; cursor: pointer;
-  padding: 9px 12px; font-size: 12.5px; font-weight: 800; letter-spacing: 0.02em;
-  color: #fff; background: linear-gradient(135deg, #f43f5e 0%, #e11d48 100%);
-  transition: filter 0.18s, transform 0.18s;
+  padding: 12px 14px; color: #fff;
+  background:
+    linear-gradient(180deg, rgba(255, 255, 255, 0.10) 0%, rgba(255, 255, 255, 0) 30%, rgba(0, 0, 0, 0.10) 100%),
+    linear-gradient(180deg, #c2204a 0%, #a7123a 55%, #8f0e30 100%);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.26),
+    inset 0 -1px 0 rgba(60, 4, 18, 0.34),
+    0 10px 22px -14px rgba(110, 10, 36, 0.85);
+  transition: box-shadow 0.22s ease, transform 0.18s ease, background 0.22s ease;
 }
-.tc-replicate:hover { filter: brightness(1.08); }
-.tc-replicate:active { transform: translateY(1px); }
+.tc-replicate > * { position: relative; z-index: 1; }
+/* 斜向高光扫过 (hover 才走一遍) */
+.tc-replicate::before {
+  content: ''; position: absolute; top: -20%; bottom: -20%; left: -60%; width: 42%;
+  background: linear-gradient(100deg, transparent, rgba(255, 255, 255, 0.34), transparent);
+  transform: skewX(-18deg); opacity: 0; pointer-events: none;
+  transition: left 0.55s ease, opacity 0.3s ease;
+}
+.tc-replicate:hover::before { left: 118%; opacity: 1; }
+/* 左侧图标: 玻璃质感小块, 不再是光秃秃的 emoji 感 */
+.tc-replicate .tr-ico {
+  flex-shrink: 0; width: 26px; height: 26px; border-radius: 9px;
+  display: grid; place-items: center;
+  background: rgba(255, 255, 255, 0.16);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.34), inset 0 0 0 1px rgba(255, 255, 255, 0.13);
+}
+.tc-replicate .tr-label {
+  flex: 1; text-align: center;
+  font-size: 13.5px; font-weight: 800; letter-spacing: 0.12em; text-indent: 0.12em;
+  text-shadow: 0 1px 2px rgba(80, 6, 24, 0.38);
+}
+.tc-replicate .tr-go {
+  /* 与左侧图标块同宽, 文字才是真居中 */
+  flex-shrink: 0; width: 26px; display: inline-flex; align-items: center; justify-content: center;
+  opacity: 0.78;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+.tc-replicate:hover .tr-go { transform: translateX(3px); opacity: 1; }
+.tc-replicate:hover {
+  transform: translateY(-1px);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.32),
+    inset 0 -1px 0 rgba(60, 4, 18, 0.3),
+    0 16px 28px -14px rgba(150, 18, 54, 0.72);
+}
+.tc-replicate:active {
+  transform: translateY(1px);
+  background:
+    linear-gradient(180deg, rgba(0, 0, 0, 0.16) 0%, rgba(0, 0, 0, 0.04) 100%),
+    linear-gradient(180deg, #ab1840 0%, #8d0e2f 100%);
+  box-shadow: inset 0 2px 6px rgba(60, 4, 18, 0.5);
+}
+.tc-replicate:focus-visible {
+  outline: none;
+  box-shadow: var(--ring), inset 0 1px 0 rgba(255, 255, 255, 0.26);
+}
+/* 红条本身就是分隔, 预览区不用再来一条浅色缝 */
+.tpl-card2 .tc-preview { border-bottom: 0; }
 
 /* ---- 名称 + logo（蓝框） ---- */
 .tc-info { padding: 10px 12px 11px; display: flex; flex-direction: column; gap: 7px; flex: 1; min-width: 0; }
