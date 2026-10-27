@@ -6,6 +6,14 @@ import { IMAGE_ASPECTS, VIDEO_ASPECTS, resolveAspect } from '../aspect.js';
 import { tplCover } from '../tplMeta.js';
 import { icon } from '../icons.js';
 
+/** 视频生成方式 (对齐 veo-4-omni 手册): 文生 / 首帧 / 首尾帧 / 多参 (7 图上限) */
+export const VIDEO_GEN_MODES = {
+  'text-to-video': { label: '文生视频', short: '文生', maxImages: 0 },
+  'first-frame': { label: '首帧', short: '首帧', maxImages: 1 },
+  'first-last': { label: '首尾帧', short: '首尾帧', maxImages: 2 },
+  reference: { label: '多参', short: '多参', maxImages: 7 },
+};
+
 /**
  * 自由工作台 (需求 8/9): 生图 + 改图
  * - 左侧工具箱: 参考图上传 / 需求模板快捷选择 / 提示词 + 「优化提示词」/ 画幅张数
@@ -51,9 +59,12 @@ export async function renderStudio(root, { navigate, query, back }) {
     aspect: resolveAspect(mode === 'video' ? '9:16' : '1:1'),
     count: 1,
     resolution: '2K',
-    duration: 6,
+    duration: 10,      // veo-4-omni 时长锁死 10 秒
+    videoMode: 'first-frame', // 文生 / 首帧 / 首尾帧 / 多参
     tasks: [],           // 图片任务队列: {id, title, templateTitle, status, progress, urls, error, isVideo}
   };
+  /** 当前视频生成方式下允许上传的参考图张数 (图片模式固定 2) */
+  const maxImages = () => (mode === 'video' ? VIDEO_GEN_MODES[state.videoMode].maxImages : 2);
 
   // ---------- 顶部 ----------
   const hTitle = h('h1', {}, mode === 'video' ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作');
@@ -102,7 +113,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: true, style: 'display:none', onchange: (e) => { addFiles(e.target.files); fileInput.value = ''; } });
 
   async function addFiles(fileList) {
-    const files = [...fileList].filter((f) => f.type.startsWith('image/')).slice(0, 2 - state.images.length);
+    const files = [...fileList].filter((f) => f.type.startsWith('image/')).slice(0, maxImages() - state.images.length);
     for (const file of files) {
       const dataUri = await fileToDataURI(file);
       const item = { dataUri, url: null };
@@ -122,13 +133,14 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
 
   function drawThumbs() {
+    const max = maxImages();
     const items = state.images.map((img, i) => h('div', { class: 'thumb' },
       h('img', { src: img.dataUri, alt: `参考图 ${i + 1}` }),
       h('button', { class: 'rm', title: '移除', onclick: () => { state.images.splice(i, 1); drawThumbs(); refreshGen(); } }, '✕'),
     ));
-    if (state.images.length < 2) items.push(h('div', { class: 'thumb add-more', onclick: () => fileInput.click() }, '+'));
+    if (state.images.length < max) items.push(h('div', { class: 'thumb add-more', onclick: () => fileInput.click() }, '+'));
     thumbsWrap.replaceChildren(...items);
-    uploader.style.display = state.images.length >= 2 ? 'none' : '';
+    uploader.style.display = state.images.length >= max ? 'none' : '';
   }
 
   // 需求模板快捷选择 (需求 8)
@@ -154,8 +166,19 @@ export async function renderStudio(root, { navigate, query, back }) {
     } else {
       state.aspect = t.defaults.aspect_ratio;
       state.resolution = t.defaults.resolution ?? '720p';
-      state.duration = t.defaults.duration ?? 6;
+      state.duration = 10; // veo-4-omni 时长锁死 10 秒
     }
+    drawSpec();
+    refreshGen();
+  }
+
+  /** 切换视频生成方式 (文生/首帧/首尾帧/多参): 上传张数随模式收敛 */
+  function setVideoGenMode(m) {
+    state.videoMode = m;
+    const max = VIDEO_GEN_MODES[m].maxImages;
+    if (state.images.length > max) state.images = state.images.slice(0, max);
+    drawThumbs();
+    updateUploadCopy();
     drawSpec();
     refreshGen();
   }
@@ -222,26 +245,26 @@ export async function renderStudio(root, { navigate, query, back }) {
   const specRow = h('div', { class: 'row' });
   function drawSpec() {
     if (mode === 'video') {
-      // 视频: 画幅 + 时长 (取当前模板支持的时长) + 分辨率 (720p/1080p, 与后端校验白名单对齐)
-      const tpl = quickTemplates.find((t) => t.id === state.templateId);
-      const durations = tpl?.durationOptions ?? [4, 6, 8];
-      if (!durations.includes(state.duration)) state.duration = durations[0];
-      if (!['720p', '1080p'].includes(state.resolution)) state.resolution = tpl?.defaults?.resolution ?? '720p';
+      // 视频 (veo-4-omni): 生成方式 + 画幅 + 时长锁 10 秒 + 分辨率
+      if (!['720p', '1080p'].includes(state.resolution)) state.resolution = '720p';
       specRow.replaceChildren(
+        ...Object.keys(VIDEO_GEN_MODES).map((m) => h('button', {
+          class: `spec-chip ${state.videoMode === m ? 'active' : ''}`,
+          title: VIDEO_GEN_MODES[m].label,
+          onclick: () => setVideoGenMode(m),
+        }, VIDEO_GEN_MODES[m].short)),
+        h('span', { style: 'width:6px' }),
         ...VIDEO_ASPECTS.map((a) => h('button', {
           class: `spec-chip ${state.aspect === a ? 'active' : ''}`,
           onclick: () => { state.aspect = a; drawSpec(); },
         }, a)),
         h('span', { style: 'width:6px' }),
-        ...durations.map((d) => h('button', {
-          class: `spec-chip ${state.duration === d ? 'active' : ''}`,
-          onclick: () => { state.duration = d; drawSpec(); },
-        }, `${d} 秒`)),
-        h('span', { style: 'width:6px' }),
         ...['720p', '1080p'].map((r) => h('button', {
           class: `spec-chip ${state.resolution === r ? 'active' : ''}`,
           onclick: () => { state.resolution = r; drawSpec(); },
         }, r)),
+        h('span', { style: 'width:6px' }),
+        h('span', { class: 'spec-chip locked', title: 'veo-4-omni 固定 10 秒' }, '10 秒'),
       );
       return;
     }
@@ -446,7 +469,7 @@ export async function renderStudio(root, { navigate, query, back }) {
       aspect_ratio: state.aspect,
       count: isVideo ? undefined : state.count,
       resolution: state.resolution,
-      ...(isVideo ? { duration: state.duration } : {}),
+      ...(isVideo ? { duration: state.duration, mode: state.videoMode } : {}),
     };
     try {
       const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
@@ -515,6 +538,26 @@ export async function renderStudio(root, { navigate, query, back }) {
     history.replaceState(null, '', `#/studio?mode=${mode}`);
   }
 
+  /** 上传区文案: 图片模式固定; 视频模式随生成方式 (文生/首帧/首尾帧/多参) */
+  function updateUploadCopy() {
+    if (mode !== 'video') {
+      upTitle.textContent = '上传参考图（产品图/原图，最多 2 张)';
+      upDesc.textContent = '改图类模板需要; 纯文生图可不上传';
+      uploadHint.textContent = '改背景 / 换场景类需求需要; 不传就是纯文生图';
+      return;
+    }
+    const m = VIDEO_GEN_MODES[state.videoMode];
+    const copy = {
+      'text-to-video': ['纯文生视频, 无需上传参考图', '直接描述想要的片子即可', '文生模式不需要参考图'],
+      'first-frame': ['上传首帧图（1 张)', '画面从这张图开始生成', '首帧模式传 1 张起始画面'],
+      'first-last': ['上传首帧图 + 尾帧图（2 张)', '第 1 张为首帧, 第 2 张为尾帧', '首尾帧模式传 2 张: 首帧 + 尾帧'],
+      reference: ['上传参考图（最多 7 张)', '多图参考融合生成', '多参模式最多传 7 张参考图'],
+    }[state.videoMode];
+    upTitle.textContent = `${copy[0]} · ${m.label}`;
+    upDesc.textContent = copy[1];
+    uploadHint.textContent = copy[2];
+  }
+
   /** 按当前 mode 重绘所有文案 / 列表 / 规格 (生成队列保留) */
   function redrawModeUI() {
     const isVideo = mode === 'video';
@@ -525,9 +568,7 @@ export async function renderStudio(root, { navigate, query, back }) {
     hSub.textContent = isVideo
       ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
       : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写';
-    upTitle.textContent = isVideo ? '上传参考图 / 首帧图（最多 2 张)' : '上传参考图（产品图/原图，最多 2 张)';
-    upDesc.textContent = isVideo ? '图生视频用; 不传就是纯文字描述出片' : '改图类模板需要; 纯文生图可不上传';
-    uploadHint.textContent = isVideo ? '图生视频的首帧 / 参考图; 不传就是纯文字描述出片' : '改背景 / 换场景类需求需要; 不传就是纯文生图';
+    updateUploadCopy();
     promptHint.textContent = isVideo
       ? '用大白话描述你想要的视频; 不会写就点「优化提示词」'
       : '用大白话描述你想要的图; 不会写就点「优化提示词」';
@@ -557,6 +598,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   drawQuick();
   drawSpec();
   drawThumbs();
+  updateUploadCopy();
   drawQueue();
   setQueueOpen(true);
   refreshGen();

@@ -75,6 +75,14 @@ export async function generateImage({
   return { taskId: res.task_id, workId: work.id, prompt, params, model, mock: false };
 }
 
+/** 视频生成模式 (对齐 veo-4-omni 手册) 与各模式参考图上限 */
+const VIDEO_MODES = {
+  'text-to-video': { maxImages: 0 },
+  'first-frame': { maxImages: 1 },
+  'first-last': { maxImages: 2 },
+  reference: { maxImages: 7 },
+};
+
 /** 生成视频 (走 /v1/media/generate, model=veo-4-omni) */
 export async function generateVideo({
   templateId,
@@ -82,7 +90,7 @@ export async function generateVideo({
   extraIdea = '',
   aspectRatio,
   resolution,
-  duration,
+  mode,
   imageUrls = [],
   title,
 }) {
@@ -92,13 +100,27 @@ export async function generateVideo({
   }
   const prompt = [composePrompt(template, slotValues), extraIdea?.trim()].filter(Boolean).join(' ');
 
+  // 生成模式: 文生 / 首帧 / 首尾帧 / 多参 (未显式指定时按有无参考图推断, 兼容模板流程)
+  const genMode = VIDEO_MODES[mode] ? mode : (imageUrls.length ? 'first-frame' : 'text-to-video');
+  const imgs = imageUrls.filter(Boolean).slice(0, VIDEO_MODES[genMode].maxImages);
+  const aspect = ['16:9', '9:16'].includes(aspectRatio) ? aspectRatio : template.defaults.aspect_ratio;
+
   const params = {
-    aspect_ratio: ['16:9', '9:16'].includes(aspectRatio) ? aspectRatio : template.defaults.aspect_ratio,
+    aspect_ratio: aspect,
     resolution: ['720p', '1080p'].includes(resolution) ? resolution : template.defaults.resolution,
-    duration: String(template.durationOptions?.includes(Number(duration)) ? Number(duration) : template.defaults.duration),
-    mode: imageUrls.length ? 'first-frame' : 'text-to-video',
+    duration: '10', // veo-4-omni 时长锁死 10 秒
+    mode: genMode,
   };
-  if (imageUrls.length) params.images = imageUrls.slice(0, 7);
+
+  if (genMode === 'first-last') {
+    // 首尾帧: images 放首帧, 尾帧走 end_image_url
+    if (imgs[0]) params.images = [imgs[0]];
+    if (imgs[1]) params.end_image_url = imgs[1];
+  } else if (genMode === 'reference') {
+    if (imgs.length) params.images = imgs;
+  } else if (genMode === 'first-frame') {
+    if (imgs[0]) params.images = [imgs[0]];
+  }
 
   if (isMockMode()) {
     const task = createMockTask({ type: 'video', title });

@@ -383,7 +383,7 @@ export const templates = [
     credits: 20,
     needLabel: '1 张产品图',
     needImages: 1,
-    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 8, mode: 'first-frame', language: '中文' },
+    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '中文' },
     promptTemplate:
       '竖屏电商种草短视频: 年轻主播手持{{product}}面对镜头, 用{{language}}热情介绍产品卖点, 语速轻快口语化, 带货话术自然有感染力, 背景为{{scene}}, 手持vlog运镜轻微晃动, 中间切一个产品细节特写, 画面鲜活有网感, 真人实拍质感, 收音清晰人声突出。',
     slots: [
@@ -410,7 +410,7 @@ export const templates = [
         ],
       },
     ],
-    durationOptions: [4, 6, 8],
+    durationOptions: [10],
     tips: '语言任选, 外贸朋友直接生成英语/日语版种草视频。',
   },
   {
@@ -423,7 +423,7 @@ export const templates = [
     credits: 25,
     needLabel: '1 张上身图或服装图',
     needImages: 1,
-    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 6, mode: 'first-frame', language: '无旁白' },
+    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
       '竖屏服饰上身展示视频: 模特身穿图中服装, {{motion}}, 镜头{{camera}}, 背景为{{scene}}, {{lighting}}, 完整展示服装版型与面料动感(垂坠/飘逸/弹力), 节奏感配乐, 时尚大片质感。',
     slots: [
@@ -461,7 +461,7 @@ export const templates = [
         options: LIGHTING.options,
       },
     ],
-    durationOptions: [4, 6, 8],
+    durationOptions: [10],
     tips: '上传上身图做首帧, 动作还原更稳定。',
   },
   {
@@ -474,7 +474,7 @@ export const templates = [
     credits: 40,
     needLabel: '1 张产品图',
     needImages: 1,
-    defaults: { aspect_ratio: '16:9', resolution: '1080p', duration: 8, mode: 'first-frame', language: '无旁白' },
+    defaults: { aspect_ratio: '16:9', resolution: '1080p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
       '电影感产品TVC广告: {{product}}特写开场, 缓慢推镜+环绕运镜, {{scene}}中{{lighting}}, 产品材质细节极致呈现, 镜头语言: 产品全景→细节特写→使用场景→品牌落版, 快慢结合的节奏剪辑, 高级质感配乐, 商业大片质感, 画面统一的电影级调色。',
     slots: [
@@ -499,7 +499,7 @@ export const templates = [
         ],
       },
     ],
-    durationOptions: [4, 6, 8, 10],
+    durationOptions: [10],
     tips: 'TVC 节奏: 前 2 秒抓眼球, 结尾留品牌落版。',
   },
   {
@@ -512,7 +512,7 @@ export const templates = [
     credits: 20,
     needLabel: '1 张产品图',
     needImages: 1,
-    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 8, mode: 'first-frame', language: '无旁白' },
+    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
       '竖屏开箱展示视频: 俯拍桌面视角, 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 每件物品入场都有轻微景深变化, 背景为{{scene}}, 明亮柔和布光, 最后产品居中定格, ASMR 质感收音(拆封摩擦声), 干净治愈的开箱氛围。',
     slots: [
@@ -527,7 +527,7 @@ export const templates = [
         ],
       },
     ],
-    durationOptions: [4, 6, 8],
+    durationOptions: [10],
     tips: '开箱视频的完播率最高, 适合做详情页头图视频。',
   },
 ];

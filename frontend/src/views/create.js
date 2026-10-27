@@ -48,7 +48,7 @@ export async function renderCreate(root, { navigate, query, back }) {
     texts: {},             // 文本槽位
     extraIdea: '',
     spec: { ...(isVideo
-      ? { aspect_ratio: tpl.defaults.aspect_ratio, resolution: tpl.defaults.resolution, duration: tpl.defaults.duration }
+      ? { aspect_ratio: tpl.defaults.aspect_ratio, resolution: tpl.defaults.resolution, duration: 10, mode: tpl.defaults.mode ?? 'first-frame' }
       : { aspect_ratio: resolveAspect(tpl), resolution: tpl.defaults.resolution, count: tpl.defaults.count, quality: tpl.defaults.quality }) },
     retryFree: true,       // 「换一批」首次免费 (PRD 核心原则 4)
   };
@@ -204,7 +204,7 @@ export async function renderCreate(root, { navigate, query, back }) {
   );
   const specRow2 = isVideo
     ? h('div', { class: 'row' },
-        (tpl.durationOptions ?? [4, 6, 8]).map((d) => specChip('duration', `${d} 秒`, d)),
+        h('span', { class: 'spec-chip locked', title: 'veo-4-omni 固定 10 秒' }, '10 秒'),
         h('span', { style: 'width:6px' }),
         ['720p', '1080p'].map((r) => specChip('resolution', r, r)),
       )

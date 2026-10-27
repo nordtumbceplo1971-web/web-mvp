@@ -964,6 +964,12 @@ main.container { flex: 1; padding: 24px 0 48px; }
 }
 .spec-chip:hover { border-color: var(--brand); color: var(--brand-deep); }
 .spec-chip.active { border-color: var(--brand); color: var(--brand-deep); background: var(--brand-soft); font-weight: 600; }
+/* 锁定参数 (如 veo-4-omni 固定 10 秒): 不可点击 */
+.spec-chip.locked {
+  cursor: default; opacity: 0.75;
+  border-style: dashed; background: var(--fill); color: var(--ink-3);
+}
+.spec-chip.locked:hover { border-color: var(--line); color: var(--ink-3); }
 .gen-summary {
   background: var(--fill); border-radius: var(--r-sm); border: 1px solid var(--line);
   padding: 10px 12px; font-size: 12.5px; color: var(--ink-2); margin: 12px 0;

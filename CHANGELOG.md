@@ -3,9 +3,42 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.24**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.24`，
+当前版本：**v0.1.25**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.25`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.25 · 2026-10-27
+
+**主题**：视频参数按 veo-4-omni 手册适配（时长锁 10s / 四种生成方式 / 7 图上限）
+
+### 需求
+
+veo 视频模型时长只有 10 秒（锁死参数），720P/1080P 可选（16:9 与 9:16 均可）；
+生成方式支持 文生 / 首尾帧 / 首帧 / 多参（7 图上限），POST/GET 语法按 ycapi 手册对齐。
+
+### 改动
+
+1. **时长锁死 10 秒**：视频规格区时长改为不可点的「10 秒」锁定 chip（`.spec-chip.locked` 虚线灰态），
+   模板 `durationOptions` 全部收敛为 `[10]`，下发 `duration: '10'`（后端同样硬锁，不再接受其他时长）
+2. **生成方式 chips**（`frontend/src/views/studio.js` `VIDEO_GEN_MODES`）：
+   文生视频 / 首帧 / 首尾帧 / 多参 —— 上传张数随模式自动收敛（0 / 1 / 2 / 7 张上限），
+   超出部分切换时自动裁剪；上传区文案随模式联动（文生隐藏上传、首尾帧提示「首帧+尾帧」、多参提示「最多 7 张」）
+3. **后端 params 按手册映射**（`backend/src/modules/generation/service.js`）：
+   - `mode`: `text-to-video` / `first-frame` / `first-last` / `reference`（未指定时按有无图推断，兼容模板流程）
+   - 首尾帧：`images` 放首帧（1 张）+ `end_image_url` 放尾帧（手册语法）
+   - 多参：`images` 最多 7 张；首帧：1 张；文生：不带图
+   - 分辨率 720p/1080p，**16:9 与 9:16 均支持 1080p**（按用户确认，不按手册收窄）
+4. **模板/做同款页对齐**：视频模板默认时长统一 10 秒；`create.js` 时长同样显示锁定 chip
+
+### 验收
+
+- 后端 params 映射脚本 16 项全过（文生无图/首帧 1 图/首尾帧 end_image_url/多参 7 图上限/推断回落/非法分辨率回落）
+- CDP E2E 全绿：生成方式 4 chips + 默认首帧、时长锁定无 4/6/8 秒、720p/1080p 可选、
+  9:16+1080p 同时激活、四种模式上传区适配、fetch 拦截验证下发 payload（mode/duration=10/resolution/aspect）、
+  图片模式规格不受影响；运行时报错 0
+- 截图核对：锁定 10 秒 chip 虚线灰态、生成方式 chips 排版正常
 
 ---
 
