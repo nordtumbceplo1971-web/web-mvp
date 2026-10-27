@@ -363,9 +363,10 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .home-stat .v small { font-size: 11.5px; color: var(--ink-3); font-weight: 500; margin-left: 3px; }
 /* 卡片区跟随整页滚动, 不再内部滚动 */
 .home-preview-body { padding: 16px 0 0; }
-/* auto-fit: 条目少时也把行撑满, 不留半边空白 */
+/* auto-fit + 固定卡宽: 卡片封顶居中排布 */
 .home-preview-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr)); gap: 16px;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 320px)); gap: 16px;
+  justify-content: center; justify-items: center;
 }
 .home-loading { color: var(--ink-3); padding: 30px; }
 
@@ -411,10 +412,10 @@ main.container { flex: 1; padding: 24px 0 48px; }
 /* ============================================================
    模板卡片 / 分类
    ============================================================ */
-/* auto-fit: 每节条目少时也把行撑满, 不留半边空白 */
+/* auto-fit + 固定卡宽: 每节条目多少不一, 卡宽统一居中排布, 行内不留大空隙 */
 .tpl-grid {
-  display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 1fr));
-  gap: 16px; align-items: stretch;
+  display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 320px));
+  gap: 16px; align-items: stretch; justify-content: center; justify-items: center;
 }
 .tpl-card { overflow: hidden; display: flex; flex-direction: column; }
 .tpl-cover { height: 128px; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
@@ -437,12 +438,15 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .tpl-card2 {
   overflow: hidden; display: flex; flex-direction: column;
   padding: 0; min-width: 0;
+  /* 卡片宽封顶: 宽屏/条目少时栅格会把卡拉宽, 预览窗随之变近方形 (封面图是 2:3 竖图,
+     contain 后两侧大片留白); 封顶后预览窗恒为 2:3, 图片铺满窗口, 全站卡片比例统一 */
+  width: 100%; max-width: 320px;
 }
 
 /* ---- 效果预览区 ---- */
-/* aspect-ratio 撑起约 70% 卡高; max-height 防止条目少、卡片被拉宽时预览过高 */
+/* 恒定 2:3 竖版窗口, 与封面图比例一致; max-height 仅作兜底 (卡片已封顶, 常规不会触发) */
 .tc-preview {
-  position: relative; aspect-ratio: 2/3; max-height: 460px; overflow: hidden;
+  position: relative; aspect-ratio: 2/3; max-height: 480px; overflow: hidden;
   border-bottom: 1px solid var(--line);
 }
 .tc-preview .kind { position: absolute; top: 10px; left: 10px; z-index: 2; background: rgba(255,255,255,0.92); }
@@ -467,11 +471,13 @@ main.container { flex: 1; padding: 24px 0 48px; }
   font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: rgba(15, 23, 42, 0.52);
 }
 
-/* 真实效果预览图（配了封面图的模板用图，不再显示色块占位） */
-.tc-preview.has-img { background: var(--fill); }
+/* 真实效果预览图（配了封面图的模板用图，不再显示色块占位）
+   注意: 卡片被栅格拉宽时预览区会因 max-height 变成非 2:3, 若用 cover 会裁掉产品主体,
+   故统一用 contain 完整显示, 容器底色取白, 与商品图白底无缝衔接 */
+.tc-preview.has-img { background: #fff; }
 .tc-img {
   position: absolute; inset: 0;
-  width: 100%; height: 100%; object-fit: cover; object-position: center top;
+  width: 100%; height: 100%; object-fit: contain; object-position: center;
   display: block;
 }
 
