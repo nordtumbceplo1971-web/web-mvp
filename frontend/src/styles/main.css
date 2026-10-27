@@ -478,23 +478,17 @@ main.container { flex: 1; padding: 24px 0 48px; }
 /* ---- 「一键复刻」悬浮玻璃能量胶囊 ----
    默认隐藏, hover / 键盘聚焦卡片才浮出 (触屏设备常显兜底)
    色调: 电光青 → 翠绿 → 柠檬绿 的能量渐变 + 半透明玻璃层, 走活力/动力感
-   动效: 能量环沿胶囊椭圆轮廓环绕转圈 (::after 的 conic 弧光)
+   动效: 能量沿胶囊椭圆外缘环绕流动 —— 分两层:
+     .tr-orbit 渐变层在下 (比按钮大 3px, 角度 --tr-angle 动画旋转),
+     .tr-face 玻璃面在上盖住内侧, 只露外缘约 3px 的渐变弧光沿椭圆轮廓跑
 */
 .tc-replicate {
   position: absolute; left: 50%; bottom: 14px; z-index: 3;
   display: flex; align-items: center; gap: 8px;
   padding: 9px 16px 9px 10px;
-  border: 1px solid rgba(255, 255, 255, 0.45); border-radius: 999px;
-  cursor: pointer; isolation: isolate;
-  color: #fff;
-  background:
-    linear-gradient(135deg, rgba(34, 211, 238, 0.78) 0%, rgba(16, 185, 129, 0.82) 52%, rgba(132, 204, 22, 0.86) 100%);
-  backdrop-filter: blur(12px) saturate(1.35);
-  -webkit-backdrop-filter: blur(12px) saturate(1.35);
-  box-shadow:
-    inset 0 1px 0 rgba(255, 255, 255, 0.55),
-    inset 0 0 12px rgba(255, 255, 255, 0.18),
-    0 12px 26px -10px rgba(16, 185, 129, 0.65);
+  border: 0; border-radius: 999px;
+  cursor: pointer;
+  color: #fff; background: transparent;
   opacity: 0; transform: translate(-50%, 14px) scale(0.94); pointer-events: none;
   transition: opacity 0.26s ease, transform 0.26s ease;
 }
@@ -502,31 +496,48 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .tpl-card2:focus-within .tc-replicate {
   opacity: 1; transform: translate(-50%, 0) scale(1); pointer-events: auto;
 }
-/* 能量环: 环绕胶囊椭圆轮廓转圈 (conic 弧光 + mask 挖出环形) */
-.tc-replicate::after {
-  content: ''; position: absolute; inset: -3px; border-radius: 999px;
-  padding: 2.5px;
+/* 能量环层: 比按钮大 3px 的渐变层, 内部被 .tr-face 盖住, 只露外缘弧光。
+   图层本身不动, 只让 conic 渐变的角度转 (--tr-angle), 弧光才贴着胶囊边缘跑;
+   若整层 rotate 会和胶囊轮廓错位, 戳出斜楔形 */
+@property --tr-angle {
+  syntax: '<angle>'; inherits: false; initial-value: 0deg;
+}
+.tc-replicate > .tr-orbit {
+  --tr-angle: 0deg;
+  position: absolute; inset: -3px; z-index: 0; border-radius: 999px;
   background: conic-gradient(
-    from 0deg,
-    transparent 0deg 190deg,
-    rgba(163, 230, 53, 0.9) 255deg,
-    rgba(34, 211, 238, 1) 315deg,
-    rgba(255, 255, 255, 0.95) 342deg,
-    transparent 360deg
+    from var(--tr-angle),
+    transparent 0deg 185deg,
+    rgba(163, 230, 53, 0.85) 240deg,
+    rgba(34, 211, 238, 1) 305deg,
+    rgba(255, 255, 255, 0.95) 338deg,
+    transparent 355deg 360deg
   );
-  -webkit-mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  -webkit-mask-composite: xor;
-  mask: linear-gradient(#000 0 0) content-box, linear-gradient(#000 0 0);
-  mask-composite: exclude;
   pointer-events: none; opacity: 0;
+  filter: drop-shadow(0 0 5px rgba(163, 230, 53, 0.55)) drop-shadow(0 0 8px rgba(34, 211, 238, 0.45));
   transition: opacity 0.25s ease;
 }
-.tpl-card2:hover .tc-replicate::after,
-.tpl-card2:focus-within .tc-replicate::after {
+.tpl-card2:hover .tc-replicate > .tr-orbit,
+.tpl-card2:focus-within .tc-replicate > .tr-orbit {
   opacity: 1;
-  animation: tr-orbit 1.8s linear infinite;
+  animation: tr-orbit 2.2s linear infinite;
 }
-@keyframes tr-orbit { to { transform: rotate(360deg); } }
+@keyframes tr-orbit { to { --tr-angle: 360deg; } }
+/* 玻璃面层: 盖住渐变盘内侧, 只留外缘 3px 环光可见 */
+.tc-replicate > .tr-face {
+  position: absolute; inset: 0; z-index: 0; border-radius: 999px;
+  background:
+    linear-gradient(135deg, rgba(34, 211, 238, 0.9) 0%, rgba(16, 185, 129, 0.93) 52%, rgba(132, 204, 22, 0.95) 100%),
+    #0e9488;
+  border: 1px solid rgba(255, 255, 255, 0.45);
+  backdrop-filter: blur(12px) saturate(1.35);
+  -webkit-backdrop-filter: blur(12px) saturate(1.35);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.55),
+    inset 0 0 12px rgba(255, 255, 255, 0.18),
+    0 12px 26px -10px rgba(16, 185, 129, 0.65);
+  pointer-events: none;
+}
 .tc-replicate > * { position: relative; z-index: 1; }
 .tc-replicate .tr-ico {
   flex-shrink: 0; width: 26px; height: 26px; border-radius: 50%;
