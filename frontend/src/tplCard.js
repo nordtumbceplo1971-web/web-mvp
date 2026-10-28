@@ -56,7 +56,8 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
   );
 
   const card = h('article', {
-    class: `card card-hover tpl-card2${preview?.wide ? ' tc-wide' : ''}`, role: 'button', tabindex: 0,
+    class: `card card-hover tpl-card2${preview?.wide ? ' tc-wide' : ''}${tpl.type === 'video' ? ' is-video' : ''}`,
+    role: 'button', tabindex: 0,
     onclick: goDetail,
     onkeydown: (e) => { if (e.key === 'Enter') goDetail(); },
     ...cardAttrs,

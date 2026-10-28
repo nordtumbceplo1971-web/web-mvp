@@ -3,9 +3,31 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.40**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.40`，
+当前版本：**v0.1.41**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.41`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.41 · 2026-10-28
+
+**主题**：修复首页/模板库视频板块卡片大小不一（is-video 标记漏提交）
+
+### 问题（用户报告）
+
+视频模板卡片预览窗高度不一：TVC 广告大片（16:9 矮）与其它视频卡（2:3 竖版占位，高）混排。
+tabbit 线上 DOM 排查：全部视频卡都没有 `is-video` 类 —— 统一 16:9 预览窗的
+`tplCard` 标记逻辑随「TVC 图集」批次遗留在工作区未提交（CSS 规则 v0.1.33 已上线，JS 标记漏网）。
+
+### 修复
+
+`tplCard.js` 卡片类名补 `tpl.type === 'video' ? ' is-video' : ''` → 视频模板统一 16:9 预览窗
+（CSS 已有 `.tpl-card2.is-video .tc-preview { aspect-ratio: 16/9 }`）。
+
+### 验收
+
+- tabbit 线上复查：视频板块卡片预览窗高度一致（16:9），与图片卡 2:3 有序混排
+- 本地 `npm run build` 通过
 
 ---
 
