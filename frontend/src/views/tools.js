@@ -1,6 +1,6 @@
 import { h } from '../ui.js';
 import { icon } from '../icons.js';
-import { compressImage, resizeImage, cropImage, fmtBytes, downloadBlob } from '../imgops.js';
+import { compressImage, compressToTarget, resizeImage, cropImage, fmtBytes, downloadBlob } from '../imgops.js';
 
 /**
  * 图片工具 (路线图 1.4.3 · 设计方案《996Studio-图片工具箱-需求整理与设计方案.md》)
@@ -93,7 +93,10 @@ async function renderWorkbench(root, { navigate, back, toolId }) {
   };
 
   async function runOne(file) {
-    if (toolId === 'compress') return compressImage(file, state.quality ?? 0.75);
+    if (toolId === 'compress') {
+      if (state.compressMode === 'target') return compressToTarget(file, Math.max(10, Number(state.targetKB) || 100) * 1024);
+      return compressImage(file, state.quality ?? 0.8);
+    }
     if (toolId === 'resize') return resizeImage(file, state.getResize());
     return state.runOne(file);
   }
@@ -224,17 +227,63 @@ async function renderWorkbench(root, { navigate, back, toolId }) {
 /* ==================== 参数面板: 压缩 ==================== */
 
 function compressParams(state) {
-  state.quality = 0.75;
-  const val = h('b', {}, '75');
+  state.compressMode = 'quality';
+  state.quality = 0.8;
+  state.targetKB = 500;
+
+  const val = h('b', {}, '80');
   const slider = h('input', {
-    type: 'range', min: '10', max: '100', value: '75', style: 'width:100%',
+    type: 'range', min: '10', max: '100', value: '80', style: 'width:100%',
     oninput: () => { val.textContent = slider.value; state.quality = Number(slider.value) / 100; },
   });
-  return h('div', {},
+  const qualityBlock = h('div', {},
     h('div', { class: 'g-label' }, '压缩质量 ', val, h('small', { style: 'color:var(--ink-3);font-weight:400;margin-left:4px' }, '越低体积越小')),
     slider,
-    h('div', { class: 'hint', style: 'margin-top:6px' }, '统一输出 JPG (透明区填白)。75 通常能省 60%~80% 体积且肉眼无损。'),
+    h('div', { class: 'hint', style: 'margin-top:6px' }, '80 为画质优先档, 肉眼与原图几乎一致; 输出 JPG (透明区填白)。'),
   );
+
+  const kbInput = h('input', {
+    class: 'text-input', type: 'number', min: '10', value: '500', style: 'width:110px',
+    oninput: (e) => { state.targetKB = Number(e.target.value) || 500; },
+  });
+  const targetChips = h('div', { class: 'rf-chips' }, ...[['≤100 KB', 100], ['≤500 KB', 500], ['≤2 MB', 2048]].map(([label, kb]) => h('button', {
+    class: 'spec-chip', type: 'button',
+    onclick: (e) => {
+      kbInput.value = kb;
+      state.targetKB = kb;
+      [...targetChips.children].forEach((c) => c.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+    },
+  }, label)));
+  const targetBlock = h('div', { style: 'display:none' },
+    h('div', { class: 'g-label' }, '目标体积'),
+    h('div', { style: 'display:flex;align-items:center;gap:8px;margin-bottom:8px' }, '不超过', kbInput, h('span', { style: 'color:var(--ink-3)' }, 'KB')),
+    targetChips,
+    h('div', { class: 'hint', style: 'margin-top:6px' }, '算法: 先在不降分辨率的前提下二分最高质量; 实在压不进才降采样 —— 保证达标前提下画质最大。'),
+  );
+
+  const modeChips = h('div', { class: 'rf-chips', style: 'margin-bottom:10px' },
+    h('button', {
+      class: 'spec-chip active', type: 'button',
+      onclick: (e) => {
+        state.compressMode = 'quality';
+        qualityBlock.style.display = ''; targetBlock.style.display = 'none';
+        [...modeChips.children].forEach((c) => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      },
+    }, '按质量'),
+    h('button', {
+      class: 'spec-chip', type: 'button',
+      onclick: (e) => {
+        state.compressMode = 'target';
+        qualityBlock.style.display = 'none'; targetBlock.style.display = '';
+        [...modeChips.children].forEach((c) => c.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+      },
+    }, '按目标体积'),
+  );
+
+  return h('div', {}, modeChips, qualityBlock, targetBlock);
 }
 
 /* ==================== 参数面板: 改尺寸 ==================== */
