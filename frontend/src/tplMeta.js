@@ -46,6 +46,7 @@ export function tplLogo(tpl) {
 const TPL_PREVIEWS = {
   'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
   'main-white': { src: '/covers/main-white.jpg', alt: '白底主图效果预览 · 正面平铺' },
+  'tryon-female-asia': { src: '/covers/tryon-female-asia.jpg', alt: '模特上身图效果预览 · Lookbook 街拍' },
   'video-tvc': {
     video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg', wide: true,
     alt: 'TVC 广告大片效果预览 · 悬停播放',
@@ -58,6 +59,12 @@ export function tplPreview(tpl) {
 
 /** 模板成品图集 (详情页「效果预览」); 图在 frontend/public/flows/<模板id>/ */
 const TPL_FLOWS = {
+  // 模特上身图: 图1 服装参考 + 图2 模特形象参考 + 图3 成图 (复用封面素材)
+  'tryon-female-asia': [
+    { src: '/flows/tryon-female-asia/clothing.png', cap: '图1 服装参考', alt: '服装平铺图 · 唯一服装来源' },
+    { src: '/flows/tryon-female-asia/model.png', cap: '图2 模特参考', alt: '模特形象参考 · 仅取身材体型' },
+    { src: '/covers/tryon-female-asia.jpg', cap: '图3 成图效果', alt: 'Lookbook 街拍上身成图' },
+  ],
   'shopify-lookbook': [
     { src: '/flows/shopify-lookbook/product.jpg', cap: '产品图', alt: '产品原图 · 正/背面拼版' },
     { src: '/flows/shopify-lookbook/step-01.jpg', cap: '01 列表主图', alt: '01 列表主图效果' },

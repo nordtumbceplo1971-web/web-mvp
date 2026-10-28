@@ -3,9 +3,39 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.29**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.29`，
+当前版本：**v0.1.30**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.30`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.30 · 2026-10-28
+
+**主题**：模特上身图模板 · 封面/详情图集 + 内置提示词升级（服装+模特双参考）
+
+### 需求
+
+模特上身图模板封面添加图3（成图），详情页效果预览为图1（服装）、图2（模特参考）、图3（成图）；
+内置提示词替换为完整 Lookbook 双参考框架（图1 唯一服装来源、图2 仅取身材体型、配套下装、45 度侧身 S 形姿态、美国时尚城市街头）。
+
+### 改动
+
+1. **封面**（`frontend/public/covers/tryon-female-asia.jpg` + `frontend/src/tplMeta.js`）：
+   模板库卡片封面用图3 成图（Lookbook 街拍效果）
+2. **详情图集**（`frontend/public/flows/tryon-female-asia/` + `TPL_FLOWS`）：
+   效果预览一排三张 —— 图1 服装参考（clothing.png）/ 图2 模特参考（model.png）/ 图3 成图效果（复用封面素材）
+3. **内置提示词**（`backend/src/modules/templates/templates.js` `tryon-female-asia`）：
+   promptTemplate 替换为用户提供的完整四段式框架（服装唯一来源/下装套系搭配/姿态/背景布光），无槽位占位符；
+   移除模特/场景/光线槽位（`slots: []`），输入改为双参考图（`needImages: 2`，
+   图1 服装 + 图2 模特形象），subtitle/needLabel/tips 同步更新；
+   多图上传走后端 `multi-reference` 模式，成图 3:4 竖版
+
+### 验收
+
+- CDP E2E 全绿（A~E）：模板库封面图3 加载（1856×2304）；详情页图集 3 张（图1/图2/图3）全部加载；
+  create 页空槽位安全（0 个选项、页面正常）；studio 模板可选、规格套用 3:4+2K；
+  preview-prompt 返回完整内置提示词（589 字、无占位符残留）；运行时报错 0
+- 后端实测：`/api/templates/tryon-female-asia` needImages=2、slots=[]、提示词原样组合
 
 ---
 

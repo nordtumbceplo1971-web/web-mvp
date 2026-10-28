@@ -202,38 +202,20 @@ export const templates = [
     type: 'image',
     category: 'tryon',
     title: '模特上身图',
-    subtitle: '亚洲女模特街拍风上身展示',
+    subtitle: 'Lookbook 街拍上身展示 · 服装+模特双参考',
     timeLabel: '约 2 分钟',
     credits: 3,
-    needLabel: '1 张服装平铺图',
-    needImages: 1,
+    needLabel: '服装图 + 模特参考图（2 张）',
+    needImages: 2,
     defaults: { model: 'primary', aspect_ratio: '3:4', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
+    // 内置提示词 (用户提供, 固定完整框架): 图1=服装唯一来源, 图2=仅模特体型参考
     promptTemplate:
-      '电商服饰上身图: {{model_desc}}身穿图中服装, 自然街拍站姿, 全身构图, 背景为{{scene}}, {{lighting}}, 清晰呈现服装版型、面料质感与垂坠感, 真实皮肤质感与自然光影, 时尚电商Lookbook摄影风格, 8K超清。',
-    slots: [
-      {
-        label: '模特',
-        key: 'model_desc',
-        options: [
-          { value: 'asia-f', label: '亚洲女模', color: '#F6D9C0', prompt: '亚洲年轻女模特, 清新妆容, 黑长直发' },
-          { value: 'euro-f', label: '欧美女模', color: '#F0CDB0', prompt: '欧美女模特, 高挑立体的五官, 亚麻色波浪卷发' },
-          { value: 'asia-m', label: '亚洲男模', color: '#E3C4A8', prompt: '亚洲年轻男模特, 干净短发, 体型匀称' },
-          { value: 'plus', label: '大码模特', color: '#EFD5BD', prompt: '大码模特, 自信舒展的姿态' },
-        ],
-      },
-      {
-        label: '场景',
-        key: 'scene',
-        options: [
-          { value: 'street', label: '城市街拍', color: '#EAF3F8', prompt: '城市街头, 浅景深虚化行人' },
-          { value: 'home', label: '居家', color: '#EAF3EA', prompt: '明亮居家空间, 原木与白墙' },
-          { value: 'gym', label: '健身房', color: '#F0F0F5', prompt: '健身房器械区, 动感' },
-          { value: 'studio', label: '纯色棚拍', color: '#F5EFE6', prompt: '纯色摄影棚背景, 极简' },
-        ],
-      },
-      LIGHTING,
-    ],
-    tips: '上传清晰的服装平铺/挂拍图, 版型还原更准。',
+      '图1是唯一的服装来源：模特必须完整穿着图1中的这件服饰，其款式、版型、颜色、面料、图案细节均严格还原图1，不得有任何改动。图2仅作为模特形象参考：只参考图2中模特的身材体型，必须完全忽略（不复制、不保留）图2模特身上所穿的任何服装。成图中模特全身只穿图1的这一套服饰，严禁混入图2中的任何服饰元素。\n'
+      + '时尚电商Lookbook摄影。模特穿着与参考图1完全一致的上衣，整套造型（上衣+下装）为同一套系搭配：下装为与上衣自然色系搭配（黑配白，白配黑）、同质感面料、同风格版型的配套裤装/裙装，色彩过渡自然、色相统一、明度协调，整体搭配和谐完整，严禁出现与上衣风格或颜色冲突的下装。\n'
+      + '模特身体呈约45度侧对镜头，重心完全落在后侧支撑腿上，前腿膝盖微曲、脚尖轻点地面，胯部自然向一侧顶出，形成柔和的S形腰线。双肩下沉并向后展开，侧面肩线与背部线条干净利落。一手自然垂于身侧、五指放松微张，另一手轻搭在腰侧或服饰口袋处，指尖引导视线落在服装设计细节上。头部向镜头回转，下巴微收、略向肩侧倾斜，眼神从发丝后直视镜头，嘴角含一丝若有似无的浅笑，神情从容优雅，传递"不经意被捕捉"的松弛高级感。\n'
+      + '背景为美国极具现代化时尚风的fashion城市街头；柔和影棚顶光加左前补光，产品底部带淡淡倒影；清晰呈现服装版型、面料质感与垂坠感，真实皮肤质感与自然光影；8K超清，时尚电商Lookbook摄影风格。',
+    slots: [],
+    tips: '第 1 张传服装平铺/挂拍图（服装唯一来源），第 2 张传模特形象参考图（只取身材体型）。',
   },
   {
     id: 'tryon-detail',
