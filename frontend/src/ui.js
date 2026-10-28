@@ -18,6 +18,21 @@ export function h(tag, attrs = {}, ...children) {
   return el;
 }
 
+/**
+ * 比例形状小图标 (比例选择 chips 用): 横版宽矩形 / 竖版窄矩形 / 1:1 方块
+ * free=true 时画虚线小框 (表示任意比例)
+ */
+export function aspectShape(ratio, { free = false } = {}) {
+  let css = 'width:13px;height:13px;';
+  if (!free) {
+    const [w, hNum] = String(ratio).split(':').map(Number);
+    const H = 12;
+    const W = Math.max(7, Math.min(20, Math.round((H * w) / hNum)));
+    css = `width:${W}px;height:${H}px;`;
+  }
+  return h('i', { class: `asp-shape${free ? ' free' : ''}`, style: css, 'aria-hidden': 'true' });
+}
+
 export function toast(msg, kind = '') {
   let wrap = document.querySelector('.toast-wrap');
   if (!wrap) {

@@ -1038,12 +1038,19 @@ video.tc-video { background: #fff; }
 .row { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; }
 .gen-side .row { margin-bottom: 12px; }
 .spec-chip {
+  display: inline-flex; align-items: center; gap: 6px;
   border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
   border-radius: var(--r-sm); padding: 0 12px; height: 30px;
   font-weight: 500; font-size: 12.5px; transition: all 0.12s;
 }
 .spec-chip:hover { border-color: var(--brand); color: var(--brand-deep); }
 .spec-chip.active { border-color: var(--brand); color: var(--brand-deep); background: var(--brand-soft); font-weight: 600; }
+/* 比例形状图标: 一眼看懂横竖构图 */
+.asp-shape {
+  flex-shrink: 0; display: inline-block;
+  border: 1.5px solid currentColor; border-radius: 3px; opacity: 0.9;
+}
+.asp-shape.free { border-style: dashed; }
 /* 锁定参数 (如 veo-4-omni 固定 10 秒): 不可点击 */
 .spec-chip.locked {
   cursor: default; opacity: 0.75;

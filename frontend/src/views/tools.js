@@ -1,4 +1,4 @@
-import { h } from '../ui.js';
+import { h, aspectShape } from '../ui.js';
 import { icon } from '../icons.js';
 import { compressImage, compressToTarget, resizeImage, cropImage, fmtBytes, downloadBlob } from '../imgops.js';
 
@@ -317,7 +317,7 @@ function cropParams(state) {
   state.sel = null; // 显示图坐标 {x,y,w,h}; 仅单文件交互模式用
 
   const chips = h('div', { class: 'rf-chips' }, ...ASPECTS.map((a) => h('button', {
-    class: `spec-chip${a === 'free' ? ' active' : ''}`, type: 'button',
+    class: `spec-chip${a === 'free' ? ' active' : ''}`, type: 'button', 'aria-label': a === 'free' ? '自由比例' : `比例 ${a}`,
     onclick: (e) => {
       state.ratio = a;
       [...chips.children].forEach((c) => c.classList.remove('active'));
@@ -326,7 +326,7 @@ function cropParams(state) {
       maxCenter(); // 切比例即给出该比例的最大选区, 免二次框选
       drawSel();
     },
-  }, a === 'free' ? '自由' : a)));
+  }, aspectShape(a, { free: a === 'free' }), a === 'free' ? '自由' : a)));
 
   const centerBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { maxCenter(); drawSel(); } }, '重置为最大居中选区');
 

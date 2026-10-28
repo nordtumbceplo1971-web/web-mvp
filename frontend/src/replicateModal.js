@@ -1,4 +1,4 @@
-import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES } from './ui.js';
+import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from './ui.js';
 import { api } from './api.js';
 import { getCredits, spendCredits, refundCredits } from './store.js';
 import { IMAGE_ASPECTS, VIDEO_ASPECTS, resolveAspect } from './aspect.js';
@@ -129,7 +129,18 @@ export function openReplicateModal(tpl, { navigate }) {
     ...tpl.slots.map((slot) => slotGroup(slot)),
     h('div', { class: 'rf-sec' },
       h('div', { class: 'rf-label' }, '输出设置'),
-      h('div', { class: 'rf-chips' }, (isVideo ? VIDEO_ASPECTS : IMAGE_ASPECTS).map((a) => specChip('aspect_ratio', a, a))),
+      // 比例 chips 带形状图标: 横竖构图一眼看懂
+      h('div', { class: 'rf-chips' }, (isVideo ? VIDEO_ASPECTS : IMAGE_ASPECTS).map((a) => {
+        const btn = h('button', {
+          class: `spec-chip ${String(state.spec.aspect_ratio) === a ? 'active' : ''}`, type: 'button',
+          onclick: () => {
+            state.spec.aspect_ratio = a;
+            [...btn.parentElement.children].forEach((c) => c.classList.remove('active'));
+            btn.classList.add('active');
+          },
+        }, aspectShape(a), a);
+        return btn;
+      })),
       h('div', { class: 'rf-chips' }, isVideo
         ? [h('span', { class: 'spec-chip locked', title: 'veo-4-omni 固定 10 秒' }, '10 秒'), h('span', { style: 'width:6px' }), ...['720p', '1080p'].map((r) => specChip('resolution', r, r))]
         : [...[1, 2, 4].map((c) => specChip('count', `${c} 张`, c)), h('span', { style: 'width:6px' }), ...['2K', '4K'].map((r) => specChip('resolution', r, r))]),

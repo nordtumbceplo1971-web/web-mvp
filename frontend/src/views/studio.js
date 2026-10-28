@@ -1,4 +1,4 @@
-import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES } from '../ui.js';
+import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
@@ -282,7 +282,7 @@ export async function renderStudio(root, { navigate, query, back }) {
         ...VIDEO_ASPECTS.map((a) => h('button', {
           class: `spec-chip ${state.aspect === a ? 'active' : ''}`,
           onclick: () => { state.aspect = a; drawSpec(); },
-        }, a)),
+        }, aspectShape(a), a)),
         h('span', { style: 'width:6px' }),
         ...['720p', '1080p'].map((r) => h('button', {
           class: `spec-chip ${state.resolution === r ? 'active' : ''}`,
@@ -298,7 +298,7 @@ export async function renderStudio(root, { navigate, query, back }) {
       ...aspects.map((a) => h('button', {
         class: `spec-chip ${state.aspect === a ? 'active' : ''}`,
         onclick: () => { state.aspect = a; drawSpec(); },
-      }, a)),
+      }, aspectShape(a), a)),
       h('span', { style: 'width:6px' }),
       ...[1, 2, 4].map((c) => h('button', {
         class: `spec-chip ${state.count === c ? 'active' : ''}`,
