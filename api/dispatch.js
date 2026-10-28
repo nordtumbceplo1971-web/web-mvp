@@ -1,4 +1,4 @@
-﻿/**
+/**
  * Vercel Serverless Function 入口 (由 vercel.json rewrites 显式路由: /api/(.*) → /api/dispatch)
  *
  * 为什么不用 api/[...path].js catch-all:

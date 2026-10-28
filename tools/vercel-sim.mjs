@@ -1,4 +1,4 @@
-﻿/**
+/**
  * 本地模拟 Vercel Serverless 调用, 验证 api/dispatch.js 的路由还原逻辑
  * 模拟行为: vercel.json rewrite 后函数收到 req.url=/api/dispatch, 原始路径在 x-original-url
  * 用法: node tools/vercel-sim.mjs
