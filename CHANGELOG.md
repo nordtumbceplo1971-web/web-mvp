@@ -3,9 +3,35 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.27**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.27`，
+当前版本：**v0.1.28**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.28`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.28 · 2026-10-28
+
+**主题**：首页快捷创作导航栏改为全程固定悬浮
+
+### 需求
+
+首页底部「图片生成 / 视频生成」快捷创作导航栏应保持固定位置悬浮；
+此前滚到页面最底部时不再悬浮，而是吸附到页面尾部衔接落地。
+
+### 改动
+
+1. **定位改为 fixed**（`frontend/src/styles/main.css` `.home-quick`）：
+   原 `position: sticky; bottom: 14px` 只在 `.home-split` 容器内有效，滚到页底随容器末尾落回；
+   改为 `position: fixed` 全程悬浮于视口底部，任意滚动位置（含页底）都保持悬浮
+2. **与内容区对齐**：`left: 228px`（侧栏宽）+ `padding: 0 24px` + `max-width: 1720px` 居中，
+   与 `main.container` 对齐不压侧栏；≤960px 侧栏隐藏时 `left: 0` 收回
+3. **不挡点击**：外层 `pointer-events: none`、条本体 `pointer-events: auto`
+
+### 验收
+
+- CDP E2E 全绿：顶部/中部/最底部三档 `position: fixed`、距视口底恒 14px；
+  页底（scrollY=maxScroll）仍悬浮不吸附页尾；左侧 252px 不压侧栏；窄屏 800px 同样悬浮；运行时报错 0
+- 截图核对：滚到页面最底部时导航栏仍悬浮于视口底部、与内容区左右对齐
 
 ---
 

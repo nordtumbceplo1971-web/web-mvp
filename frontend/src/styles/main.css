@@ -370,15 +370,23 @@ main.container { flex: 1; padding: 24px 0 48px; }
 }
 .home-loading { color: var(--ink-3); padding: 30px; }
 
-/* ---------- 快捷创作 = 底部横向导航栏 ---------- */
+/* ---------- 快捷创作 = 底部横向导航栏 (全程固定悬浮) ---------- */
+/* fixed 悬浮于视口底部: 滚到页面尾部也不落地, 与内容区 (侧栏 228px + container 居中) 对齐 */
 .home-quick {
-  position: sticky; bottom: 14px; z-index: 30;
+  position: fixed;
+  bottom: 14px;
+  left: 228px; right: 0;
+  padding: 0 24px;
+  z-index: 30;
+  pointer-events: none; /* 不挡下方内容点击 */
 }
 .quick-grid {
   display: grid; grid-template-columns: 1fr 1fr;
+  max-width: 1720px; margin: 0 auto;
   background: var(--card); border: 1px solid var(--line);
   border-radius: var(--r-lg); box-shadow: 0 10px 32px rgba(15, 23, 42, 0.12);
   overflow: hidden;
+  pointer-events: auto;
 }
 .quick-card {
   display: flex; align-items: center; gap: 14px; text-align: left;
@@ -1226,6 +1234,7 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .topbar .ann-bar { display: none; }
   .ann-bar-block { display: flex; }
   /* 快捷创作导航栏窄屏改为纵向排列 */
+  .home-quick { left: 0; }
   .quick-grid { grid-template-columns: 1fr; }
   .quick-card { border-right: 0; border-bottom: 1px solid var(--line); }
   .quick-card:last-child { border-bottom: 0; }
