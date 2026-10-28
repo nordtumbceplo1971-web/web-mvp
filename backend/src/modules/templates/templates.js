@@ -530,6 +530,43 @@ export const templates = [
     durationOptions: [10],
     tips: '开箱视频的完播率最高, 适合做详情页头图视频。',
   },
+
+  // ============ 纯净模式内置模板 (hidden: 不进模板库列表) ============
+  // 自由工作台「纯净模式」专用: 不套任何提示词框架, 用户提示词原样直通模型,
+  // 定位: 有提示词工程基础、不想套模板的创作者
+  {
+    id: 'pure-image',
+    type: 'image',
+    category: 'retouch',
+    hidden: true,
+    title: '纯净模式',
+    subtitle: '提示词直通, 不套模板',
+    timeLabel: '约 1 分钟',
+    credits: 2,
+    needLabel: '自由描述',
+    needImages: 0,
+    defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'text-to-image' },
+    promptTemplate: '{{prompt}}',
+    slots: [{ key: 'prompt', label: '提示词', type: 'text', defaultValue: '' }],
+    tips: '提示词原样发给模型, 不做任何改写与补充。',
+  },
+  {
+    id: 'pure-video',
+    type: 'video',
+    category: 'video',
+    hidden: true,
+    title: '纯净模式',
+    subtitle: '提示词直通, 不套模板',
+    timeLabel: '约 5 分钟',
+    credits: 20,
+    needLabel: '自由描述',
+    needImages: 0,
+    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'text-to-video' },
+    promptTemplate: '{{prompt}}',
+    slots: [{ key: 'prompt', label: '提示词', type: 'text', defaultValue: '' }],
+    durationOptions: [10],
+    tips: '提示词原样发给模型, 不做任何改写与补充。',
+  },
 ];
 
 export function getTemplate(id) {

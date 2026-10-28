@@ -88,6 +88,7 @@ export async function generateVideo({
   templateId,
   slotValues = {},
   extraIdea = '',
+  prompt: promptOverride = null,
   aspectRatio,
   resolution,
   mode,
@@ -98,7 +99,7 @@ export async function generateVideo({
   if (!template || template.type !== 'video') {
     const err = new Error('模板不存在或类型不是视频'); err.status = 404; throw err;
   }
-  const prompt = [composePrompt(template, slotValues), extraIdea?.trim()].filter(Boolean).join(' ');
+  const prompt = promptOverride || [composePrompt(template, slotValues), extraIdea?.trim()].filter(Boolean).join(' ');
 
   // 生成模式: 文生 / 首帧 / 首尾帧 / 多参 (未显式指定时按有无参考图推断, 兼容模板流程)
   const genMode = VIDEO_MODES[mode] ? mode : (imageUrls.length ? 'first-frame' : 'text-to-video');

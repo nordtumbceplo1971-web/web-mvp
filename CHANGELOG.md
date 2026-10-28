@@ -3,9 +3,43 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.28**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.28`，
+当前版本：**v0.1.29**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.29`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.29 · 2026-10-28
+
+**主题**：自由工作台新增「纯净模式」（图片/视频通用 · 去模板 · 提示词直通）
+
+### 需求
+
+在自由工作台顶部 图片/视频 switch 旁加「纯净模式」功能按钮，作用于图片/视频两种创作：
+去掉模板功能，只保留自定义创作的基本功能。定位：有一定提示词工程基础、不想套模板的创作者。
+UI 参考勾选卡片风（蓝描边 + 蓝勾选态）。
+
+### 改动
+
+1. **开关 UI**（`frontend/src/views/studio.js` + `frontend/src/styles/main.css` `.pure-btn`）：
+   switch 旁勾选卡片风按钮，选中蓝描边 + 蓝勾选块 + 浅蓝底（对齐参考截图视觉）；
+   图片/视频通用，切换模式时保持纯净态，URL 同步 `?pure=1`
+2. **去模板**：开启后隐藏「需求模板」面板，步骤号 3→2，副标题/提示词提示切换为
+   「提示词原样直通模型」文案；关闭后恢复模板面板与选中模板（含各模式记忆模板）
+3. **提示词直通**（`backend/src/modules/generation/service.js` + `backend/src/modules/templates/templates.js`）：
+   内置隐藏纯净模板 `pure-image` / `pure-video`（`hidden: true` 不进模板库列表），
+   `generateVideo` 补 `prompt` 覆盖参数（与 `generateImage` 对齐）；
+   纯净模式下 `prompt` 覆盖模板组合结果、无任何框架残留
+4. **基本功能保留**：参考图上传（图片 2 张 / 视频按生成方式 0~7 张）、画幅/张数/分辨率/时长/
+   视频生成方式（文生/首帧/首尾帧/多参）chips、优化提示词、任务队列全部保留
+
+### 验收
+
+- CDP E2E 全绿（A~F 六组断言）：开关 UI/选中态/模板面板显隐/步骤号切换/文案切换；
+  图片纯净 payload `templateId=pure-image` + prompt 原样直通（slotValues 空、extraIdea 空）；
+  切视频保持纯净 + `templateId=pure-video` + prompt 直通 + 视频参数（10 秒/720p/生成方式）对齐；
+  关闭后模板面板恢复、步骤号回 3、文案恢复；运行时报错 0
+- 后端实测：模板库列表 18 个模板无纯净模板泄漏、`/api/templates/pure-image` 可直取
 
 ---
 

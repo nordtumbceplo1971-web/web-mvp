@@ -54,7 +54,8 @@ api.get('/health', (req, res) => {
 // ---------- 模板库 ----------
 api.get('/templates', (req, res) => {
   const { category, type } = req.query;
-  let items = templates;
+  // hidden: 纯净模式内置模板, 只给工作台直通提示词用, 不进模板库列表
+  let items = templates.filter((t) => !t.hidden);
   if (category && category !== 'all') items = items.filter((t) => t.category === category);
   if (type) items = items.filter((t) => t.type === type);
   res.json({ categories, items });

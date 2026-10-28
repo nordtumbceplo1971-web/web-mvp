@@ -14,6 +14,13 @@ export const VIDEO_GEN_MODES = {
   reference: { label: '多参', short: '多参', maxImages: 7 },
 };
 
+/** 纯净模式: 不套模板, 提示词原样直通模型 (定位: 有提示词工程基础的创作者) */
+const PURE_TPL_ID = { image: 'pure-image', video: 'pure-video' };
+const PURE_DEFAULTS = {
+  image: { aspect: '1:1', resolution: '2K' },
+  video: { aspect: '9:16', resolution: '720p' },
+};
+
 /**
  * 自由工作台 (需求 8/9): 生图 + 改图
  * - 左侧工具箱: 参考图上传 / 需求模板快捷选择 / 提示词 + 「优化提示词」/ 画幅张数
@@ -45,6 +52,8 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
   // 创作模式: 首页底部「图片生成 / 视频生成」直达, 顶部 switch 可运行时切换
   let mode = query.get('mode') === 'video' ? 'video' : 'image';
+  // 纯净模式: 图片/视频通用开关, 去掉模板只留自定义创作
+  let pure = query.get('pure') === '1';
   let quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
   // 每个模式各自记住上次选中的模板, 切换回来不丢
   const lastTplByMode = { image: '', video: '' };
@@ -86,13 +95,29 @@ export async function renderStudio(root, { navigate, query, back }) {
     msThumb, msImageBtn, msVideoBtn,
   );
 
+  // 纯净模式开关 (勾选卡片风): 去掉模板, 只留自定义创作
+  const pureCheck = h('span', { class: 'pure-check' }, icon('check', { size: 12 }));
+  const pureBtn = h('button', {
+    class: `pure-btn${pure ? ' active' : ''}`, type: 'button',
+    'aria-pressed': String(pure),
+    title: '纯净模式: 不套模板, 提示词原样直通模型',
+    onclick: () => setPure(!pure),
+  },
+    pureCheck,
+    h('span', { class: 'pure-txt' },
+      h('b', {}, '纯净模式'),
+      h('small', {}, '不套模板 · 自定义创作'),
+    ),
+  );
+  const headTools = h('div', { class: 'head-tools' }, modeSwitch, pureBtn);
+
   const header = h('div', { class: 'page-head' },
     h('button', {
       class: 'btn btn-ghost btn-sm', onclick: () => goBack(), 'aria-label': '返回上一页', title: '返回上一页',
     }, icon('arrow-left', { size: 15 }), '返回上一页'),
     h('div', { class: 'ph-icon', style: 'background:var(--brand-soft);color:var(--brand)' }, icon('wand', { size: 22 })),
     h('div', { class: 'ph-title' }, hTitle, hSub),
-    modeSwitch,
+    headTools,
   );
 
   // ---------- 左侧工具箱 ----------
@@ -397,6 +422,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   }
 
   // ---------- 左列: 1 参考图 → 3 你的想法 ----------
+  const stepNoPrompt = h('span', { class: 'step-no' }, '3'); // 纯净模式下模板面板隐藏, 步骤号 3 → 2
   const uploadHint = h('div', { class: 'hint' }, '改背景 / 换场景类需求需要; 不传就是纯文生图');
   const promptHint = h('div', { class: 'hint' }, '用大白话描述你想要的图; 不会写就点「优化提示词」');
   const leftPanel = h('div', { class: 'studio-left' },
@@ -406,7 +432,7 @@ export async function renderStudio(root, { navigate, query, back }) {
       uploader, fileInput, thumbsWrap,
     ),
     h('div', { class: 'card panel prompt-box' },
-      h('h3', {}, h('span', { class: 'step-no' }, '3'), '你的想法'),
+      h('h3', {}, stepNoPrompt, '你的想法'),
       promptHint,
       promptArea,
       h('div', { class: 'optimize-row' }, optimizeBtn, optimizeNote),
@@ -440,13 +466,16 @@ export async function renderStudio(root, { navigate, query, back }) {
     spendCredits(cost);
     genBtn.disabled = true;
 
-    const template = quickTemplates.find((t) => t.id === state.templateId) ?? quickTemplates[0];
+    // 纯净模式: 不套模板, 提示词原样直通; 普通模式: 模板框架 + 用户想法
+    const template = pure
+      ? { id: PURE_TPL_ID[mode], type: mode, title: '纯净模式' }
+      : (quickTemplates.find((t) => t.id === state.templateId) ?? quickTemplates[0]);
     const isVideo = template.type === 'video';
 
     // 每次生成都入队, 右侧「图片任务队列」竖状追踪
     const task = addTask({
       title: state.prompt.slice(0, 16) || template.title,
-      templateTitle: template.title,
+      templateTitle: pure ? '纯净模式' : template.title,
       isVideo,
       status: 'processing',
     });
@@ -471,6 +500,12 @@ export async function renderStudio(root, { navigate, query, back }) {
       resolution: state.resolution,
       ...(isVideo ? { duration: state.duration, mode: state.videoMode } : {}),
     };
+    if (pure) {
+      // 提示词直通: prompt 覆盖模板组合结果, 不加任何框架
+      payload.prompt = state.prompt.trim();
+      payload.slotValues = {};
+      payload.extraIdea = '';
+    }
     try {
       const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
       task.taskId = res.taskId;
@@ -524,18 +559,59 @@ export async function renderStudio(root, { navigate, query, back }) {
     mode = next;
     quickTemplates = allTemplates.filter((t) => (mode === 'video' ? t.type === 'video' : t.type === 'image'));
 
-    // 恢复该模式上次选的模板; 记不住就用默认
-    const remembered = quickTemplates.find((t) => t.id === lastTplByMode[mode]);
-    const fallback = (mode === 'image'
-      ? quickTemplates.find((t) => t.id === 'retouch-bg')
-      : quickTemplates[0]) ?? quickTemplates[0];
-    const tpl = remembered ?? fallback;
-    state.templateId = tpl?.id ?? '';
-    if (tpl) applyTemplateDefaults(tpl); // 参数按模板默认值对齐 (视频: 画幅/时长/分辨率)
+    if (pure) {
+      // 纯净模式下切图片/视频: 保持纯净, 套用纯净默认规格
+      state.templateId = PURE_TPL_ID[mode];
+      state.aspect = resolveAspect(PURE_DEFAULTS[mode].aspect);
+      state.resolution = PURE_DEFAULTS[mode].resolution;
+    } else {
+      // 恢复该模式上次选的模板; 记不住就用默认
+      const remembered = quickTemplates.find((t) => t.id === lastTplByMode[mode]);
+      const fallback = (mode === 'image'
+        ? quickTemplates.find((t) => t.id === 'retouch-bg')
+        : quickTemplates[0]) ?? quickTemplates[0];
+      const tpl = remembered ?? fallback;
+      state.templateId = tpl?.id ?? '';
+      if (tpl) applyTemplateDefaults(tpl); // 参数按模板默认值对齐 (视频: 画幅/时长/分辨率)
+    }
 
     redrawModeUI();
     // URL 同步, replaceState 不触发 hashchange → 不会重渲染
-    history.replaceState(null, '', `#/studio?mode=${mode}`);
+    history.replaceState(null, '', `#/studio?mode=${mode}${pure ? '&pure=1' : ''}`);
+  }
+
+  // ---------- 纯净模式 (图片/视频通用): 去掉模板, 只留自定义创作 ----------
+  function setPure(next) {
+    if (next === pure) return;
+    pure = next;
+    pureBtn.classList.toggle('active', pure);
+    pureBtn.setAttribute('aria-pressed', String(pure));
+    if (pure) {
+      state.templateId = PURE_TPL_ID[mode];
+      // 纯净默认规格 (不套模板默认值)
+      state.aspect = resolveAspect(PURE_DEFAULTS[mode].aspect);
+      state.resolution = PURE_DEFAULTS[mode].resolution;
+    } else {
+      const fallback = (mode === 'image'
+        ? quickTemplates.find((t) => t.id === 'retouch-bg')
+        : quickTemplates[0]) ?? quickTemplates[0];
+      const remembered = quickTemplates.find((t) => t.id === lastTplByMode[mode]);
+      const tpl = remembered ?? fallback;
+      state.templateId = tpl?.id ?? '';
+      if (tpl) applyTemplateDefaults(tpl);
+    }
+    redrawModeUI();
+    // URL 同步, replaceState 不触发 hashchange
+    history.replaceState(null, '', `#/studio?mode=${mode}${pure ? '&pure=1' : ''}`);
+  }
+
+  /** 纯净模式联动文案/显隐 (redrawModeUI 与 setPure 共用) */
+  function updatePureUI() {
+    templatePanel.style.display = pure ? 'none' : '';
+    stepNoPrompt.textContent = pure ? '2' : '3';
+    optimizeNote.textContent = pure
+      ? 'AI 改写仅作参考 · 纯净模式直通你的最终稿'
+      : 'AI 看图改写 · glm-5.3-flash 视觉理解';
   }
 
   /** 上传区文案: 图片模式固定; 视频模式随生成方式 (文生/首帧/首尾帧/多参) */
@@ -565,17 +641,24 @@ export async function renderStudio(root, { navigate, query, back }) {
     msImageBtn.classList.toggle('active', !isVideo);
     msVideoBtn.classList.toggle('active', isVideo);
     hTitle.textContent = isVideo ? '自由工作台 · 视频创作' : '自由工作台 · 图片创作';
-    hSub.textContent = isVideo
-      ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
-      : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写';
+    hSub.textContent = pure
+      ? '纯净模式: 提示词原样直通模型, 不套任何模板框架 —— 适合有提示词工程基础的创作者'
+      : (isVideo
+        ? '选个视频需求模板, 或直接用大白话描述想要的片子 —— 写不好? 点「优化提示词」AI 帮你改写'
+        : '选个需求模板, 或直接用大白话描述 —— 写不好? 点「优化提示词」, AI 帮你看图改写');
     updateUploadCopy();
-    promptHint.textContent = isVideo
-      ? '用大白话描述你想要的视频; 不会写就点「优化提示词」'
-      : '用大白话描述你想要的图; 不会写就点「优化提示词」';
-    promptArea.placeholder = isVideo
-      ? '用大白话描述你想要的视频, 例:\n模特穿着这件 T 恤在城市街头走动, 镜头慢慢拉近, 阳光感'
-      : '用大白话描述你想要的图, 例:\n把这双鞋放在大理石台面上, 旁边放一杯咖啡, 亮一点';
+    promptHint.textContent = pure
+      ? '提示词将原样发给模型, 不做任何改写与补充'
+      : (isVideo
+        ? '用大白话描述你想要的视频; 不会写就点「优化提示词」'
+        : '用大白话描述你想要的图; 不会写就点「优化提示词」');
+    promptArea.placeholder = pure
+      ? '直接写你的完整提示词, 例:\n白底产品图, 一双米白帆布鞋居中摆放, 柔光棚拍, 底部淡淡倒影, 8K 商业摄影'
+      : (isVideo
+        ? '用大白话描述你想要的视频, 例:\n模特穿着这件 T 恤在城市街头走动, 镜头慢慢拉近, 阳光感'
+        : '用大白话描述你想要的图, 例:\n把这双鞋放在大理石台面上, 旁边放一杯咖啡, 亮一点');
     queueTitleText.textContent = isVideo ? ' 视频任务队列' : ' 图片任务队列';
+    updatePureUI();
 
     drawQuick();
     drawSpec();
@@ -583,22 +666,30 @@ export async function renderStudio(root, { navigate, query, back }) {
     refreshGen();
   }
 
-  // 初始: 从 query 带入的模板预填提示词 + 套用模板默认规格
-  lastTplByMode[mode] = state.templateId;
-  const initialTpl = quickTemplates.find((t) => t.id === state.templateId);
-  if (initialTpl) {
-    applyTemplateDefaults(initialTpl);
-    try {
-      const r = await api.previewPrompt(initialTpl.id, {});
-      state.prompt = r.prompt;
-      promptArea.value = r.prompt;
-    } catch { /* noop */ }
+  // 初始: 从 query 带入的模板预填提示词 + 套用模板默认规格 (纯净模式不预填模板)
+  if (pure) {
+    state.templateId = PURE_TPL_ID[mode];
+    state.aspect = resolveAspect(PURE_DEFAULTS[mode].aspect);
+    state.resolution = PURE_DEFAULTS[mode].resolution;
+    lastTplByMode[mode] = '';
+  } else {
+    lastTplByMode[mode] = state.templateId;
+    const initialTpl = quickTemplates.find((t) => t.id === state.templateId);
+    if (initialTpl) {
+      applyTemplateDefaults(initialTpl);
+      try {
+        const r = await api.previewPrompt(initialTpl.id, {});
+        state.prompt = r.prompt;
+        promptArea.value = r.prompt;
+      } catch { /* noop */ }
+    }
   }
 
   drawQuick();
   drawSpec();
   drawThumbs();
   updateUploadCopy();
+  updatePureUI();
   drawQueue();
   setQueueOpen(true);
   refreshGen();

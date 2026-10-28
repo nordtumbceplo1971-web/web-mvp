@@ -753,8 +753,12 @@ video.tc-video { background: #fff; }
 .ph-sub { color: var(--ink-2); font-size: 13.5px; margin-top: 2px; }
 
 /* ---------- 自由工作台 · 图片/视频 switch 切换 (页头右侧, 头重脚轻) ---------- */
-.mode-switch {
+.head-tools {
   margin-left: auto; flex-shrink: 0;
+  display: flex; align-items: center; gap: 12px;
+}
+.mode-switch {
+  flex-shrink: 0;
   position: relative; display: inline-flex; align-items: center;
   padding: 4px; border-radius: 999px;
   background: var(--fill); border: 1px solid var(--line);
@@ -779,6 +783,36 @@ video.tc-video { background: #fff; }
 .ms-opt:hover { color: var(--ink); }
 .ms-opt.active { color: #fff; }
 .ms-opt.active:hover { color: #fff; }
+
+/* ---------- 自由工作台 · 纯净模式开关 (勾选卡片风) ----------
+   默认白底描边; 选中蓝描边 + 蓝勾选块 + 浅蓝底 (对齐截图视觉) */
+.pure-btn {
+  display: inline-flex; align-items: center; gap: 10px;
+  padding: 9px 14px; border-radius: var(--r-md);
+  background: var(--card); border: 1px solid var(--line);
+  cursor: pointer; text-align: left; flex-shrink: 0;
+  transition: background 0.15s, border-color 0.15s, box-shadow 0.15s;
+}
+.pure-btn:hover { border-color: var(--brand-border); background: var(--brand-soft); }
+.pure-btn:focus-visible { outline: none; box-shadow: var(--ring); }
+.pure-check {
+  width: 18px; height: 18px; border-radius: 5px; flex-shrink: 0;
+  border: 1.5px solid var(--line-strong); background: var(--card);
+  display: grid; place-items: center; color: transparent;
+  transition: background 0.15s, border-color 0.15s, color 0.15s;
+}
+.pure-txt { display: flex; flex-direction: column; gap: 1px; line-height: 1.25; }
+.pure-txt b { font-size: 13px; font-weight: 700; color: var(--ink); }
+.pure-txt small { font-size: 11px; color: var(--ink-3); }
+.pure-btn.active {
+  background: var(--brand-soft); border-color: var(--brand);
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.10);
+}
+.pure-btn.active .pure-check {
+  background: var(--brand); border-color: var(--brand); color: #fff;
+}
+.pure-btn.active .pure-txt b { color: var(--brand-deep); }
+.pure-btn.active .pure-txt small { color: var(--brand); }
 
 /* ============================================================
    模板库: 图片类目 / 视频类目 分组
