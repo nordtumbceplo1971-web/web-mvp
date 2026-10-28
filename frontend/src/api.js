@@ -108,4 +108,18 @@ export const api = {
   listWorks: (type) => request(`/works${type ? `?type=${type}` : ''}`),
   deleteWork: (id) => request(`/works/${id}`, { method: 'DELETE' }),
   updateWork: (id, patch) => request(`/works/${id}`, { method: 'PATCH', body: patch }),
+  listModels: () => request('/models'),
+
+  // ---------- 批量套图 (自包含模块, 后端 /api/batch) ----------
+  createBatchProject: (body) => request('/batch', { method: 'POST', body }),
+  listBatchProjects: () => request('/batch'),
+  getBatchProject: (id) => request(`/batch/${encodeURIComponent(id)}`),
+  deleteBatchProject: (id) => request(`/batch/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+  batchPilot: (id, rowId) => request(`/batch/${encodeURIComponent(id)}/pilot`, { method: 'POST', body: { rowId } }),
+  batchRun: (id) => request(`/batch/${encodeURIComponent(id)}/run`, { method: 'POST', body: {} }),
+  batchRerunCell: (id, rowId, stepId) => request(`/batch/${encodeURIComponent(id)}/cells/rerun`, { method: 'POST', body: { rowId, stepId } }),
+  batchRerunRow: (id, rowId) => request(`/batch/${encodeURIComponent(id)}/rows/${encodeURIComponent(rowId)}/rerun`, { method: 'POST', body: {} }),
+  batchLockCell: (id, rowId, stepId, locked) => request(`/batch/${encodeURIComponent(id)}/cells/lock`, { method: 'POST', body: { rowId, stepId, locked } }),
+  /** ZIP 导出直链 (浏览器直接下载, 不走 fetch) */
+  batchExportUrl: (id) => `${getApiBase()}/api/batch/${encodeURIComponent(id)}/export-zip`,
 };

@@ -15,6 +15,7 @@ import { systemModels } from './modules/models/systemModels.js';
 import { listModels, getModel, createModel, updateModel, deleteModel, saveModelImage, getModelImagePath, modelsStorageMode } from './modules/models/store.js';
 import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
 import { composeModelPrompt } from './modules/models/modelGenerator.js';
+import { batchApi } from './routes-batch.js';
 import { APP_VERSION } from './version.js';
 
 export const api = Router();
@@ -103,6 +104,9 @@ api.post('/generate/video', wrap(async (req, res) => {
   const out = await generateVideo(req.body ?? {});
   res.json(out);
 }));
+
+// ---------- 批量套图 (自包含模块: modules/batch/ + routes-batch.js) ----------
+api.use('/batch', batchApi);
 
 // ---------- 任务 ----------
 api.get('/tasks/:taskId', wrap(async (req, res) => {

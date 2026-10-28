@@ -3,9 +3,40 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.31**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.31`，
+当前版本：**v0.1.32**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.32`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.32 · 2026-10-28
+
+**主题**：批量套图模块（Stage 1 MVP · 作业单 → 矩阵 → 试跑/全量 → 锁定 → ZIP 交付）
+
+### 需求
+
+按《批量生图-竞品拆解与落地设计方案》Stage 1：多 SKU 一次录入（行 = SKU），每个 SKU 自动跑完
+Shopify 7 镜头；进度按「SKU 套齐」而非张数展示；支持试跑 1 套、单格重跑、锁定保护、按 SKU
+分文件夹打包导出。
+
+### 改动
+
+1. **后端自包含模块**（`backend/src/modules/batch/`）：
+   - `store.js`：项目 → 行(SKU) × 镜头(7) 展开为格（key=`rowId|stepId`），JSON 持久化
+   - `recipe.js`：Shopify 7 镜头配方、依赖图（02/03 依赖 01，07 依赖 01+06）、提示词组装、命名 `{sku}_{step}_{view}_{w}x{h}.jpg`
+   - `runner.js`：内存队列（并发 4）、指数退避重试 ≤3、幂等复用（有产出即跳过）、L1 质检（解析头部字节，长边 <1200 判失败）、锁定保护、启动断点恢复
+   - `routes-batch.js`：创建/列表/详情/删除、`/pilot` 试跑、`/run` 全量、单格/整行重跑、锁定、`/export-zip`（archiver 按 SKU 分文件夹 + `_manifest.csv`）
+   - `routes.js` 挂载 `/api/batch`
+2. **前端**：`views/batch.js` 三视图（列表 / 作业单 / 矩阵），`api.js` 批量客户端方法，
+   `main.js` 路由 `/batch`、`/batch/:id` 与侧栏入口（含高亮），矩阵忙时 3s 轮询、离开页面即停
+
+### 验收
+
+- 后端 API E2E（MOCK 实例 8799，零费用）15/15：建项 14 格 → 试跑 7 格齐套 → 预算 spent=14 →
+  锁定后重跑 400 `rerun_blocked` → 全量幂等（重复调用 reused=14 queued=0）→ mock 导出 400 empty → 删除清理
+- 前端 CDP E2E 12/12：侧栏入口高亮 / 作业单填写+上传+预算文案 / 创建跳详情 / 矩阵 8列×2行 /
+  试跑出图齐套 1/2 / 锁定金框+锁标 / 大图含质检标注 / 运行时报错 0
+- `npm run build` 通过；视觉截图确认三视图布局（修复作业单表头 grid 匿名项挤列问题）
 
 ---
 

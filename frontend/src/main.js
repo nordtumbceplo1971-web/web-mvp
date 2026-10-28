@@ -17,6 +17,7 @@ import { renderRecharge } from './views/recharge.js';
 import { renderSettings } from './views/settings.js';
 import { renderModels } from './views/models.js';
 import { renderLookbook } from './views/lookbook.js';
+import { renderBatch } from './views/batch.js';
 
 /**
  * 应用外壳 v3 (严肃商业 SaaS): 左侧功能导航 + 顶栏 + 内容区
@@ -34,6 +35,8 @@ const routes = [
   { path: '/templates/:id', view: renderTemplateDetail, nav: 'templates', title: '模板详情' },
   { path: '/create', view: renderCreate, nav: 'templates', title: '模板创作' },
   { path: '/lookbook', view: renderLookbook, nav: 'templates', title: 'Shopify 套图' },
+  { path: '/batch', view: renderBatch, nav: 'batch', title: '批量套图' },
+  { path: '/batch/:id', view: renderBatch, nav: 'batch', title: '批量套图' },
   { path: '/studio', view: renderStudio, nav: 'studio', title: '自由工作台' },
   { path: '/works', view: renderWorks, nav: 'works', title: '我的作品' },
   { path: '/models', view: renderModels, nav: 'models', title: '模特库' },
@@ -45,6 +48,7 @@ const routes = [
 const TOOL_LINKS = [
   { href: '/templates', label: '模板库', iconName: 'grid', tour: 'nav-templates' },
   { href: '/studio', label: '自由工作台', iconName: 'wand', tour: 'nav-studio' },
+  { href: '/batch', label: '批量套图', iconName: 'layers', nav: 'batch', tour: null },
 ];
 
 /** 侧栏 · 素材库 */
