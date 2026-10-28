@@ -38,7 +38,7 @@ const routes = [
   { path: '/studio', view: renderStudio, nav: 'studio', title: '自由工作台' },
   { path: '/works', view: renderWorks, nav: 'works', title: '我的作品' },
   { path: '/models', view: renderModels, nav: 'models', title: '模特库' },
-  { path: '/recharge', view: renderRecharge, nav: 'recharge', title: '充值额度' },
+  { path: '/recharge', view: renderRecharge, nav: 'recharge', title: '价格与额度' },
   { path: '/settings', view: renderSettings, nav: 'settings', title: '用户设置' },
 ];
 

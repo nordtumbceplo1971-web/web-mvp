@@ -561,7 +561,7 @@ export async function renderLookbook(root, { navigate, back }) {
       drawResults();
       return;
     }
-    spendCredits(2);
+    spendCredits(2, { label: `Shopify 套图 · ${s.name}`, model: 'gpt-image-2.5' });
     state.results[s.id] = { status: 'generating' };
     drawResults();
 
@@ -608,7 +608,7 @@ export async function renderLookbook(root, { navigate, back }) {
             if (st.status === 'completed' && st.urls?.length) {
               state.results[s.id] = { status: 'completed', url: st.urls[0] };
             } else {
-              refundCredits(2);
+              refundCredits(2, { label: `退回 · Shopify 套图 ${s.name}` });
               state.results[s.id] = { status: 'failed', error: st.error || '生成失败' };
             }
             drawResults();
@@ -617,7 +617,7 @@ export async function renderLookbook(root, { navigate, back }) {
         }, { intervalMs: 5000, maxErrors: 12 });
       });
     } catch (e) {
-      refundCredits(2);
+      refundCredits(2, { label: `退回 · Shopify 套图 ${s.name}` });
       state.results[s.id] = { status: 'failed', error: e.message };
       drawResults();
     }

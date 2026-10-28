@@ -184,8 +184,12 @@ export function openReplicateModal(tpl, { navigate }) {
     const enoughImgs = state.images.length >= needImages;
     const enoughCredits = getCredits() >= tpl.credits;
     ctaHint.textContent = `本次消耗 ${tpl.credits} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`;
-    ctaBtn.disabled = !enoughImgs || !enoughCredits;
-    ctaBtn.textContent = !enoughCredits ? '额度不足' : enoughImgs ? (isVideo ? '开始复刻 · 生成视频' : '开始复刻 · 生成图片') : `请先上传 ${needImages} 张图`;
+    // 额度不足不置灰死: 点击直接去充值 (转化路径, 路线图 1.1.2)
+    ctaBtn.disabled = !enoughImgs;
+    ctaBtn.classList.toggle('rf-cta-recharge', !enoughCredits && enoughImgs);
+    ctaBtn.textContent = !enoughImgs ? `请先上传 ${needImages} 张图`
+      : !enoughCredits ? '额度不足 · 去充值'
+      : isVideo ? '开始复刻 · 生成视频' : '开始复刻 · 生成图片';
   }
 
   function drawForm() {
@@ -229,10 +233,12 @@ export function openReplicateModal(tpl, { navigate }) {
 
   function generate() {
     if (ctaBtn.disabled) return;
-    spendCredits(tpl.credits);
+    if (getCredits() < tpl.credits) { close(); navigate('/recharge'); return; }
+    const meta = { label: `复刻 · ${tpl.title}`, model: isVideo ? 'veo-4-omni' : 'gpt-image-2.5' };
+    spendCredits(tpl.credits, meta);
     drawBusy({
       onDone: (urls) => drawDone(urls),
-      onFail: (err) => { refundCredits(tpl.credits); drawForm(); toast(err || '这次复刻失败了, 额度已退回', 'err'); },
+      onFail: (err) => { refundCredits(tpl.credits, { ...meta, label: `退回 · ${tpl.title}` }); drawForm(); toast(err || '这次复刻失败了, 额度已退回', 'err'); },
     });
   }
 
@@ -274,14 +280,15 @@ export function openReplicateModal(tpl, { navigate }) {
       )),
     );
     const againFree = state.retryFree;
+    const againMeta = { label: `复刻换一批 · ${tpl.title}`, model: isVideo ? 'veo-4-omni' : 'gpt-image-2.5' };
     const againBtn = h('button', { class: 'btn btn-ghost-green rf-cta', type: 'button', onclick: () => {
       const charged = !againFree;
-      if (charged) spendCredits(tpl.credits);
+      if (charged) spendCredits(tpl.credits, againMeta);
       state.retryFree = false;
       againBtn.disabled = true;
       drawBusy({
         onDone: (u) => { againBtn.disabled = false; drawDone(u); },
-        onFail: (err) => { if (charged) refundCredits(tpl.credits); againBtn.disabled = false; toast(err || '失败了, 额度已退回', 'err'); },
+        onFail: (err) => { if (charged) refundCredits(tpl.credits, { ...againMeta, label: `退回 · ${tpl.title}` }); againBtn.disabled = false; toast(err || '失败了, 额度已退回', 'err'); },
       });
     } }, `换一批${againFree ? ' (首次免费)' : ` · ${tpl.credits} 额度`}`);
     body.replaceChildren(

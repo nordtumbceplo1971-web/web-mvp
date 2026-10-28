@@ -463,7 +463,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   async function generate() {
     if (genBtn.disabled) return;
     const cost = mode === 'video' ? 2 : 2 * state.count;
-    spendCredits(cost);
+    spendCredits(cost, { label: `自由工作台 · ${mode === 'video' ? '视频' : `${state.count} 张图`}`, model: mode === 'video' ? 'veo-4-omni' : 'gpt-image-2.5' });
     genBtn.disabled = true;
 
     // 纯净模式: 不套模板, 提示词原样直通; 普通模式: 模板框架 + 用户想法
@@ -521,7 +521,7 @@ export async function renderStudio(root, { navigate, query, back }) {
         } else if (st.isFinal) {
           task.status = 'failed';
           task.error = st.error || '未知原因';
-          refundCredits(cost); refreshGen();
+          refundCredits(cost, { label: '退回 · 自由工作台' }); refreshGen();
           drawQueue();
           canvas.replaceChildren(h('div', { class: 'canvas-empty' }, '生成失败: ', st.error || '未知原因', h('br'), '额度已退回'));
         } else {
@@ -533,7 +533,7 @@ export async function renderStudio(root, { navigate, query, back }) {
       task.status = 'failed';
       task.error = e.message;
       drawQueue();
-      refundCredits(cost); refreshGen();
+      refundCredits(cost, { label: '退回 · 自由工作台' }); refreshGen();
       toast(e.message, 'err');
       canvas.replaceChildren(h('div', { class: 'canvas-empty' }, '生成失败, 请重试'));
     }
