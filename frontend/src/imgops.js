@@ -141,10 +141,12 @@ export async function resizeImage(file, { width, height, mode = 'fit' }) {
   return { blob, width: w, height: h, name: outName(file.name, type === 'image/png' ? 'png' : type === 'image/webp' ? 'webp' : 'jpg') };
 }
 
-/** 中心裁剪到指定比例 ('1:1'/'4:3'... sx,sy,sw,sh 为可选的显式选区, 原图坐标) */
+/** 中心裁剪到指定比例 ('1:1'/'4:3'... sx,sy,sw,sh 为可选的显式选区, 原图坐标; 自动 clamp 进边界) */
 export async function cropImage(file, ratio, sel) {
   const bitmap = await loadBitmap(file);
-  let sx = sel?.x ?? 0, sy = sel?.y ?? 0, sw = sel?.w ?? bitmap.width, sh = sel?.h ?? bitmap.height;
+  const clamp = (v, max) => Math.max(0, Math.min(Math.round(v), max));
+  let sx = clamp(sel?.x ?? 0, bitmap.width - 16), sy = clamp(sel?.y ?? 0, bitmap.height - 16);
+  let sw = clamp(sel?.w ?? bitmap.width, bitmap.width - sx), sh = clamp(sel?.h ?? bitmap.height, bitmap.height - sy);
   if (ratio && ratio !== 'free') {
     const [rw, rh] = ratio.split(':').map(Number);
     const target = rw / rh;

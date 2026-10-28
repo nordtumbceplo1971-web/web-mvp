@@ -320,72 +320,119 @@ function cropParams(state) {
     class: `spec-chip${a === 'free' ? ' active' : ''}`, type: 'button',
     onclick: (e) => {
       state.ratio = a;
-      state.sel = null;
       [...chips.children].forEach((c) => c.classList.remove('active'));
       e.currentTarget.classList.add('active');
-      drawSel();
       stage.classList.toggle('locked', a !== 'free');
+      maxCenter(); // 切比例即给出该比例的最大选区, 免二次框选
+      drawSel();
     },
   }, a === 'free' ? '自由' : a)));
 
-  const centerBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => maxCenter() }, '取最大居中选区');
+  const centerBtn = h('button', { class: 'btn btn-ghost btn-sm', type: 'button', onclick: () => { maxCenter(); drawSel(); } }, '重置为最大居中选区');
 
   const stage = h('div', { class: 'crop-stage locked', style: 'display:none' });
   let img = null;
 
   const ratioNum = () => (state.ratio === 'free' ? null : state.ratio.split(':').map(Number).reduce((a, b) => a / b));
+  const scaleNat = () => (img ? img.naturalWidth / img.clientWidth : 1);
 
-  function clampSel(s) {
-    const cw = img.clientWidth, ch = img.clientHeight;
-    const r = ratioNum();
-    let { x, y, w, h } = s;
-    w = Math.max(24, Math.min(w, cw));
-    h = Math.max(24, Math.min(h, ch));
-    if (r) h = w / r;
-    if (y + h > ch) { h = ch - y; if (r) w = h * r; }
-    if (x + w > cw) { w = cw - x; if (r) h = w / r; }
-    x = Math.max(0, x);
-    y = Math.max(0, y);
-    return { x, y, w, h };
+  /* ---- 选区几何 ---- */
+  function maxCenterRect() {
+    const cw = img.clientWidth, ch = img.clientHeight, r = ratioNum();
+    if (!r) return { x: 0, y: 0, w: cw, h: ch };
+    if (cw / ch > r) { const h2 = ch; return { x: (cw - h2 * r) / 2, y: 0, w: h2 * r, h: h2 }; }
+    const w2 = cw; return { x: 0, y: (ch - w2 / r) / 2, w: w2, h: w2 / r };
+  }
+  function maxCenter() {
+    if (!img) return;
+    state.sel = maxCenterRect();
+  }
+  // 从锚点(anchor)到指针(p)生成不越界的矩形; 锁定比例时以可用空间收放, 比例永不破坏
+  function fitRect(ax, ay, px, py) {
+    const cw = img.clientWidth, ch = img.clientHeight, r = ratioNum();
+    const dirX = px >= ax ? 1 : -1, dirY = py >= ay ? 1 : -1;
+    const availW = dirX > 0 ? cw - ax : ax;
+    const availH = dirY > 0 ? ch - ay : ay;
+    let w, h;
+    if (r) {
+      w = Math.max(24, Math.min(Math.abs(px - ax), availW, availH * r));
+      h = w / r;
+    } else {
+      w = Math.max(24, Math.min(Math.abs(px - ax), availW));
+      h = Math.max(24, Math.min(Math.abs(py - ay), availH));
+    }
+    return { x: dirX > 0 ? ax : ax - w, y: dirY > 0 ? ay : ay - h, w, h };
   }
 
+  /* ---- 渲染 ---- */
+  const HANDLES = ['nw', 'ne', 'sw', 'se', 'n', 's', 'e', 'w'];
   function drawSel() {
     let box = stage.querySelector('.crop-sel');
     if (!state.sel || !img) { box?.remove(); return; }
-    if (!box) { box = h('div', { class: 'crop-sel' }); stage.append(box); }
-    box.style.left = `${state.sel.x}px`;
-    box.style.top = `${state.sel.y}px`;
-    box.style.width = `${state.sel.w}px`;
-    box.style.height = `${state.sel.h}px`;
+    if (!box) {
+      box = h('div', { class: 'crop-sel' },
+        h('i', { class: 'grid' }),
+        ...HANDLES.map((d) => h('i', { class: `ch h-${d}`, 'data-h': d })),
+      );
+      stage.append(box);
+    }
+    const s = state.sel;
+    box.style.left = `${s.x}px`;
+    box.style.top = `${s.y}px`;
+    box.style.width = `${s.w}px`;
+    box.style.height = `${s.h}px`;
+    // 尺寸标签 (原图坐标, clamp 防取整溢出)
+    const k = scaleNat();
+    let tag = box.querySelector('.size-tag');
+    if (!tag) { tag = h('span', { class: 'size-tag' }); box.append(tag); }
+    tag.textContent = `${Math.min(Math.round(s.w * k), img.naturalWidth - Math.round(s.x * k))}×${Math.min(Math.round(s.h * k), img.naturalHeight - Math.round(s.y * k))} px`;
   }
 
-  function maxCenter() {
-    if (!img) return;
-    const cw = img.clientWidth, ch = img.clientHeight, r = ratioNum();
-    if (!r) state.sel = { x: 0, y: 0, w: cw, h: ch };
-    else if (cw / ch > r) { const h2 = ch; state.sel = { x: (cw - h2 * r) / 2, y: 0, w: h2 * r, h: h2 }; }
-    else { const w2 = cw; state.sel = { x: 0, y: (ch - w2 / r) / 2, w: w2, h: w2 / r }; }
-    drawSel();
-  }
-
-  stage.addEventListener('mousedown', (e) => {
-    if (e.target !== img) return;
+  /* ---- 指针交互: 角手柄缩放 / 框内移动 / 空白新建 (Pointer Events, 兼容触屏) ---- */
+  stage.addEventListener('pointerdown', (e) => {
+    if (!img || e.button !== 0) return;
     const rect = stage.getBoundingClientRect();
-    const start = { x: e.clientX - rect.left, y: e.clientY - rect.top };
-    const move = (ev) => {
-      const cur = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
-      state.sel = clampSel({
-        x: Math.min(start.x, cur.x), y: Math.min(start.y, cur.y),
-        w: Math.abs(cur.x - start.x), h: Math.abs(cur.y - start.y),
-      });
+    const pt = () => ({ x: e.clientX - rect.left, y: e.clientY - rect.top });
+    const handle = e.target.dataset?.h;
+    const selEl = e.target.closest?.('.crop-sel');
+
+    let mode, anchor, grabOffset;
+    if (handle) {
+      // 以对角为锚点缩放
+      const s = state.sel;
+      anchor = { x: handle.includes('w') ? s.x + s.w : s.x, y: handle.includes('n') ? s.y + s.h : s.y };
+      mode = 'resize';
+    } else if (selEl) {
+      const p0 = pt();
+      grabOffset = { x: p0.x - state.sel.x, y: p0.y - state.sel.y };
+      mode = 'move';
+    } else if (e.target === img) {
+      anchor = pt();
+      mode = 'new';
+    } else return;
+    e.preventDefault();
+    stage.setPointerCapture(e.pointerId);
+
+    const onMove = (ev) => {
+      const p = { x: ev.clientX - rect.left, y: ev.clientY - rect.top };
+      if (mode === 'move') {
+        const cw = img.clientWidth, ch = img.clientHeight, s = state.sel;
+        state.sel = {
+          x: Math.max(0, Math.min(p.x - grabOffset.x, cw - s.w)),
+          y: Math.max(0, Math.min(p.y - grabOffset.y, ch - s.h)),
+          w: s.w, h: s.h,
+        };
+      } else {
+        state.sel = fitRect(anchor.x, anchor.y, p.x, p.y);
+      }
       drawSel();
     };
-    const up = () => {
-      document.removeEventListener('mousemove', move);
-      document.removeEventListener('mouseup', up);
+    const onUp = () => {
+      stage.removeEventListener('pointermove', onMove);
+      stage.removeEventListener('pointerup', onUp);
     };
-    document.addEventListener('mousemove', move);
-    document.addEventListener('mouseup', up);
+    stage.addEventListener('pointermove', onMove);
+    stage.addEventListener('pointerup', onUp);
   });
 
   function syncPreview() {
@@ -393,21 +440,29 @@ function cropParams(state) {
     const want = state.files.length === 1 ? f.url : '';
     if (stage.dataset.src === want) return;
     stage.dataset.src = want;
-    state.sel = null;
-    if (!want) { stage.style.display = 'none'; stage.replaceChildren(); img = null; return; }
+    if (!want) { stage.style.display = 'none'; stage.replaceChildren(); img = null; state.sel = null; return; }
     stage.style.display = '';
     stage.replaceChildren(h('img', { src: want, alt: '' }));
     img = stage.querySelector('img');
+    img.decode?.().catch(() => {}).finally(() => { maxCenter(); drawSel(); });
   }
 
   state.runOne = async (file) => {
     let sel;
     if (state.files.length === 1 && state.sel && img) {
-      const scale = img.naturalWidth / img.clientWidth;
+      const k = scaleNat();
       const s = state.sel;
-      sel = { x: Math.round(s.x * scale), y: Math.round(s.y * scale), w: Math.round(s.w * scale), h: Math.round(s.h * scale) };
+      const bitmapW = img.naturalWidth, bitmapH = img.naturalHeight;
+      // 显示坐标 → 原图坐标, 并 clamp 进原图边界 (取整可能溢出 1~2px)
+      const x = Math.max(0, Math.min(Math.round(s.x * k), bitmapW - 16));
+      const y = Math.max(0, Math.min(Math.round(s.y * k), bitmapH - 16));
+      sel = {
+        x, y,
+        w: Math.min(Math.round(s.w * k), bitmapW - x),
+        h: Math.min(Math.round(s.h * k), bitmapH - y),
+      };
     }
-    // 有显式选区走坐标裁剪 (自由比例); 否则按比例中心裁 (free = 原图直出)
+    // 有显式选区走坐标裁剪 (用户框的就是所见); 无选区按比例中心裁 (free = 原图直出)
     return cropImage(file, sel ? null : (state.ratio === 'free' ? null : state.ratio), sel);
   };
 
@@ -422,6 +477,6 @@ function cropParams(state) {
     chips,
     h('div', { style: 'margin-top:8px' }, centerBtn),
     stage,
-    h('div', { class: 'hint', style: 'margin-top:8px' }, '单张图可拖拽框选; 多张图按所选比例自动中心裁剪。'),
+    h('div', { class: 'hint', style: 'margin-top:8px' }, '框内拖动移位置 · 拖四角调大小 (锁定比例时) · 空白处拖出新选区; 多张图按所选比例自动中心裁剪。'),
   );
 }
