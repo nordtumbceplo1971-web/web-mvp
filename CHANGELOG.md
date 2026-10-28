@@ -3,9 +3,31 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.34**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.34`，
+当前版本：**v0.1.35**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.35`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.35 · 2026-10-28
+
+**主题**：修复一键复刻弹窗关闭后 blur 蒙层残留
+
+### 问题
+
+`close()` 里移除的是弹窗卡片 `.repl-modal`，而挂在 `document.body` 上的遮罩 `.repl-mask`
+（带 `backdrop-filter: blur` + 半透明底）从未被删除 → 关闭后页面保持模糊暗化的「假 modal」状态。
+原 E2E 只断言 `.repl-modal` 消失，漏检遮罩节点，未能拦截。
+
+### 修复
+
+`replicateModal.js` close() 改为 `mask.remove()`（modal 是其子节点，一并移除）。
+
+### 验收
+
+- CDP 回归 9/9（v28）：✕ / Esc / 点蒙层三条关闭路径均断言 `.repl-mask` + `.repl-modal`
+  双消失且 body 滚动恢复；重复打开保持单例（mask 数 = 1）；运行时报错 0
+- `npm run build` 通过
 
 ---
 

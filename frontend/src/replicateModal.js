@@ -73,7 +73,7 @@ export function openReplicateModal(tpl, { navigate }) {
     if (busy) toast('生成仍在继续, 稍后可在「我的作品」查看', 'ok');
     document.removeEventListener('keydown', onKey);
     document.body.style.overflow = prevOverflow;
-    modal.remove();
+    mask.remove(); // 必须移除整个遮罩 (modal 只是其子节点), 否则 blur 蒙层残留
     current = null;
   }
   current = { modal, close };
