@@ -366,7 +366,7 @@ main.container { flex: 1; padding: 24px 0 48px; }
 /* auto-fit + 固定卡宽: 卡片封顶居中排布 */
 .home-preview-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 320px)); gap: 16px;
-  justify-content: center; justify-items: center;
+  justify-content: center; justify-items: center; align-items: start;
 }
 .home-loading { color: var(--ink-3); padding: 30px; }
 
@@ -423,7 +423,8 @@ main.container { flex: 1; padding: 24px 0 48px; }
 /* auto-fit + 固定卡宽: 每节条目多少不一, 卡宽统一居中排布, 行内不留大空隙 */
 .tpl-grid {
   display: grid; grid-template-columns: repeat(auto-fit, minmax(248px, 320px));
-  gap: 16px; align-items: stretch; justify-content: center; justify-items: center;
+  /* start: 卡片保持自身高度, 不被同行高卡片拉伸出大片空白 */
+  gap: 16px; align-items: start; justify-content: center; justify-items: center;
 }
 .tpl-card { overflow: hidden; display: flex; flex-direction: column; }
 .tpl-cover { height: 128px; display: grid; place-items: center; position: relative; border-bottom: 1px solid var(--line); }
@@ -488,10 +489,13 @@ main.container { flex: 1; padding: 24px 0 48px; }
   width: 100%; height: 100%; object-fit: contain; object-position: center;
   display: block;
 }
-/* 视频封面 (TVC 等): 16:9 宽卡占两个槽位, 预览窗随卡宽走 16:9 */
-.tpl-card2.tc-wide { grid-column: span 2; max-width: calc(320px * 2 + 16px); }
+/* 视频封面 (TVC 等): 与其它卡片同占 1 个槽位(不再跨 2 列), 预览窗保持 16:9,
+   视频/海报 contain 完整显示 —— 不拉伸、不裁切 */
+.tpl-card2.tc-wide { grid-column: auto; max-width: none; }
 .tc-preview.wide { aspect-ratio: 16/9; max-height: none; }
-.tpl-card2.tc-wide .tc-img { object-fit: cover; }
+/* 视频模板统一 16:9 预览窗: 同组卡片高度一致, 不会被同行其它卡片拉伸出大片空白 */
+.tpl-card2.is-video .tc-preview { aspect-ratio: 16/9; max-height: none; }
+.tpl-card2.tc-wide .tc-img { object-fit: contain; }
 video.tc-video { background: #fff; }
 
 /* ---- 「一键复刻」悬浮玻璃能量胶囊 ----
@@ -636,20 +640,37 @@ video.tc-video { background: #fff; }
 .flow-note { margin: 6px 0 12px; font-size: 12.5px; color: var(--ink-3); }
 
 /* ---- 效果预览: 一排 8 张小图 (产品图 + 7 步成品), 点击放大 ---- */
-.flow-gallery { display: grid; grid-template-columns: repeat(8, 1fr); gap: 10px; }
+/* 列数由 JS 按条目占位计算 (--flow-cols), 断点规则仍可覆盖 */
+.flow-gallery { display: grid; grid-template-columns: repeat(var(--flow-cols, 8), 1fr); gap: 10px; align-items: start; }
 .flow-shot {
   position: relative; padding: 0; overflow: hidden; cursor: zoom-in;
   border: 1px solid var(--line); border-radius: var(--r-md); background: var(--fill);
   aspect-ratio: 4 / 5;
 }
+/* 视频条目: 跨 2 槽位的宽卡, 预览窗走 16:9, 画面完整不裁切 */
+.flow-shot.is-video { aspect-ratio: 16 / 9; cursor: zoom-in; }
 .flow-shot img {
   width: 100%; height: 100%; object-fit: cover; display: block;
   transition: transform 0.25s ease;
 }
 .flow-shot:hover img { transform: scale(1.05); }
-/* 产品图是横版拼版, 裁剪会丢掉正/背面信息 —— 缩略图完整显示 */
+/* 视频缩略图: 完整显示画面, 不裁切 */
+.flow-shot video {
+  width: 100%; height: 100%; object-fit: contain; display: block;
+  background: #0b1120; transition: transform 0.25s ease;
+}
+.flow-shot:hover video { transform: scale(1.05); }
+/* 产品图是横版拼版, 裁剪会丢掉正/背面信息 —— 缩略图完整显示, 底色取白与商品图底色一致 */
+.flow-shot.is-product { background: #fff; }
 .flow-shot.is-product img { object-fit: contain; }
 .flow-shot.is-product:hover img { transform: none; }
+/* 混合素材条 (TVC 等含视频的流程): 定高胶片条 —— 各卡同高, 宽度随素材原始比例伸展, 不裁切不留白。
+   等宽网格里 4:5 图卡与跨 2 槽的 16:9 视频卡在数学上无法等高, 故含视频的流程改用 flex 定高方案 */
+.flow-gallery-media { display: flex; flex-wrap: wrap; gap: 10px; align-items: flex-start; justify-content: center; }
+.flow-gallery-media .flow-shot,
+.flow-gallery-media .flow-shot.is-video { aspect-ratio: auto; height: 240px; width: auto; }
+.flow-gallery-media .flow-shot img,
+.flow-gallery-media .flow-shot video { width: auto; height: 100%; }
 .flow-shot .fs-cap {
   position: absolute; left: 0; right: 0; bottom: 0; padding: 12px 6px 4px;
   font-size: 10.5px; font-weight: 600; color: #fff; text-align: left; letter-spacing: 0.01em;
@@ -714,6 +735,12 @@ video.tc-video { background: #fff; }
 .lb-img {
   max-width: 100%; max-height: calc(88vh - 44px); object-fit: contain;
   border-radius: var(--r-lg); background: var(--card); box-shadow: var(--shadow-lg);
+}
+/* 灯箱内的视频 (与封面同一条素材) */
+.lb-video {
+  max-width: 100%; max-height: calc(88vh - 44px); object-fit: contain;
+  border-radius: var(--r-lg); background: #0b1120; box-shadow: var(--shadow-lg);
+  display: none;
 }
 .lb-cap { color: #fff; font-size: 13px; font-weight: 600; text-align: center; letter-spacing: 0.04em; }
 .lb-close {
@@ -1637,4 +1664,88 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
 @media (max-width: 900px) {
   .ws-head { display: none; }
   .ws-row { grid-template-columns: 1fr 1fr; }
+}
+
+/* ============================================================
+   一键复刻弹窗 (对标 designkit.cn 复刻面板: 左预览 + 右表单, 原地闭环)
+   ============================================================ */
+.repl-mask {
+  position: fixed; inset: 0; z-index: 150;
+  background: rgba(15, 23, 42, 0.45); backdrop-filter: blur(3px);
+  display: flex; align-items: center; justify-content: center; padding: 24px;
+}
+.repl-modal {
+  position: relative; width: min(900px, 100%); max-height: calc(100vh - 48px);
+  background: var(--card); border-radius: var(--r-lg); box-shadow: var(--shadow-lg);
+  display: flex; overflow: hidden;
+}
+.repl-x {
+  position: absolute; top: 12px; right: 12px; z-index: 2;
+  width: 30px; height: 30px; border-radius: 50%;
+  border: 1px solid var(--line); background: var(--card); color: var(--ink-2);
+  font-size: 14px; line-height: 1;
+}
+.repl-x:hover { background: var(--fill); color: var(--ink); }
+.repl-body { display: flex; width: 100%; min-height: 0; }
+
+/* 左: 原片预览 */
+.repl-preview {
+  flex: 0 0 336px; position: relative; padding: 18px;
+  background: #0f172a; display: flex; align-items: center; justify-content: center;
+}
+.repl-preview img, .repl-preview video {
+  max-width: 100%; max-height: calc(100vh - 84px); object-fit: contain;
+  border-radius: var(--r-md);
+}
+.rp-kind { position: absolute; left: 14px; top: 14px; background: rgba(255, 255, 255, 0.92); }
+.rp-art { color: #64748b; }
+
+/* 右: 表单 */
+.repl-form {
+  flex: 1; min-width: 0; overflow-y: auto;
+  padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 14px;
+}
+.rf-head h2 { font-size: 17px; }
+.rf-sub { font-size: 12.5px; color: var(--ink-3); margin-top: 2px; }
+.rf-sec { display: flex; flex-direction: column; gap: 8px; }
+.rf-label { font-size: 12.5px; font-weight: 600; color: var(--ink-2); display: flex; align-items: center; gap: 6px; }
+.rf-label em { color: var(--danger); font-style: normal; }
+.rf-count { margin-left: auto; font-weight: 500; color: var(--ink-3); font-size: 12px; }
+.rf-slots { display: flex; gap: 10px; }
+.rf-slot {
+  width: 96px; height: 110px; padding: 0;
+  border: 1.5px dashed var(--line-strong); border-radius: var(--r-md);
+  background: var(--fill); color: var(--ink-3);
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  font-size: 12px;
+}
+.rf-slot:hover { border-color: var(--brand); color: var(--brand); background: var(--brand-soft); }
+.rf-slot.filled { position: relative; border-style: solid; border-color: var(--line); background: none; overflow: hidden; }
+.rf-slot.filled img { width: 100%; height: 100%; object-fit: cover; }
+.rf-slot .rm {
+  position: absolute; top: 4px; right: 4px; width: 20px; height: 20px;
+  border-radius: 50%; border: 0; background: rgba(15, 23, 42, 0.62);
+  color: #fff; font-size: 11px; line-height: 1; cursor: pointer;
+}
+.rf-hint { font-size: 11.5px; color: var(--ink-3); }
+.rf-chips { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.rf-idea { resize: vertical; }
+.rf-cta { width: 100%; margin-top: 2px; }
+.rf-sum { font-size: 11.5px; color: var(--ink-3); text-align: center; }
+
+/* 生成中 / 结果 (弹窗内闭环) */
+.repl-busy, .repl-done {
+  flex: 1; min-width: 0; padding: 34px 28px; overflow-y: auto;
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 14px;
+}
+.repl-done { justify-content: flex-start; align-items: stretch; }
+.rd-head { display: flex; align-items: center; gap: 10px; }
+.rd-head h2 { font-size: 16px; }
+.rd-actions { display: flex; gap: 10px; justify-content: center; }
+.repl-done .result-grid { max-height: 56vh; overflow-y: auto; }
+
+@media (max-width: 860px) {
+  .repl-modal { width: 100%; }
+  .repl-body { flex-direction: column; overflow-y: auto; }
+  .repl-preview { flex: none; max-height: 300px; }
 }

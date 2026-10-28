@@ -10,7 +10,6 @@ import { APP_VERSION } from './version.js';
 import { renderHome } from './views/home.js';
 import { renderTemplates } from './views/templates.js';
 import { renderTemplateDetail } from './views/templateDetail.js';
-import { renderCreate } from './views/create.js';
 import { renderStudio } from './views/studio.js';
 import { renderWorks } from './views/works.js';
 import { renderRecharge } from './views/recharge.js';
@@ -33,7 +32,6 @@ const routes = [
   { path: '/', view: renderHome, nav: 'home', title: '首页' },
   { path: '/templates', view: renderTemplates, nav: 'templates', title: '模板库' },
   { path: '/templates/:id', view: renderTemplateDetail, nav: 'templates', title: '模板详情' },
-  { path: '/create', view: renderCreate, nav: 'templates', title: '模板创作' },
   { path: '/lookbook', view: renderLookbook, nav: 'templates', title: 'Shopify 套图' },
   { path: '/batch', view: renderBatch, nav: 'batch', title: '批量套图' },
   { path: '/batch/:id', view: renderBatch, nav: 'batch', title: '批量套图' },

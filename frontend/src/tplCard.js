@@ -1,6 +1,7 @@
 import { h } from './ui.js';
 import { icon } from './icons.js';
 import { tplCover, tplLogo, tplPreview, KIND_LABEL } from './tplMeta.js';
+import { startReplicate } from './replicateModal.js';
 
 /**
  * 模板卡片（统一版式，首页预览区与模板库共用）
@@ -23,8 +24,8 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
   const logo = tplLogo(tpl);
   const preview = tplPreview(tpl);
 
-  // 一键复刻 = 直接进创作流 (create.js 会把多步骤模板分流到 /lookbook)
-  const replicate = onReplicate ?? (() => navigate(`/create?tpl=${tpl.id}`));
+  // 一键复刻 = 原地弹窗 (对标 designkit); lookbook 多步骤模板仍跳专属流程页
+  const replicate = onReplicate ?? (() => startReplicate(tpl, { navigate }));
   const goDetail = () => navigate(`/templates/${tpl.id}`);
 
   // ---- 可展开描述 ----

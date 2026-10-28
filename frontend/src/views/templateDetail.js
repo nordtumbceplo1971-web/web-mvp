@@ -3,6 +3,7 @@ import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
 import { tplCover, tplFlow, KIND_LABEL } from '../tplMeta.js';
+import { startReplicate } from '../replicateModal.js';
 
 /**
  * 模板详情页 (独立路由 /templates/:id)
@@ -38,11 +39,11 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
       h('div', { class: 'hc-title' }, '准备好产品图就可以开始了'),
       h('div', { class: 'hc-desc' }, isLookbook
         ? '7 步出全套 Shopify 商品图 · 选择线路 a (AI 建模) 或线路 b (模特库)'
-        : `消耗 ${tpl.credits} 额度 · 约 ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
+        : `消耗 ${tpl.credits} 额度 · ${tpl.timeLabel} · 生成后自动存入「我的作品」`),
     ),
     h('button', {
       class: 'btn btn-primary',
-      onclick: () => navigate(isLookbook ? '/lookbook' : `/create?tpl=${tpl.id}`),
+      onclick: () => startReplicate(tpl, { navigate }),
     }, isLookbook ? '开始出套图' : '做同款', icon('arrow-right', { size: 16 })),
   );
 

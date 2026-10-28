@@ -2,6 +2,7 @@ import { h, toast } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
+import { startReplicate } from '../replicateModal.js';
 
 /** 我的作品 (PRD 模块 5): 按 product 归档的 MVP 形态 — 列表 + 再做一张 + 收藏 + 删除 */
 export async function renderWorks(root, { navigate }) {
@@ -82,7 +83,7 @@ export async function renderWorks(root, { navigate }) {
         h('div', { class: 'work-actions' },
           h('button', {
             class: 'btn btn-primary btn-sm', style: 'flex:1',
-            onclick: () => w.templateId && navigate(`/create?tpl=${w.templateId}`),
+            onclick: () => w.templateId && startReplicate(w.templateId, { navigate }),
           }, icon('refresh', { size: 14 }), '再做一张'),
           favBtn,
           h('button', {
