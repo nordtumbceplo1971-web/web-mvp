@@ -3,9 +3,39 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.33**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.33`，
+当前版本：**v0.1.34**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.34`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.34 · 2026-10-28
+
+**主题**：修复 Vercel 线上多段 API 路径 404（catch-all 函数路由失效 → 显式 rewrites）
+
+### 问题
+
+tabbit 线上验收（web-mvp-ivory.vercel.app）发现：所有**两段及以上**的 `/api/*` 路径
+（`/api/generate/image`、`/api/tasks/:id`、`/api/templates/:id`、`/api/batch/:id`…）返回
+Vercel 平台 NOT_FOUND 页 —— 请求根本没进函数；单段路径（`/api/health`、`/api/templates`、
+`/api/uploads`）全部正常。即 `api/[...path].js` 的 catch-all 在该部署上只注册了单段匹配，
+线上「一键复刻 / 批量套图 / 任务轮询」等核心链路全部不可用（此前从未在线上实测过，本次首揭）。
+
+### 修复
+
+1. 函数入口改为无方括号文件名 `api/_dispatch.js`，从 Vercel rewrite 注入的
+   `x-original-url` 头还原原始路径（兼容 req.url 被剥 `/api` 前缀的部署形态）
+2. `vercel.json` 增加平台级显式路由：`rewrites: /api/(.*) → /api/_dispatch`（rewrite 的
+   source 由平台路由表处理，天然支持多段），functions 配置同步指向新文件；删除 `api/[...path].js`
+3. `tools/vercel-sim.mjs` 升级为模拟 rewrite 行为（req.url=/api/_dispatch + x-original-url），
+   新增多段路径回归断言
+
+### 验收
+
+- `node tools/vercel-sim.mjs` 7/7：单段 / 多段（templates/:id、batch）/ 剥前缀形态 /
+  未注册多段路由到达 express 默认 404（而非平台 404）
+- `BASE_URL=mock node tools/smoke.mjs` 6/6（MOCK 实例，零费用）
+- 待办：Vercel 重新部署后线上复测多段端点 + 复刻弹窗全流程
 
 ---
 
