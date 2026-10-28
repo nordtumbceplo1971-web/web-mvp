@@ -1,16 +1,16 @@
-/**
- * 本地模拟 Vercel Serverless 调用, 验证 api/_dispatch.js 的路由还原逻辑
- * 模拟行为: vercel.json rewrite 后函数收到 req.url=/api/_dispatch, 原始路径在 x-original-url
+﻿/**
+ * 本地模拟 Vercel Serverless 调用, 验证 api/dispatch.js 的路由还原逻辑
+ * 模拟行为: vercel.json rewrite 后函数收到 req.url=/api/dispatch, 原始路径在 x-original-url
  * 用法: node tools/vercel-sim.mjs
  */
 import { createServer } from 'node:http';
 
-const mod = await import('../api/_dispatch.js');
+const mod = await import('../api/dispatch.js');
 const handler = mod.default;
 
 const server = createServer(async (req, res) => {
   const orig = req.url;
-  req.url = '/api/_dispatch';
+  req.url = '/api/dispatch';
   req.headers['x-original-url'] = orig;
   await handler(req, res);
 });

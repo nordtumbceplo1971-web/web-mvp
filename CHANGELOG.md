@@ -23,11 +23,12 @@ Vercel 平台 NOT_FOUND 页 —— 请求根本没进函数；单段路径（`/a
 
 ### 修复
 
-1. 函数入口改为无方括号文件名 `api/_dispatch.js`，从 Vercel rewrite 注入的
+1. 函数入口改为无方括号文件名 `api/dispatch.js`（不用下划线前缀，避免被平台按
+   「非公开文件」规则忽略），从 Vercel rewrite 注入的
    `x-original-url` 头还原原始路径（兼容 req.url 被剥 `/api` 前缀的部署形态）
-2. `vercel.json` 增加平台级显式路由：`rewrites: /api/(.*) → /api/_dispatch`（rewrite 的
+2. `vercel.json` 增加平台级显式路由：`rewrites: /api/(.*) → /api/dispatch`（rewrite 的
    source 由平台路由表处理，天然支持多段），functions 配置同步指向新文件；删除 `api/[...path].js`
-3. `tools/vercel-sim.mjs` 升级为模拟 rewrite 行为（req.url=/api/_dispatch + x-original-url），
+3. `tools/vercel-sim.mjs` 升级为模拟 rewrite 行为（req.url=/api/dispatch + x-original-url），
    新增多段路径回归断言
 
 ### 验收
