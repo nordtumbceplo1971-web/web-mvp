@@ -512,6 +512,52 @@ export const templates = [
     durationOptions: [10],
     tips: '开箱视频的完播率最高, 适合做详情页头图视频。',
   },
+  {
+    id: 'video-unbox-halloween',
+    type: 'video',
+    category: 'video',
+    title: '万圣节主题产品开箱',
+    subtitle: '南瓜灯氛围 · 节日限定开箱',
+    timeLabel: '约 5 分钟',
+    credits: 20,
+    needLabel: '1 张产品图',
+    needImages: 1,
+    defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
+    promptTemplate:
+      '万圣节主题竖屏开箱展示视频: {{scene}}, 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 画面中点缀{{decor}}, 暗调节日氛围里{{lighting}}, 最后产品居中定格, ASMR 质感收音(拆封摩擦声), 趣味而不诡异的节日开箱氛围。',
+    slots: [
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款主题卫衣', defaultValue: '产品' },
+      {
+        label: '氛围场景',
+        key: 'scene',
+        options: [
+          { value: 'pumpkin', label: '南瓜灯阵', color: '#FFD9B8', prompt: '南瓜灯环绕的原木桌面, 暖橙光晕' },
+          { value: 'skeleton', label: '骷髅派对', color: '#E8E8E8', prompt: '骷髅手办与蛛网装饰的桌面' },
+          { value: 'magic', label: '魔法夜幕', color: '#E6E0F8', prompt: '深紫夜幕, 魔法光点悬浮' },
+        ],
+      },
+      {
+        label: '装饰元素',
+        key: 'decor',
+        options: [
+          { value: 'spider', label: '蜘蛛与蛛网', color: '#E0E0E8', prompt: '蜘蛛与蛛网' },
+          { value: 'bat', label: '蝙蝠剪影', color: '#D8DCE8', prompt: '蝙蝠剪影' },
+          { value: 'candy', label: '糖果散落', color: '#FFE9D6', prompt: '节日糖果散落' },
+        ],
+      },
+      {
+        label: '光线',
+        key: 'lighting',
+        options: [
+          { value: 'warm', label: '南瓜暖光', color: '#FFD9B8', prompt: '南瓜灯内暖橙光晕明暗摇曳' },
+          { value: 'moon', label: '冷月蓝光', color: '#EAF3F8', prompt: '冷蓝月光氛围' },
+          { value: 'candle', label: '烛光摇曳', color: '#FFF3DC', prompt: '烛光摇曳明暗' },
+        ],
+      },
+    ],
+    durationOptions: [10],
+    tips: '万圣节节点前 1-2 周发布, 配合节日标签流量最高。',
+  },
 
   // ============ 纯净模式内置模板 (hidden: 不进模板库列表) ============
   // 自由工作台「纯净模式」专用: 不套任何提示词框架, 用户提示词原样直通模型,

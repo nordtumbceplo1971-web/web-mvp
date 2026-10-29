@@ -28,6 +28,7 @@ export const TPL_ICONS = {
   'video-tryon': 'user',
   'video-tvc': 'film',
   'video-unbox': 'package',
+  'video-unbox-halloween': 'gift',
 };
 
 export const KIND_LABEL = { image: '图片模板', video: '视频模板' };
@@ -54,6 +55,10 @@ const TPL_PREVIEWS = {
   'video-tryon': {
     video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg', wide: true,
     alt: '模特上身视频效果预览 · 悬停播放',
+  },
+  'video-unbox-halloween': {
+    video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
+    alt: '万圣节主题产品开箱效果预览 · 悬停播放',
   },
 };
 
@@ -95,6 +100,13 @@ const TPL_FLOWS = {
     {
       video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg',
       cap: '结果预览 · 上身视频', alt: '模特上身视频 · 成片预览',
+    },
+  ],
+  // 万圣节主题开箱: 结果预览(视频, 复用封面素材)
+  'video-unbox-halloween': [
+    {
+      video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
+      cap: '结果预览 · 万圣节开箱', alt: '万圣节主题产品开箱 · 成片预览',
     },
   ],
 };

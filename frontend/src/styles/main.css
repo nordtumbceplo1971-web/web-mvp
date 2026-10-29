@@ -495,6 +495,8 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .tc-preview.wide { aspect-ratio: 16/9; max-height: none; }
 /* 视频模板统一 16:9 预览窗: 同组卡片高度一致, 不会被同行其它卡片拉伸出大片空白 */
 .tpl-card2.is-video .tc-preview { aspect-ratio: 16/9; max-height: none; }
+/* 视频卡素材 contain 留白时用深底 (竖版素材/暗调画面融合, 避免白边突兀) */
+.tpl-card2.is-video .tc-preview.has-img { background: #0f172a; }
 .tpl-card2.tc-wide .tc-img { object-fit: contain; }
 video.tc-video { background: #fff; }
 

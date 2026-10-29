@@ -3,11 +3,37 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.44**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.44`，
+当前版本：**v0.1.45**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.45`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.45 · 2026-10-29
+
+**主题**：新增「万圣节主题产品开箱」视频模板（video-unbox-halloween）+ 修复首页预览区硬截断挤掉新视频卡
+
+### 新增
+
+- 后端模板 `video-unbox-halloween`（视频类目, 20 点额度, 1 张产品图, 9:16/720p/10s/首帧默认）：
+  竖屏万圣节开箱 prompt（拆封动作 + 包装盒→产品→配件展示 + 氛围槽位），
+  槽位 = 产品文本 + 氛围场景（南瓜灯阵/骷髅派对/魔法夜幕）+ 装饰（蛛网蝙蝠/糖果散落等）+ 光线（南瓜暖光/冷月蓝光/烛光）
+- 素材：`covers/video-unbox-halloween.mp4`（1.86MB, crf 27 压缩）+ 首帧 poster（46KB）
+- `tplMeta.js`：TPL_ICONS/TPL_PREVIEWS/TPL_FLOWS 三表配置（竖版素材无 wide, 详情图集复用封面视频）
+- `main.css`：`.tc-preview.has-img` 竖版视频卡深底（#0f172a）融合, 避免 contain 留白白边
+
+### 修复
+
+- **首页预览区 `pickPreviewTemplates` 的 `slice(0, 8)` 硬截断**：图片类目代表 4 个 + 视频模板全量 push,
+  第 9 个（恰为新模板）被静默挤掉 → 去掉截断（类目数天然有界）, 后续新增视频模板自动出现在首页
+- **补提 v0.1.44 遗留**：详情页图集视频条目渲染（`templateDetail.js` 灯箱视频播放 + 定高胶片条按素材比例展开）
+  与 `flows/video-tvc/` 参考素材此前漏在工作区未提交, 线上详情页视频条目一直未生效 —— 本次随版补齐
+
+### 验收
+
+- tabbit：首页 9 卡全渲染, 万圣节卡 is-video + video/poster 正确, 与 TVC 卡等高（320×290）,
+  竖版南瓜灯 poster 深底融合无白边；详情页 `#/templates/video-unbox-halloween` 图集 1 条视频条目正常
+- 前端 build 通过（vite, 451ms）
 
 ## v0.1.44 · 2026-10-29
 

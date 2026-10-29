@@ -130,7 +130,8 @@ export function renderHome(root, { navigate }) {
   }).catch(() => { /* 保持占位 */ });
 }
 
-/** 预览区模板: 图片类目每个子类目取 1 个代表 + 全部视频模板 (共 8 个, 覆盖各类) */
+/** 预览区模板: 图片类目每个子类目取 1 个代表 + 全部视频模板 (类目数有界, 不截断,
+ *  否则新增视频模板会被 slice 挤掉 — v0.1.45 万圣节卡缺失的根因) */
 function pickPreviewTemplates(items = []) {
   const seen = new Set();
   const picked = [];
@@ -140,7 +141,7 @@ function pickPreviewTemplates(items = []) {
     seen.add(t.category);
     picked.push(t);
   }
-  return picked.slice(0, 8);
+  return picked;
 }
 
 function statMini(k, v, unit) {
