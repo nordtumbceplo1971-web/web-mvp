@@ -202,20 +202,79 @@ export const templates = [
     type: 'image',
     category: 'tryon',
     title: '模特上身图',
-    subtitle: 'Lookbook 街拍上身展示 · 服装+模特双参考',
+    subtitle: 'Lookbook 街拍上身展示 · 服装+模特双参考 · 男/女模特可换',
     timeLabel: '约 2 分钟',
     credits: 3,
     needLabel: '服装图 + 模特参考图（2 张）',
     needImages: 2,
     defaults: { model: 'primary', aspect_ratio: '3:4', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
-    // 内置提示词 (用户提供, 固定完整框架): 图1=服装唯一来源, 图2=仅模特体型参考
+    // 内置提示词 (用户提供框架 + model-sheet skill 产品复用分支强化): 图1=服装唯一来源, 图2=仅模特体型参考
     promptTemplate:
-      '图1是唯一的服装来源：模特必须完整穿着图1中的这件服饰，其款式、版型、颜色、面料、图案细节均严格还原图1，不得有任何改动。图2仅作为模特形象参考：只参考图2中模特的身材体型，必须完全忽略（不复制、不保留）图2模特身上所穿的任何服装。成图中模特全身只穿图1的这一套服饰，严禁混入图2中的任何服饰元素。\n'
-      + '时尚电商Lookbook摄影。模特穿着与参考图1完全一致的上衣，整套造型（上衣+下装）为同一套系搭配：下装为与上衣自然色系搭配（黑配白，白配黑）、同质感面料、同风格版型的配套裤装/裙装，色彩过渡自然、色相统一、明度协调，整体搭配和谐完整，严禁出现与上衣风格或颜色冲突的下装。\n'
-      + '模特身体呈约45度侧对镜头，重心完全落在后侧支撑腿上，前腿膝盖微曲、脚尖轻点地面，胯部自然向一侧顶出，形成柔和的S形腰线。双肩下沉并向后展开，侧面肩线与背部线条干净利落。一手自然垂于身侧、五指放松微张，另一手轻搭在腰侧或服饰口袋处，指尖引导视线落在服装设计细节上。头部向镜头回转，下巴微收、略向肩侧倾斜，眼神从发丝后直视镜头，嘴角含一丝若有似无的浅笑，神情从容优雅，传递"不经意被捕捉"的松弛高级感。\n'
+      '图1是唯一的服装来源：模特必须完整穿着图1中的这件服饰，其款式、版型、颜色、面料、图案细节均严格还原图1，不得有任何改动（reproduce the exact print from the product reference image: all graphic artwork elements, brand logo lettering elements, typography, color palette and print texture must match the reference photo exactly, do not redesign, do not invent new elements）。图2仅作为模特形象参考：只参考图2中模特的身材体型，必须完全忽略（不复制、不保留）图2模特身上所穿的任何服装。成图中模特全身只穿图1的这一套服饰，严禁混入图2中的任何服饰元素。\n'
+      + 'ACCESSORIES RULE (strict): do not invent or add any accessory — hat, necklace, earrings, rings, chains, glasses, bags. Include accessories ONLY if they are visible on the person in the model reference image; if the reference shows no accessories, the model appears with clean bare styling, nothing added. Never improvise.\n'
+      + '时尚电商Lookbook摄影。模特是{{gender}}。模特穿着与参考图1完全一致的上衣，整套造型（上衣+下装）为同一套系搭配：下装为与上衣自然色系搭配（黑配白，白配黑）、同质感面料、同风格版型的配套裤装/裙装，色彩过渡自然、色相统一、明度协调，整体搭配和谐完整，严禁出现与上衣风格或颜色冲突的下装。\n'
+      + '模特身体呈约45度侧对镜头，重心落在后侧支撑腿上，前腿膝盖微曲，双肩下沉并向后展开，侧面肩线与背部线条干净利落。一手自然垂于身侧、五指放松微张，另一手轻搭在腰侧或服饰口袋处，指尖引导视线落在服装设计细节上。头部向镜头回转，下巴微收，眼神直视镜头，神情从容自然不刻意，传递"不经意被捕捉"的松弛高级感。\n'
       + '背景为美国极具现代化时尚风的fashion城市街头；柔和影棚顶光加左前补光，产品底部带淡淡倒影；清晰呈现服装版型、面料质感与垂坠感，真实皮肤质感与自然光影；8K超清，时尚电商Lookbook摄影风格。',
-    slots: [],
-    tips: '第 1 张传服装平铺/挂拍图（服装唯一来源），第 2 张传模特形象参考图（只取身材体型）。',
+    slots: [
+      {
+        label: '模特性别',
+        key: 'gender',
+        options: [
+          { value: 'female', label: '女模特', color: '#FFD6E7', prompt: '年轻女性模特, 20-25岁, 东方面孔, 身材匀称修长, 气质自然' },
+          { value: 'male', label: '男模特', color: '#EAF3F8', prompt: '年轻男性模特, 20-25岁, 东方面孔, 身材高挑精干, 肩线利落' },
+        ],
+      },
+    ],
+    tips: '第 1 张传服装平铺/挂拍图（服装唯一来源），第 2 张传模特形象参考图（只取身材体型）。配饰只在参考图可见时保留, 不会自创。',
+  },
+  {
+    id: 'tryon-sheet',
+    type: 'image',
+    category: 'tryon',
+    title: '模特三视图',
+    subtitle: '16:9 模特库 / 参考照重建 / 服装上身 · 三方案切换',
+    timeLabel: '约 2 分钟',
+    credits: 3,
+    needLabel: '1 张参考图（人物或服装）',
+    needImages: 1,
+    lockAspect: true,   // 三视图版式固定 16:9 横版
+    defaults: { model: 'primary', aspect_ratio: '16:9', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
+    // 内置提示词 (源自 model-sheet-prompt-generator skill): 版式块按方案路由, Subject 按性别路由
+    promptTemplate:
+      '{{variant}}\n'
+      + '{{gender}}\n'
+      + 'CONSISTENCY: identical face, hairstyle, skin tone, body build and outfit across all three views; identical lighting, color grading and light-grey seamless studio background behind all panels.\n'
+      + 'STYLE: photorealistic editorial fashion photography, soft even studio lighting, 85mm lens, natural skin texture, sharp fabric detail, 8K. No text, no logo, no graphic overlay.\n'
+      + 'NEGATIVE: different person, changed face, beautified face, changed hairstyle, outfit mismatch between views, unintended print or text on the shirt, altered print, warped lettering, extra fingers, extra hands, extra limbs, deformed hands, twisted neck, asymmetric duplicated body, plastic skin, overly retouched porcelain skin, anime or illustration style, busy background, props, watermark, logo, text, panel border errors, cropped feet in the full-body view.',
+    slots: [
+      {
+        label: '生成方案',
+        key: 'variant',
+        options: [
+          {
+            value: 'sheet', label: 'A · 模特库三视图', color: '#EFF4FF',
+            prompt: 'Character reference sheet, 16:9 landscape canvas with three views of the same person: LEFT HALF full-body standing shot; RIGHT UPPER QUADRANT half-body portrait facing camera; RIGHT LOWER QUADRANT half-body turn-around shot from behind. Outfit: plain pure-white crew-neck cotton T-shirt, relaxed fit, no print, no logo; washed-black cargo trousers; clean chunky sneakers. Accessories: none — deliberately bare, no jewelry. Expression: natural, relaxed, unposed, no forced smile. The uploaded reference image (if provided) is only an appearance hint; keep the standard studio character-sheet styling.',
+          },
+          {
+            value: 'rebuild', label: 'B · 参考照重建', color: '#F5F3FF',
+            prompt: 'Use the person in the uploaded reference photo as the ONLY subject. Keep this exact person\'s facial identity 100% unchanged: same face shape, same eye color and shape, same nose, same lips, same hairstyle, hair color and hair length, same skin tone, same body proportions and height. Do not beautify, do not change the face, do not generate a different person. Rebuild this person into a character reference sheet on a 16:9 landscape canvas with exactly three views of the SAME person in ONE image: LEFT HALF (50% of the width) — full-body head-to-toe standing shot, feet fully inside the frame; RIGHT UPPER QUADRANT (25%) — half-body waist-up portrait facing the camera, natural relaxed expression, no forced smile; RIGHT LOWER QUADRANT (25%) — half-body turn-around shot from behind, head turned slightly. WARDROBE: plain pure-white crew-neck cotton T-shirt, relaxed fit, no print, no logo; washed-black or grey cargo trousers; clean chunky sneakers. Keep accessories only as visible in the reference, add nothing.',
+          },
+          {
+            value: 'outfit', label: 'C · 服装上身三视图', color: '#FFF7ED',
+            prompt: 'Character reference sheet, 16:9 landscape canvas with three views of the same person: LEFT HALF full-body standing shot; RIGHT UPPER QUADRANT half-body portrait facing camera; RIGHT LOWER QUADRANT half-body turn-around shot from behind. WARDROBE: wearing the exact outfit from the uploaded product reference image, unchanged — reproduce every print, color, logo lettering element and graphic detail pixel-accurately, do not redesign, recolor or restyle the garment. Pair it with plain bottoms that match the outfit\'s natural color palette. Accessories: none — do not invent or add any accessory, nothing added. Expression: natural, relaxed, unposed, no forced smile.',
+          },
+        ],
+      },
+      {
+        label: '模特性别',
+        key: 'gender',
+        options: [
+          { value: 'female', label: '女模特', color: '#FFD6E7', prompt: 'Subject: female model, 20-25 years old, East Asian features, slender well-proportioned frame with model proportions, shoulder-length black hair, natural brown eyes, fair skin, soft oval face.' },
+          { value: 'male', label: '男模特', color: '#EAF3F8', prompt: 'Subject: male model, 20-25 years old, East Asian features, tall lean athletic frame with model proportions, short textured black hair, natural brown eyes, fair skin, defined jawline.' },
+        ],
+      },
+    ],
+    tips: '方案 A 生成模特库三视图（纯白 T 标准版式）；B 按参考照 1:1 重建同一人；C 穿上参考图服装出三视图（印花像素级复刻）。16:9 横版固定。',
   },
   {
     id: 'tryon-detail',

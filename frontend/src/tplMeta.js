@@ -18,6 +18,7 @@ export const TPL_ICONS = {
   'series-multi-angle': 'layers',
   'series-colors': 'palette',
   'tryon-female-asia': 'shirt',
+  'tryon-sheet': 'user',
   'tryon-detail': 'scan',
   'retouch-bg': 'image-plus',
   'retouch-remove-bg': 'scissors',

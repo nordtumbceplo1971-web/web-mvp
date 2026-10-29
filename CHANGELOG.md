@@ -3,11 +3,44 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.50**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.50`，
+当前版本：**v0.1.51**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.51`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.51 · 2026-10-29
+
+**主题**：模特上身图封面换新 + 内置 model-sheet 模特三视图模板（A/B/C 方案按钮路由 · 男/女模特）
+
+### 素材（用户提供）
+
+- 新封面：NVX 街头男女模特上身杂志海报（1152×2048）→ `covers/tryon-female-asia.jpg`
+  （900×1600, 278KB, 覆盖旧封面, 详情图集「图3 成图效果」自动跟随）
+
+### 新增：tryon-sheet「模特三视图」模板（源自 model-sheet-prompt-generator skill）
+
+- 16:9 横版 lockAspect, 1 张参考图, 三大类目槽位按钮路由 prompt：
+  - **A · 模特库三视图**：标准三视图版式块（左半全身/右上正面半身/右下背对转身）+ 纯白 T 固定穿搭
+  - **B · 参考照重建**：图生图分支 —— 面部身份 100% 锁定 + 精确版式占比（50%/25%/25%）重建同一人
+  - **C · 服装上身三视图**：参考图服装印花像素级复刻 + 配饰禁自创
+- **模特性别槽位**：女模特 / 男模特（Subject 外貌段路由）
+- 固定尾：CONSISTENCY 一致性锁 + STYLE 摄影规格 + 完整 NEGATIVE（手足畸形/视图间身份变化/版式错误等）
+- `tplMeta.js`：TPL_ICONS 配 user 图标
+
+### 改动：tryon-female-asia「模特上身图」强化
+
+- 新增**模特性别槽位**（女模特默认/男模特）
+- prompt 按 skill 产品复用分支强化：印花精确复刻英文句（reproduce the exact print...）
+  + **ACCESSORIES RULE 配饰自适应**（只保留参考图可见配饰, 严禁自创）
+- 站姿段中性化（原 S 形腰线等女性化措辞移除, 适配男模特）
+
+### 验收
+
+- 后端烟测：22 模板, tryon-sheet slots = variant(3) + gender(2); API 返回正常（8787 重启）
+- tabbit：新封面 img 加载成功; 复刻弹窗 A/B/C + 男/女模特 5 个按钮齐全,
+  点击 B 切换选中态生效（bActive=true/aActive=false）, 16:9 比例默认锁定
+- vite build 通过
 
 ## v0.1.50 · 2026-10-29
 
