@@ -64,7 +64,10 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
   },
     h('div', {
       class: `tc-preview${preview ? ' has-img' : ''}${preview?.wide ? ' wide' : ''}`,
-      style: preview ? '' : `background:linear-gradient(150deg, ${tint} 0%, #ffffff 100%)`,
+      // ratio: 素材长宽比适配预览窗 (max-height 放开, 避免窗口被 clamp 后 contain 又出留白)
+      style: preview
+        ? (preview.ratio ? `aspect-ratio:${preview.ratio};max-height:none` : '')
+        : `background:linear-gradient(150deg, ${tint} 0%, #ffffff 100%)`,
     },
       h('span', { class: 'pill pill-line kind' }, KIND_LABEL[tpl.type]),
       preview?.video

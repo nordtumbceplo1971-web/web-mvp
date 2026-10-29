@@ -489,12 +489,11 @@ main.container { flex: 1; padding: 24px 0 48px; }
   width: 100%; height: 100%; object-fit: contain; object-position: center;
   display: block;
 }
-/* 视频封面 (TVC 等): 与其它卡片同占 1 个槽位(不再跨 2 列), 预览窗保持 16:9,
-   视频/海报 contain 完整显示 —— 不拉伸、不裁切 */
+/* 视频封面 (TVC 等): 与其它卡片同占 1 个槽位(不再跨 2 列); 窗口比例由 tplCard 按素材长宽比内联适配 */
 .tpl-card2.tc-wide { grid-column: auto; max-width: none; }
 .tc-preview.wide { aspect-ratio: 16/9; max-height: none; }
-/* 视频模板统一 16:9 预览窗: 同组卡片高度一致, 不会被同行其它卡片拉伸出大片空白 */
-.tpl-card2.is-video .tc-preview { aspect-ratio: 16/9; max-height: none; }
+/* 视频卡默认预览窗与图片模板卡同款 2:3, 配了素材比例的由 tplCard 内联 aspect-ratio 适配 */
+.tpl-card2.is-video .tc-preview { aspect-ratio: 2/3; }
 /* 视频卡素材 contain 留白时用深底 (竖版素材/暗调画面融合, 避免白边突兀) */
 .tpl-card2.is-video .tc-preview.has-img { background: #0f172a; }
 .tpl-card2.tc-wide .tc-img { object-fit: contain; }

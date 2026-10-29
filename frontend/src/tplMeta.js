@@ -43,21 +43,21 @@ export function tplLogo(tpl) {
 }
 
 /** 模板效果预览图 (卡片上方 70% 展示); 未配图的模板回退到分类色块 + 图标
-    video: 视频封面 (默认显示 poster 首帧, 悬停自动播放); wide: 16:9 宽卡, 占两个槽位 */
+    video: 视频封面 (默认显示 poster 首帧, 悬停自动播放); ratio: 预览窗长宽比 (按素材比例适配, 缺省跟随卡片默认) */
 const TPL_PREVIEWS = {
   'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
   'main-white': { src: '/covers/main-white.jpg', alt: '白底主图效果预览 · 正面平铺' },
   'tryon-female-asia': { src: '/covers/tryon-female-asia.jpg', alt: '模特上身图效果预览 · Lookbook 街拍' },
   'video-tvc': {
-    video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg', wide: true,
+    video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg', ratio: '16/9',
     alt: 'TVC 广告大片效果预览 · 悬停播放',
   },
   'video-tryon': {
-    video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg', wide: true,
+    video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg', ratio: '16/9',
     alt: '模特上身视频效果预览 · 悬停播放',
   },
   'video-unbox-halloween': {
-    video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
+    video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg', ratio: '9/16',
     alt: '万圣节主题产品开箱效果预览 · 悬停播放',
   },
 };

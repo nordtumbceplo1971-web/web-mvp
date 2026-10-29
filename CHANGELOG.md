@@ -3,11 +3,31 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.45**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.45`，
+当前版本：**v0.1.46**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.46`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.46 · 2026-10-29
+
+**主题**：模板卡预览窗按素材长宽比适配 —— 竖屏视频卡默认与图片卡同款 2:3
+
+### 改动
+
+- **视频卡默认预览窗 16:9 横窗 → 2:3 竖窗**（与图片模板卡一致, [main.css](frontend/src/styles/main.css)）：
+  竖屏/无预览素材的视频卡不再被塞进横窗出大片黑边
+- **`TPL_PREVIEWS` 新增 `ratio` 字段**（[tplCard.js](frontend/src/tplCard.js) 内联 `aspect-ratio` 适配,
+  max-height 同步放开避免窗口被 clamp 后 contain 又出留白）：
+  - `video-unbox-halloween` → `9/16` 竖窗, 画面充满零黑边（318×565）
+  - `video-tvc` / `video-tryon` → `16/9` 横窗维持原视觉（318×179）, 顺带移除已无意义的 `wide` 标记
+- 图片卡（2:3）与 fallback 图标卡（2:3）不受影响, 首页/模板库共用 tplCard 自动生效
+
+### 验收
+
+- tabbit 几何断言 9 卡全部符合预期：图片 4 卡 + fallback 2 卡 = 318×477 (2:3),
+  TVC/上身视频 = 318×179 (16:9), 万圣节 = 318×565 (9:16 零黑边); 目视截图确认布局无错乱
+- vite build 通过
 
 ## v0.1.45 · 2026-10-29
 
