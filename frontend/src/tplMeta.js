@@ -57,7 +57,9 @@ const TPL_PREVIEWS = {
     alt: '模特上身视频效果预览 · 悬停播放',
   },
   'video-unbox-halloween': {
-    video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg', ratio: '9/16',
+    // 竖版素材不加 ratio: 预览窗保持卡片默认 2:3 与全站卡等高, 素材 contain + 深底融合
+    // (9:16 窗会把卡片顶到比同行高出一截, 破坏网格整齐)
+    video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
     alt: '万圣节主题产品开箱效果预览 · 悬停播放',
   },
 };
