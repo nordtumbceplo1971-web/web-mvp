@@ -4,6 +4,31 @@ import { tplCover, tplLogo, tplPreview, KIND_LABEL } from './tplMeta.js';
 import { startReplicate } from './replicateModal.js';
 
 /**
+ * 网格渲染: 16:9 横版视频卡两两纵向堆叠 (.tpl-stack)
+ * 每张约占半个槽位高, 两张合计 ≈ 普通卡一个槽位 —— 避免矮宽卡在 2:3 卡群下方空出一半槽位
+ * @param {object[]} items 模板列表
+ * @param {(tpl: object) => Node} cardFn 单卡构造
+ * @returns {Node[]} 网格子节点
+ */
+export function tplGrid(items, cardFn) {
+  const out = [];
+  let stack = [];
+  const flush = () => {
+    if (stack.length === 2) out.push(h('div', { class: 'tpl-stack' }, ...stack));
+    else out.push(...stack);
+    stack = [];
+  };
+  for (const tpl of items) {
+    const wide = tpl.type === 'video' && tplPreview(tpl)?.ratio === '16/9';
+    if (!wide) { flush(); out.push(cardFn(tpl)); continue; }
+    stack.push(cardFn(tpl));
+    if (stack.length === 2) flush();
+  }
+  flush();
+  return out;
+}
+
+/**
  * 模板卡片（统一版式，首页预览区与模板库共用）
  *
  *   ┌──────────────────────┐

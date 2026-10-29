@@ -2,7 +2,7 @@ import { h } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
-import { tplCard } from '../tplCard.js';
+import { tplCard, tplGrid } from '../tplCard.js';
 
 /**
  * 模板库 v2: 「图片类目」「视频类目」两大板块分组展示
@@ -110,7 +110,7 @@ export async function renderTemplates(root, { navigate, query }) {
             h('span', { class: 'desc' }, s.cat.hint || ''),
             h('span', { class: 'pill pill-line' }, `${s.items.length} 个`),
           ),
-          h('div', { class: 'tpl-grid' }, ...s.items.map((tpl) => card(tpl, navigate))),
+          h('div', { class: 'tpl-grid' }, ...tplGrid(s.items, card)),
         )),
       ));
     }

@@ -496,6 +496,11 @@ main.container { flex: 1; padding: 24px 0 48px; }
 .tpl-card2.is-video .tc-preview { aspect-ratio: 2/3; }
 /* 视频卡素材 contain 留白时用深底 (竖版素材/暗调画面融合, 避免白边突兀) */
 .tpl-card2.is-video .tc-preview.has-img { background: #0f172a; }
+/* 16:9 横版视频卡两两纵向堆叠: 各占约半个槽位高 (290×2+8=588 ≈ 普通卡 588), 补齐矮宽卡下方空白 */
+.tpl-stack {
+  display: flex; flex-direction: column; gap: 8px;
+  width: 100%; max-width: 320px;
+}
 .tpl-card2.tc-wide .tc-img { object-fit: contain; }
 video.tc-video { background: #fff; }
 

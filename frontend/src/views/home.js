@@ -1,7 +1,7 @@
 import { h } from '../ui.js';
 import { api } from '../api.js';
 import { icon } from '../icons.js';
-import { tplCard } from '../tplCard.js';
+import { tplCard, tplGrid } from '../tplCard.js';
 import { getCredits } from '../store.js';
 import { renderApiError } from '../errors.js';
 import { createAnnouncementBar } from '../announcements.js';
@@ -110,7 +110,7 @@ export function renderHome(root, { navigate }) {
       grid.replaceChildren(h('div', { class: 'home-loading' }, '暂无模板, 请确认后端已启动'));
       return;
     }
-    grid.replaceChildren(...picked.map((tpl) => tplCard(tpl, { navigate })));
+    grid.replaceChildren(...tplGrid(picked, (tpl) => tplCard(tpl, { navigate })));
   }).catch((e) => {
     // 准确说明原因 (后端未部署 / 地址不对 / 网络不通), 不再只写「模板加载失败」
     grid.replaceChildren();
