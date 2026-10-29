@@ -3,11 +3,33 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.49**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.49`，
+当前版本：**v0.1.50**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.50`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.50 · 2026-10-29
+
+**主题**：种草卖家秀（video-seeding）视频内容上架 —— 卡片视频封面 + 详情图集
+
+### 素材（用户提供 · minimax 成片）
+
+- 结果视频：拆快递袋种草口播（768×1344 竖版 4:7, 15s, 带音轨, 15.8MB）→
+  `covers/video-seeding-preview.mp4`（2.82MB, crf 27 + faststart, 音轨 96k 保留）
+- poster：首帧抽帧 → `covers/video-seeding-poster.jpg`（720 宽, 49KB）
+
+### 改动（`tplMeta.js`, 与万圣节同构）
+
+1. `TPL_PREVIEWS['video-seeding']`：video + poster（竖版不加 ratio —— 2:3 窗 contain + 深底融合,
+   原 icon fallback 卡换真实视频封面, 悬停自动播放）
+2. `TPL_FLOWS['video-seeding']`：详情图集 = 结果预览视频条目（复用封面素材）
+
+### 验收
+
+- tabbit：卡片 video/poster 正确, 2:3 窗（318×477）整卡 588 等高, 不参与 stack 堆叠;
+  详情图集 1 条视频条目 240 定高正常; 目视截图视频分类页与详情页美观完整
+- vite build 通过
 
 ## v0.1.49 · 2026-10-29
 

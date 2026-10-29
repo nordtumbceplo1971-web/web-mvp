@@ -63,6 +63,11 @@ const TPL_PREVIEWS = {
     video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
     alt: '万圣节主题产品开箱效果预览 · 悬停播放',
   },
+  'video-seeding': {
+    // 竖版素材 (4:7) 同上: 不加 ratio, 2:3 窗 contain + 深底融合
+    video: '/covers/video-seeding-preview.mp4', poster: '/covers/video-seeding-poster.jpg',
+    alt: '种草卖家秀效果预览 · 悬停播放',
+  },
 };
 
 export function tplPreview(tpl) {
@@ -115,6 +120,13 @@ const TPL_FLOWS = {
     {
       video: '/covers/video-unbox-halloween.mp4', poster: '/covers/video-unbox-halloween-poster.jpg',
       cap: '结果预览 · 万圣节开箱', alt: '万圣节主题产品开箱 · 成片预览',
+    },
+  ],
+  // 种草卖家秀: 结果预览(视频, 复用封面素材)
+  'video-seeding': [
+    {
+      video: '/covers/video-seeding-preview.mp4', poster: '/covers/video-seeding-poster.jpg',
+      cap: '结果预览 · 种草卖家秀', alt: '种草卖家秀 · 成片预览',
     },
   ],
 };
