@@ -3,11 +3,32 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.48**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.48`，
+当前版本：**v0.1.49**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.49`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.49 · 2026-10-29
+
+**主题**：产品换背景（retouch-bg）内容上架 —— 卡片封面 + 详情图集
+
+### 素材（用户提供）
+
+- 效果图：兔子保温杯换背景成片（1152×2048, 粉色氛围 + 贴纸元素 + 六宫格细节）→
+  `covers/retouch-bg.jpg`（900×1600, 116KB）—— 卡片封面与详情效果图共用
+- 产品图：白底棚拍原图（2048×2048）→ `flows/retouch-bg/product.jpg`（1200×1200, 57KB）
+
+### 改动（`tplMeta.js`, 与 tryon 同构）
+
+1. `TPL_PREVIEWS['retouch-bg']`：封面图 → 原先 icon fallback 卡换真实效果图
+2. `TPL_FLOWS['retouch-bg']`：详情图集 = 产品图 + 效果图（定高胶片条同高展示）
+
+### 验收
+
+- tabbit：封面卡 img 加载成功且整卡 588 等高；详情图集 2 条（产品图/效果图）240 定高同高,
+  naturalWidth 均正常; 目视截图封面与图集美观完整
+- vite build 通过
 
 ## v0.1.48 · 2026-10-29
 
