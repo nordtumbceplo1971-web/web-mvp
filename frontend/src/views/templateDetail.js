@@ -124,17 +124,22 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
 
 /* ---------- 效果预览 + 制作流程 (详情页分块展示) ---------- */
 
-/** 点小图看大图 (全局 lightbox 单例) */
-function openLightbox(src, alt, caption) {
+/** 点小图看大图 (全局 lightbox 单例); 视频条目用同一素材在灯箱内播放 */
+function openLightbox(src, alt, caption, shot = {}) {
   let box = document.getElementById('tpl-lightbox');
   if (!box) {
-    const close = () => box.classList.remove('open');
+    const close = () => {
+      box.classList.remove('open');
+      const v = box.querySelector('.lb-video');
+      if (v) { v.pause(); }
+    };
     box = h('div', {
       id: 'tpl-lightbox', class: 'lightbox', role: 'dialog', 'aria-modal': 'true',
       onclick: close,
     },
       h('div', { class: 'lb-inner', onclick: (e) => e.stopPropagation() },
         h('img', { class: 'lb-img', alt: '' }),
+        h('video', { class: 'lb-video', controls: true, playsinline: true, preload: 'metadata' }),
         h('div', { class: 'lb-cap' }),
         h('button', { class: 'lb-close', type: 'button', 'aria-label': '关闭大图', onclick: close }, '✕'),
       ),
@@ -143,25 +148,64 @@ function openLightbox(src, alt, caption) {
     document.body.append(box);
   }
   const img = box.querySelector('.lb-img');
-  img.src = src;
+  const video = box.querySelector('.lb-video');
+  if (shot.video) {
+    img.style.display = 'none';
+    video.style.display = '';
+    video.poster = shot.poster ?? '';
+    video.src = shot.video;
+    video.currentTime = 0;
+    video.play().catch(() => { /* 自动播放被拦截时用户可点播放 */ });
+  } else {
+    video.pause();
+    video.removeAttribute('src');
+    video.style.display = 'none';
+    img.style.display = '';
+    img.src = src;
+  }
   img.alt = alt;
   box.querySelector('.lb-cap').textContent = caption ?? alt;
   box.classList.add('open');
 }
 
-/** 效果预览: 产品图 → 01…07 成品缩略图 (小图网格, 点击放大) */
+/** 效果预览: 参考图 + 结果预览 (小图网格, 点击放大; 视频条目跨 2 槽位, 与封面同一条素材) */
 function flowPreviewPanel(shots) {
+  // 含视频的混合比例素材 (TVC): 走定高胶片条, 宽度随素材原始比例, 三卡才能同高
+  // 纯图流程 (lookbook): 保持等宽网格, 视频条目占 2 槽位, 列数按占位累加
+  const hasVideo = shots.some((s) => s.video);
+  const cols = Math.min(shots.reduce((n, s) => n + (s.video ? 2 : 1), 0), 8);
+  // 条目少 (≤4) 的纯图流程 (如模特上身图) 走等宽网格会把卡片撑到 1/3 面板宽,
+  // 且各素材原始比例不同必被裁切 —— 同样改用定高胶片条: 窗口按素材比例等比展开, 同高不裁切
+  const strip = hasVideo || shots.length <= 4;
   return h('section', { class: 'card panel flow-panel' },
     h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
-    h('p', { class: 'flow-note' }, '产品图 → 01…07, 每一步都是本模板的真实产出 · 点小图看大图'),
-    h('div', { class: 'flow-gallery' },
-      ...shots.map((s, i) => h('button', {
-        class: `flow-shot${i === 0 ? ' is-product' : ''}`, type: 'button', title: `${s.cap} · 点击看大图`,
-        onclick: () => openLightbox(s.src, s.alt, s.cap),
-      },
-        h('img', { src: s.src, alt: s.alt, loading: 'lazy' }),
-        h('span', { class: 'fs-cap' }, s.cap),
-      )),
+    h('p', { class: 'flow-note' }, '参考素材与成片预览 · 点小图看大图'),
+    h('div', { class: `flow-gallery${strip ? ' flow-gallery-media' : ''}`, style: strip ? '' : `--flow-cols: ${cols}` },
+      ...shots.map((s, i) => {
+        const isVideo = !!s.video;
+        const btn = h('button', {
+          class: `flow-shot${i === 0 ? ' is-product' : ''}${isVideo ? ' is-video' : ''}`,
+          type: 'button', title: `${s.cap} · 点击看大图`,
+          style: isVideo ? 'grid-column: span 2' : '',
+          onclick: () => openLightbox(s.src, s.alt, s.cap, s),
+        },
+          isVideo
+            ? h('video', {
+              class: 'flow-video', src: s.video, poster: s.poster,
+              muted: true, loop: true, playsinline: true, preload: 'metadata',
+              'aria-label': s.alt || s.cap,
+            })
+            : h('img', { src: s.src, alt: s.alt, loading: 'lazy' }),
+          h('span', { class: 'fs-cap' }, s.cap),
+        );
+        if (isVideo) {
+          // 缩略图悬停即播 (静音), 移开暂停
+          const v = btn.querySelector('video');
+          btn.addEventListener('mouseenter', () => v.play().catch(() => {}));
+          btn.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+        }
+        return btn;
+      }),
     ),
   );
 }
