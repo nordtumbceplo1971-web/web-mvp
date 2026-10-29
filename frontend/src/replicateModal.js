@@ -207,7 +207,7 @@ export function openReplicateModal(tpl, { navigate }) {
     body.replaceChildren(
       h('div', { class: 'repl-preview' },
         preview?.video
-          ? h('video', { src: preview.video, poster: preview.poster, controls: true, playsinline: true, preload: 'metadata' })
+          ? h('video', { class: 'rp-video', src: preview.video, poster: preview.poster, controls: true, playsinline: true, preload: 'metadata' })
           : preview
             ? h('img', { src: preview.src, alt: preview.alt || tpl.title })
             : h('div', { class: 'rp-art' }, icon('image', { size: 40 })),

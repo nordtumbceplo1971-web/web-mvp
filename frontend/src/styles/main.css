@@ -1697,12 +1697,20 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
 
 /* 左: 原片预览 */
 .repl-preview {
-  flex: 0 0 336px; position: relative; padding: 18px;
+  flex: 0 0 336px; position: relative; padding: 14px;
   background: #0f172a; display: flex; align-items: center; justify-content: center;
+  overflow: hidden;
 }
-.repl-preview img, .repl-preview video {
+/* 静态图: contain 完整展示 */
+.repl-preview img {
   max-width: 100%; max-height: calc(100vh - 84px); object-fit: contain;
   border-radius: var(--r-md);
+}
+/* 视频原片: 高度撑满左栏可视区 (消除上下死区), 宽度按 16:9 反推但以容器为上限,
+   不够宽时保持 contain 完整显示 */
+.repl-preview .rp-video {
+  width: 100%; height: 100%; max-height: calc(100vh - 56px); max-width: 100%;
+  object-fit: cover; border-radius: var(--r-md);
 }
 .rp-kind { position: absolute; left: 14px; top: 14px; background: rgba(255, 255, 255, 0.92); }
 .rp-art { color: #64748b; }
