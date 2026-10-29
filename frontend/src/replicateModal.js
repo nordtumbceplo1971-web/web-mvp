@@ -67,6 +67,29 @@ export function openReplicateModal(tpl, { navigate }) {
   document.body.style.overflow = 'hidden';
   document.body.append(mask);
 
+  /**
+   * 预览栏宽度自适应素材比例:
+   * 素材加载后按真实宽高比定左栏宽 (横版宽栏 / 竖版窄栏), 弹窗整体随之自适应,
+   * 素材完整显示不裁切。竖版素材上限 336px (避免右表单被挤太窄)。
+   */
+  function fitPreviewWidth(src, isVideoEl) {
+    const probe = isVideoEl ? document.createElement('video') : new Image();
+    probe.preload = 'metadata';
+    const apply = (ar) => {
+      if (!Number.isFinite(ar) || ar <= 0) return;
+      const availH = Math.min(window.innerHeight - 56, 860) - 28; // 预览可视高 - padding
+      const w = Math.round(Math.min(availH * ar, 560));           // 宽上限 560
+      modal.style.setProperty('--repl-pw', `${Math.max(280, w)}px`);
+    };
+    if (isVideoEl) {
+      probe.onloadedmetadata = () => apply(probe.videoWidth / probe.videoHeight);
+    } else {
+      probe.onload = () => apply(probe.naturalWidth / probe.naturalHeight);
+      probe.onerror = () => {};
+    }
+    probe.src = src;
+  }
+
   let busy = false;
   function close() {
     if (current?.modal !== modal) return;
@@ -204,6 +227,9 @@ export function openReplicateModal(tpl, { navigate }) {
   }
 
   function drawForm() {
+    // 预览栏宽度跟随素材比例 (16:9 宽栏 / 2:3 窄栏), 素材完整显示
+    const mediaSrc = preview?.video || preview?.src || null;
+    if (mediaSrc) fitPreviewWidth(mediaSrc, !!preview?.video);
     body.replaceChildren(
       h('div', { class: 'repl-preview' },
         preview?.video

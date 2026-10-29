@@ -1695,22 +1695,20 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
 .repl-x:hover { background: var(--fill); color: var(--ink); }
 .repl-body { display: flex; width: 100%; min-height: 0; }
 
-/* 左: 原片预览 */
+/* 左: 原片预览 — 栏宽由 CSS 变量 --repl-pw 驱动, 按素材比例自适应 (横版宽栏/竖版窄栏) */
 .repl-preview {
-  flex: 0 0 336px; position: relative; padding: 14px;
+  flex: 0 0 var(--repl-pw, 336px); align-self: stretch;
+  position: relative; padding: 14px;
   background: #0f172a; display: flex; align-items: center; justify-content: center;
-  overflow: hidden;
 }
-/* 静态图: contain 完整展示 */
+/* 素材完整显示 (contain): 横版素材栏宽自适应后高度自然占满; 竖版素材上下留窄边可接受 */
 .repl-preview img {
-  max-width: 100%; max-height: calc(100vh - 84px); object-fit: contain;
+  max-width: 100%; max-height: 100%; object-fit: contain;
   border-radius: var(--r-md);
 }
-/* 视频原片: 高度撑满左栏可视区 (消除上下死区), 宽度按 16:9 反推但以容器为上限,
-   不够宽时保持 contain 完整显示 */
 .repl-preview .rp-video {
-  width: 100%; height: 100%; max-height: calc(100vh - 56px); max-width: 100%;
-  object-fit: cover; border-radius: var(--r-md);
+  width: 100%; height: 100%; object-fit: contain;
+  border-radius: var(--r-md);
 }
 .rp-kind { position: absolute; left: 14px; top: 14px; background: rgba(255, 255, 255, 0.92); }
 .rp-art { color: #64748b; }
