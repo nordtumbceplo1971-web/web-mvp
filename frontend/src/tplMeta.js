@@ -51,6 +51,10 @@ const TPL_PREVIEWS = {
     video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg', wide: true,
     alt: 'TVC 广告大片效果预览 · 悬停播放',
   },
+  'video-tryon': {
+    video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg', wide: true,
+    alt: '模特上身视频效果预览 · 悬停播放',
+  },
 };
 
 export function tplPreview(tpl) {
@@ -74,6 +78,24 @@ const TPL_FLOWS = {
     { src: '/flows/shopify-lookbook/step-05.jpg', cap: '05 面料做工', alt: '05 面料与做工效果' },
     { src: '/flows/shopify-lookbook/step-06.jpg', cap: '06 另一模特', alt: '06 另一位模特效果' },
     { src: '/flows/shopify-lookbook/step-07.jpg', cap: '07 品牌生活', alt: '07 品牌生活方式效果' },
+  ],
+  // TVC: 参考素材(产品图/模特图) + 结果预览(视频)
+  // 视频条目直接复用封面那条素材 (/covers/tvc-preview.mp4), 不额外拷贝一份
+  'video-tvc': [
+    { src: '/flows/video-tvc/product.jpg', cap: '产品图', alt: '产品原图 · 正/背面拼版' },
+    { src: '/flows/video-tvc/model.jpg', cap: '模特图', alt: '模特上身 · 城市黄昏街拍' },
+    {
+      video: '/covers/tvc-preview.mp4', poster: '/covers/tvc-preview-poster.jpg',
+      cap: '结果预览 · TVC 视频', alt: 'TVC 广告大片 · 成片预览',
+    },
+  ],
+  // 模特上身视频: 产品图(正/背面拼版) + 结果预览(视频, 复用封面素材)
+  'video-tryon': [
+    { src: '/flows/video-tryon/product.jpg', cap: '产品图', alt: '产品原图 · 正/背面拼版 · CITY IN MOTION' },
+    {
+      video: '/covers/tryon-video-preview.mp4', poster: '/covers/tryon-video-poster.jpg',
+      cap: '结果预览 · 上身视频', alt: '模特上身视频 · 成片预览',
+    },
   ],
 };
 

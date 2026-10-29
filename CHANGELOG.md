@@ -3,9 +3,32 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.43**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.43`，
+当前版本：**v0.1.44**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.44`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.44 · 2026-10-29
+
+**主题**：模特上身视频（video-tryon）内容上架 —— 卡片视频封面 + 详情图集
+
+### 素材（用户提供）
+
+- 产品主图：T 恤正/背面拼版（NVX · CITY IN MOTION，1774×887）→ 压缩为
+  `flows/video-tryon/product.jpg`（1200 宽）与 `covers/tryon-video-poster.jpg`（1280 宽，兼视频 poster）
+- 结果视频：veo-4-omni 成片 → `covers/tryon-video-preview.mp4`（8.3MB，preload=metadata 不自动全量下载）
+
+### 改动（`tplMeta.js`，与 TVC 同构）
+
+1. `TPL_PREVIEWS['video-tryon']`：video + poster + wide → 首页/模板库卡片显示视频封面、悬停自动播放
+2. `TPL_FLOWS['video-tryon']`：详情图集 = 产品图 + 结果预览视频条目
+
+### 验收
+
+- tabbit：首页卡 video/poster/src 正确（16:9 高 179 与视频板块等高）；详情图集 2 条
+  （产品图 / 结果预览·上身视频）渲染正常
+- `npm run build` 通过
 
 ---
 
