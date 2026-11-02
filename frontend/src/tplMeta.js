@@ -49,7 +49,7 @@ export function tplLogo(tpl) {
 const TPL_PREVIEWS = {
   'shopify-lookbook': { src: '/covers/shopify-lookbook.jpg', alt: 'Shopify 套图 7 步成品预览' },
   'main-white': { src: '/covers/main-white.jpg', alt: '白底主图效果预览 · 正面平铺' },
-  'main-flatlay': { src: '/covers/main-flatlay.jpg', alt: '俯拍场景摆拍效果预览 · T恤正背面摄影台棚拍' },
+  'main-flatlay': { src: '/covers/main-flatlay.jpg', alt: 'T恤平铺摆拍图效果预览 · 摄影台棚拍正背面' },
   'retouch-bg': { src: '/covers/retouch-bg.jpg', alt: '产品换背景效果预览 · 保温杯粉色氛围场景' },
   'tryon-female-asia': { src: '/covers/tryon-female-asia.jpg', alt: '模特上身图效果预览 · Lookbook 街拍' },
   'video-tvc': {
@@ -79,10 +79,10 @@ export function tplPreview(tpl) {
 
 /** 模板成品图集 (详情页「效果预览」); 图在 frontend/public/flows/<模板id>/ */
 const TPL_FLOWS = {
-  // 俯拍场景摆拍: 产品图(左正面/右背面拼版) + 效果图(摄影台棚拍, 复用封面素材)
+  // T恤平铺摆拍图: 产品图(左正面/右背面拼版) + 效果图(摄影台棚拍, 复用封面素材)
   'main-flatlay': [
     { src: '/flows/main-flatlay/product.jpg', cap: '产品图', alt: '产品原图 · 左正面/右背面拼版' },
-    { src: '/covers/main-flatlay.jpg', cap: '效果图', alt: '俯拍场景摆拍效果图 · 摄影台 + Lifestyle 道具' },
+    { src: '/covers/main-flatlay.jpg', cap: '效果图', alt: 'T恤平铺摆拍效果图 · 摄影台 + Lifestyle 道具' },
   ],
   // 产品换背景: 产品原图(白底棚拍) + 效果图(换背景+贴纸氛围, 复用封面素材)
   'retouch-bg': [

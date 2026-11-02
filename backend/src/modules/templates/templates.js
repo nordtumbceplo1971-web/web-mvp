@@ -91,7 +91,7 @@ export const templates = [
     id: 'main-flatlay',
     type: 'image',
     category: 'main-image',
-    title: '俯拍场景摆拍',
+    title: 'T恤平铺摆拍图',
     subtitle: '摄影台 + 三面反光板棚拍质感, Lifestyle 道具点缀',
     timeLabel: '约 1 分钟',
     credits: 2,
