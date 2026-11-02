@@ -88,6 +88,27 @@ export const templates = [
     tips: '场景与产品使用人群对齐: 家居品选居家, 户外品选自然场景。',
   },
   {
+    id: 'main-flatlay',
+    type: 'image',
+    category: 'main-image',
+    title: '俯拍场景摆拍',
+    subtitle: '摄影台 + 三面反光板棚拍质感, Lifestyle 道具点缀',
+    timeLabel: '约 1 分钟',
+    credits: 2,
+    needLabel: '1 张产品图（左正面 / 右背面拼版最佳）',
+    needImages: 1,
+    defaults: { model: 'primary', aspect_ratio: '4:5', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
+    // 内置提示词 (用户定稿): 中文参考图说明 + 英文摄影场景公式, 固定不发槽位
+    promptTemplate:
+      '图1为主要的T恤产品（左边是正面图，右边是背面图）。\n'
+      + 'Overhead-to-45-degree styled product shot on a professional shooting table with infinity sweep background, '
+      + 'surrounded by three bounce walls for gentle diffused lighting, one side open for the lens and the main light, '
+      + 'casual organic drape of the product with lifestyle props arranged nearby, soft studio light, '
+      + 'high-end catalog quality, single composition, 8K.',
+    slots: [],
+    tips: '上传左正面 / 右背面拼版的产品图, 印花与文字会按原图精确复刻; 道具与光线由场景公式自动安排。',
+  },
+  {
     id: 'main-festival',
     type: 'image',
     category: 'main-image',

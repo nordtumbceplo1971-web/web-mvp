@@ -3,9 +3,34 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.52**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.52`，
+当前版本：**v0.1.53**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.53`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.53 · 2026-11-02
+
+**主题**：新模板「俯拍场景摆拍」上架（摄影台棚拍场景公式 · 4:5/2K 默认 · 真实测试通过）
+
+### 新增：main-flatlay「俯拍场景摆拍」模板
+
+- 类目：产品主图 · 1 张参考图入口（左正面/右背面拼版最佳）
+- 内置提示词（用户定稿）：中文参考图说明 + 英文摄影场景公式
+  （Overhead-to-45-degree + professional shooting table + infinity sweep + three bounce walls
+  + lifestyle props + soft studio light + high-end catalog quality, 8K）
+- 默认规格 4:5 · 2K（用户无偏好时的缺省值, 可改）；无槽位, 固定场景公式
+- 素材：封面 `covers/main-flatlay.jpg`（900 宽, 131KB, 4:5）+ 详情产品图 `flows/main-flatlay/product.jpg`
+- `tplMeta.js`：TPL_ICONS（grid 图标）+ TPL_PREVIEWS + TPL_FLOWS
+
+### 验证（真实上游 + tabbit）
+
+- 图2 测试参考图（NVX T恤正背面拼版）走完整链路：上传换公网 URL →
+  gpt-image-2.5-flare 生成 → 1.2 分钟完成 → 结果 2048×2560（4:5 · 2K），
+  左正面/右背面布局正确、印花精确复刻、摄影台 + Lifestyle 道具场景还原
+- tabbit：模板库卡片封面加载正常（产品主图类目第 3 位）；详情页效果预览
+  「产品图 + 效果图」双图正常, 准备要求与内置提示词展示正确
+- vite build 通过（`index-DnGFuj-m.js` 130.73 kB）
 
 ---
 
