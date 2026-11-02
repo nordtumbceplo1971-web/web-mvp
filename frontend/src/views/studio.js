@@ -377,8 +377,10 @@ export async function renderStudio(root, { navigate, query, back }) {
       },
         h('div', { class: 'tq-thumb' },
           t.urls?.[0]
-            ? h('img', { src: t.urls[0], alt: t.title, loading: 'lazy' })
-            : h('span', { class: 'tq-ico' }, icon(t.status === 'failed' ? 'x' : 'image', { size: 15 })),
+            ? (t.isVideo
+              ? h('video', { src: t.urls[0], muted: true, playsinline: true, preload: 'metadata' })
+              : h('img', { src: t.urls[0], alt: t.title, loading: 'lazy' }))
+            : h('span', { class: 'tq-ico' }, icon(t.status === 'failed' ? 'x' : (t.isVideo ? 'video' : 'image'), { size: 15 })),
           t.status === 'processing' ? h('i', { class: 'tq-bar', style: `width:${Math.max(6, t.progress || 0)}%` }) : null,
         ),
         h('div', { class: 'tq-meta' },
@@ -419,6 +421,42 @@ export async function renderStudio(root, { navigate, query, back }) {
       h('div', { class: 'gen-stage' }, '正在按你的想法拍摄…'),
       h('div', { class: 'progress-bar' }, h('i', { style: `width:${Math.max(4, t.progress || 0)}%` })),
     ));
+  }
+
+  // ---------- 恢复历史任务 + 动态抓取 ----------
+  // 队列原本是纯会话内存态: 刷新/切页后 processing 任务没人再轮询 /api/tasks/:id,
+  // 后端 completeWorkByTask 永远不触发 → 上游已完成的结果抓不回来。
+  // 挂载时从 /api/works 恢复最近任务, 并对仍在生成中的恢复轮询, 实现动态抓取。
+  async function restoreTasks() {
+    let items = [];
+    try {
+      const [img, vid] = await Promise.all([api.listWorks('image'), api.listWorks('video')]);
+      // 合并后按创建时间全局排序 (listWorks 只在单类型内排序), 否则视频多时会把最新任务挤出前 8
+      items = [...(vid.items ?? []), ...(img.items ?? [])].sort((a, b) => b.createdAt - a.createdAt);
+    } catch { return; } // works 拉不到就维持现状, 不影响本会话新任务
+    const known = new Set(state.tasks.map((t) => t.taskId));
+    const restored = items
+      .filter((w) => w.taskId && !known.has(w.taskId))
+      .slice(0, 8)
+      .map((w) => ({
+        id: ++taskSeq, taskId: w.taskId, title: w.title, templateTitle: '',
+        status: w.status, progress: w.status === 'completed' ? 100 : 0,
+        urls: w.urls ?? [], error: w.error, isVideo: w.type === 'video', restored: true,
+      }));
+    if (!restored.length) return;
+    state.tasks.push(...restored); // 本会话新任务在前, 历史任务排后
+    drawQueue();
+    // 生成中的历史任务恢复轮询: 页面一进来就抓上游最新状态
+    for (const t of restored) {
+      if (t.status !== 'processing') continue;
+      pollTask(t.taskId, (st) => {
+        t.progress = st.progress;
+        if (st.isFinal && st.status === 'completed') { t.status = 'completed'; t.urls = st.urls; }
+        else if (st.isFinal) { t.status = 'failed'; t.error = st.error || '未知原因'; }
+        else drawQueue();
+        if (st.isFinal) drawQueue();
+      });
+    }
   }
 
   // ---------- 左列: 1 参考图 → 3 你的想法 ----------
@@ -693,6 +731,7 @@ export async function renderStudio(root, { navigate, query, back }) {
   drawQueue();
   setQueueOpen(true);
   refreshGen();
+  void restoreTasks(); // 异步恢复历史任务 + 动态抓取进行中的结果 (不阻塞首屏渲染)
   root.append(
     header,
     // 三栏: 左=1参考图+3你的想法 / 中=预览窗口+2模板需求 / 右=图片任务队列

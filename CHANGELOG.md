@@ -3,11 +3,39 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.51**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.51`，
+当前版本：**v0.1.52**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.52`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
 
 ---
+
+## v0.1.52 · 2026-11-02
+
+**主题**：生成素材队列动态抓取修复 —— 刷新/切页后任务不再丢失，上游结果自动抓回
+
+### 问题（用户反馈：get 抓取机制不是动态抓取的）
+
+- 工作台任务队列是纯会话内存态：刷新页面 / 切换模式后队列清空
+- 生成中任务丢失轮询后，后端 `completeWorkByTask` 永远不触发 → 上游已完成的视频/图片结果抓不回来，作品永久卡在「生成中」
+- 队列缩略图一律用 `<img>` 渲染 → 视频任务即使抓到 mp4 URL 也显示裂图
+
+### 修复（frontend/src/views/studio.js + styles/main.css）
+
+- **挂载恢复**：进入工作台时从 `GET /api/works`（image + video）恢复最近 8 条任务进队列，
+  合并后按 `createdAt` 全局排序（避免视频任务多时把最新任务挤出前 8）
+- **动态抓取**：对恢复出来仍在「生成中」的任务恢复 `pollTask` 轮询（3s/次），
+  上游完成后自动把结果 URL 写回队列与作品库 —— 页面一进来就抓最新状态
+- **视频缩略图**：队列缩略图按任务类型渲染 `<video preload="metadata">` / `<img>`，
+  失败任务显示 × 图标，视频任务显示 video 图标；CSS `.tq-thumb video` 与 img 同款 object-fit
+
+### 验证（本地 8787 + 上游真实任务 + tabbit 自动化）
+
+- 提交真实视频任务（veo-4-omni · 16:9 · 720p）：2 分钟完成，URL 抓回
+  `https://cdn.token6688.com/mirror/delivered/...`，作品库自动回写 completed
+- 提交真实图片任务后刷新页面：任务恢复进队列并自动轮询到完成，
+  队首显示「动态抓取验证 · 已完成」+ 真实图片缩略图；点开队列项画布渲染视频播放器
+- vite build 通过（`index-F5GqzMQP.js` 130.46 kB）
+
 
 ## v0.1.51 · 2026-10-29
 
