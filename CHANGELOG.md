@@ -3,9 +3,38 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.56**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.56`，
+当前版本：**v0.1.57**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.57`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.57 · 2026-11-04
+
+**主题**：测试号登录上线 —— 注册通道暂时关闭，改用管理员分发账号
+
+### 背景
+
+- 邮箱注册机的 SMTP 通道被邮箱服务商卡住：`xingwin.com` 托管在网易免费企业邮老集群
+  （MX → mx.ym.163.com），其 SMTP 服务不可用（451 内部错误）；`smtphz.qiye.163.com`
+  付费集群不认识该域名（DOMAINNOTEXIST）；25 端口被腾讯云出站封禁
+- 决定：注册机制代码保留、入口暂时关闭，先用内置测试号登录
+
+### 变更
+
+- 后端：`SEED_USERS` env（`"user1:pass1,user2:pass2"`）启动时幂等创建种子账号
+  （scrypt 哈希, 密码不进 git）；`REGISTER_ENABLED` env —— 缺省关闭，
+  注册两个端点返回 403 `register_disabled`
+- 前端：登录页隐藏「注册账号」tab 与注册引导（`SHOW_REGISTER=false`），
+  登录框 placeholder 改「邮箱或用户名」（支持 seed 用户名直登）
+- 服务器 `.env`：`SEED_USERS=test:Xw.123456,admin:Xw.123456`（账号 test / admin）
+
+### 验证（本地 + 996.chat 已部署）
+
+- 本地冒烟 5 项：test 登录 200 / admin 登录 200 / 错密码 401 / 注册 403 register_disabled /
+  admin token 访问受保护接口 200 —— 全部通过
+- 服务器：test 登录 200 + uid token，注册 403，新前端 `index-chhUleld.js` 上线
+- SMTP 通道代码保留：邮箱服务恢复后填对 HOST/USER/PASS + `REGISTER_ENABLED=1` 即可重新开放
 
 ---
 

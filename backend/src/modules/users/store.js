@@ -86,3 +86,25 @@ export function verifyPassword(user, password) {
 export function userCount() {
   return readAll().length;
 }
+
+/**
+ * 内置种子账号 (SEED_USERS env: "user1:pass1,user2:pass2")
+ * 启动时调用; 已存在 (按用户名) 则跳过, 幂等。密码仅存 scrypt 哈希, env 不进 git。
+ */
+export function ensureSeedUsers(seedSpec) {
+  const pairs = String(seedSpec ?? '')
+    .split(',')
+    .map((s) => s.trim())
+    .filter(Boolean)
+    .map((s) => {
+      const idx = s.indexOf(':');
+      if (idx <= 0) return null;
+      return { name: s.slice(0, idx).trim().toLowerCase(), pass: s.slice(idx + 1) };
+    })
+    .filter(Boolean);
+  for (const { name, pass } of pairs) {
+    if (findUserByEmail(name)) continue;
+    const created = createUser(name, pass);
+    if (created) console.log(`[users] seed 账号已创建: ${name}`);
+  }
+}

@@ -13,6 +13,9 @@ import { setToken } from '../auth.js';
 const field = (labelText, inputEl) => h('label', { class: 'login-field' },
   h('span', { class: 'lf-label' }, labelText), inputEl);
 
+// 注册通道开关: 注册暂未开放 (后端 REGISTER_ENABLED=0) → 登录页只显示账号登录 + 访问码
+const SHOW_REGISTER = false;
+
 export function renderLoginScreen(root) {
   root.replaceChildren();
 
@@ -21,7 +24,7 @@ export function renderLoginScreen(root) {
   const showErr = (msg) => { errTip.textContent = msg ?? ''; };
 
   // ---------- Tab 1: 账号登录 ----------
-  const liEmail = h('input', { class: 'input', type: 'email', placeholder: 'name@yourdomain.com', autocomplete: 'username' });
+  const liEmail = h('input', { class: 'input', type: 'text', placeholder: '邮箱或用户名', autocomplete: 'username' });
   const liPass = h('input', { class: 'input', type: 'password', placeholder: '密码', autocomplete: 'current-password',
     onkeydown: (e) => { if (e.key === 'Enter') doAccountLogin(); } });
   const loginBtn = h('button', { class: 'btn btn-primary', type: 'button', style: 'width:100%;margin-top:14px' },
@@ -125,6 +128,11 @@ export function renderLoginScreen(root) {
   tabRegister.onclick = () => switchTab('register');
   goRegister.onclick = () => switchTab('register');
   goLogin.onclick = () => switchTab('account');
+  if (!SHOW_REGISTER) {
+    // 注册暂未开放: 隐藏 tab 与注册引导
+    tabRegister.style.display = 'none';
+    goRegister.style.display = 'none';
+  }
 
   // ---------- 访问码 (快速通道) ----------
   const accInput = h('input', { class: 'input', type: 'password', placeholder: '输入访问码', autocomplete: 'current-password',

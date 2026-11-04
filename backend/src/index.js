@@ -1,5 +1,9 @@
 import { config, isMockMode } from './config.js';
 import { app } from './app.js';
+import { ensureSeedUsers } from './modules/users/store.js';
+
+// 内置种子账号 (SEED_USERS env, 幂等): 公网站点关闭注册时由管理员手动分发账号
+ensureSeedUsers(config.seedUsers);
 
 /**
  * 本地开发入口 (常驻进程)

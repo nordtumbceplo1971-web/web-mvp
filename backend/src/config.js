@@ -19,6 +19,10 @@ export const config = {
     // SMTP 未配置时把验证码回显给前端 (仅本地调试用; 生产务必留空)
     devEcho: env('SMTP_DEV_ECHO', '') === '1',
   },
+  // 注册开关: '1' = 开放邮箱注册; 缺省关闭 (登录页隐藏注册入口, 注册接口返回 403)
+  registerEnabled: env('REGISTER_ENABLED', '') === '1',
+  // 内置种子账号: "user1:pass1,user2:pass2" — 启动时幂等创建 (密码不进 git)
+  seedUsers: env('SEED_USERS', ''),
   upstream: {
     baseUrl: env('UPSTREAM_BASE_URL', 'https://121481.token6688.com').replace(/\/+$/, ''),
     apiKey: env('UPSTREAM_API_KEY', ''),

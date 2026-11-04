@@ -60,6 +60,9 @@ api.get('/health', (req, res) => {
 // health 保持公开 (前端模式芯片用, 无敏感信息); 其余 /api/* 全部要求 Bearer token
 api.post('/auth/login', wrap(loginHandler));
 api.post('/auth/register/request', wrap(async (req, res) => {
+  if (!config.registerEnabled) {
+    return res.status(403).json({ error: { code: 'register_disabled', message: '注册暂未开放, 请使用管理员分发账号登录' } });
+  }
   const email = String(req.body?.email ?? '').trim().toLowerCase();
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     return res.status(400).json({ error: { code: 'bad_email', message: '邮箱格式不正确' } });
@@ -74,6 +77,9 @@ api.post('/auth/register/request', wrap(async (req, res) => {
   res.json({ ok: true, sent, devCode: devCode ?? null });
 }));
 api.post('/auth/register/confirm', wrap(async (req, res) => {
+  if (!config.registerEnabled) {
+    return res.status(403).json({ error: { code: 'register_disabled', message: '注册暂未开放, 请使用管理员分发账号登录' } });
+  }
   const { email, code, password, accessCode } = req.body ?? {};
   // 访问码作为注册门票 (若启用): 防止陌生人利用公开注册灌号
   if (authEnabled()) {
