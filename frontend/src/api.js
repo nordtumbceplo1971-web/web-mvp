@@ -95,6 +95,9 @@ async function request(path, { method = 'GET', body, formData, base, timeoutMs =
 export const api = {
   health: (base) => request('/health', base === undefined ? {} : { base }),
   login: (code) => request('/auth/login', { method: 'POST', body: { code } }),
+  registerRequest: (email) => request('/auth/register/request', { method: 'POST', body: { email } }),
+  registerConfirm: (body) => request('/auth/register/confirm', { method: 'POST', body }),
+  accountLogin: (email, password) => request('/auth/account-login', { method: 'POST', body: { email, password } }),
   listTemplates: ({ category, type } = {}) => {
     const q = new URLSearchParams();
     if (category && category !== 'all') q.set('category', category);

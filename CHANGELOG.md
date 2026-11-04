@@ -3,9 +3,40 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.55**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.55`，
+当前版本：**v0.1.56**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.56`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.56 · 2026-11-04
+
+**主题**：邮箱注册机上线（网易企业邮 SMTP · 验证码注册 + 账号密码登录 · 双通道登录页）
+
+### 新增：邮箱账号体系（v0.1.55 访问码之上的正式账号）
+
+- 后端 `modules/users/store.js`：账号存储（scrypt 密码哈希, 三级降级存储与 works 同款）
+- 后端 `modules/mailer.js`：SMTP 发信（nodemailer, 网易企业邮 smtphz.qiye.163.com）+
+  注册验证码（6 位, 10 分钟有效, 60s 重发冷却, 5 次尝试上限）+ 注册域名白名单
+- 新端点（均在鉴权门前公开）：`/auth/register/request`（发码）、`/auth/register/confirm`
+  （验证码 + 注册邀请码[=访问码] + 密码 ≥8 位 → 建号）、`/auth/account-login`（邮箱+密码）
+- token 升级带 uid（`${exp}|${uid}.sig`）：账号登录 uid=用户 id, 访问码 uid=guest —— 供后续按用户隔离
+- 前端登录页双 tab：账号登录 / 注册账号；底部保留访问码快速通道；注册验证码 60s 倒计时
+- env：`SMTP_HOST/PORT/USER/PASS/FROM`、`REGISTER_DOMAIN`（注册白名单域名）、
+  `SMTP_DEV_ECHO=1`（仅本地调试: SMTP 未配时验证码回显前端, 生产务必留空）
+
+### 待用户补齐（填入即生效）
+
+- 服务器 `/opt/996-studio/backend/.env`：`SMTP_USER`（发信邮箱）、`SMTP_PASS`、`REGISTER_DOMAIN`（企业域名）
+- 未填前注册会提示「邮件服务未配置, 请联系管理员」；访问码通道不受影响
+
+### 验证（本地 + 996.chat 线上 + tabbit）
+
+- 本地冒烟 8 项：发码 devCode / 错邀请码 403 / 建号 200+uid / 账号登录 200 / 错密码 401 /
+  重复注册 409 / 访问码通道 200 / 账号 token 访问受保护接口 200 —— 全部通过
+- 服务器：nodemailer 已装, 服务 active, `smtp_not_configured` 提示正确, 访问码 200, 新前端上线
+- tabbit：登录页双 tab 渲染正常（账号/注册/访问码三屏截图）, 访问码通道进入工作台正常
+- vite build 通过（`index-COkhDpzs.js` 135.58 kB）
 
 ---
 

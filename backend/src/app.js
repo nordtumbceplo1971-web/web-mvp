@@ -46,10 +46,12 @@ export function createApp() {
   app.use((err, req, res, next) => { // eslint-disable-line no-unused-vars
     const status = err.status ?? 500;
     if (status >= 500) console.error('[api-error]', err);
+    // 业务错误 (带自定义 code, 如 smtp_not_configured) 保留原始 message, 便于前端提示
+    const isInternal = status >= 500 && !err.code;
     res.status(status).json({
       error: {
         code: err.code ?? 'internal_error',
-        message: status >= 500 ? '服务内部错误, 请稍后重试' : err.message,
+        message: isInternal ? '服务内部错误, 请稍后重试' : err.message,
       },
     });
   });

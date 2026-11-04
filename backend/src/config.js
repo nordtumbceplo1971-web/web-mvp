@@ -7,6 +7,18 @@ export const config = {
   corsOrigin: env('CORS_ORIGIN', 'http://localhost:5173'),
   // 单一访问码登录: 留空 = 鉴权关闭 (本地开发 / MOCK); 配置后 /api 全部要求 Bearer token
   accessCode: env('ACCESS_CODE', ''),
+  // 邮箱账号体系 (SMTP 发信通道, 网易企业邮): 未配 SMTP 时验证码仅打印日志
+  smtp: {
+    host: env('SMTP_HOST', ''),
+    port: env('SMTP_PORT', '465'),
+    user: env('SMTP_USER', ''),
+    pass: env('SMTP_PASS', ''),
+    from: env('SMTP_FROM', ''),
+    // 注册邮箱白名单域名 (逗号分隔); 空 = 不限, 不推荐公网站点放开
+    registerDomain: env('REGISTER_DOMAIN', ''),
+    // SMTP 未配置时把验证码回显给前端 (仅本地调试用; 生产务必留空)
+    devEcho: env('SMTP_DEV_ECHO', '') === '1',
+  },
   upstream: {
     baseUrl: env('UPSTREAM_BASE_URL', 'https://121481.token6688.com').replace(/\/+$/, ''),
     apiKey: env('UPSTREAM_API_KEY', ''),

@@ -16,7 +16,10 @@ import { listModels, getModel, createModel, updateModel, deleteModel, saveModelI
 import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
 import { composeModelPrompt } from './modules/models/modelGenerator.js';
 import { batchApi } from './routes-batch.js';
-import { loginHandler, authRequired } from './modules/auth.js';
+import { loginHandler, authRequired, authEnabled, createToken } from './modules/auth.js';
+import { emailAllowed, deliverCode, checkCode } from './modules/mailer.js';
+import { findUserByEmail, createUser, verifyPassword } from './modules/users/store.js';
+import crypto from 'node:crypto';
 import { APP_VERSION } from './version.js';
 
 export const api = Router();
@@ -56,6 +59,57 @@ api.get('/health', (req, res) => {
 // ---------- 登录 (公开) + 鉴权门 ----------
 // health 保持公开 (前端模式芯片用, 无敏感信息); 其余 /api/* 全部要求 Bearer token
 api.post('/auth/login', wrap(loginHandler));
+api.post('/auth/register/request', wrap(async (req, res) => {
+  const email = String(req.body?.email ?? '').trim().toLowerCase();
+  if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+    return res.status(400).json({ error: { code: 'bad_email', message: '邮箱格式不正确' } });
+  }
+  if (!emailAllowed(email)) {
+    return res.status(403).json({ error: { code: 'domain_denied', message: '仅支持企业域名邮箱注册' } });
+  }
+  if (findUserByEmail(email)) {
+    return res.status(409).json({ error: { code: 'email_taken', message: '该邮箱已注册, 请直接登录' } });
+  }
+  const { sent, devCode } = await deliverCode(email);
+  res.json({ ok: true, sent, devCode: devCode ?? null });
+}));
+api.post('/auth/register/confirm', wrap(async (req, res) => {
+  const { email, code, password, accessCode } = req.body ?? {};
+  // 访问码作为注册门票 (若启用): 防止陌生人利用公开注册灌号
+  if (authEnabled()) {
+    const expect = String(config.accessCode);
+    const ok = String(accessCode ?? '').trim().length === expect.length
+      && crypto.timingSafeEqual(Buffer.from(String(accessCode ?? '').trim()), Buffer.from(expect));
+    if (!ok) {
+      return res.status(403).json({ error: { code: 'bad_access_code', message: '注册邀请码不正确' } });
+    }
+  }
+  const check = checkCode(String(email ?? ''), String(code ?? ''));
+  if (!check.ok) {
+    return res.status(400).json({ error: { code: 'bad_code', message: check.reason } });
+  }
+  const pwd = String(password ?? '');
+  if (pwd.length < 8) {
+    return res.status(400).json({ error: { code: 'weak_password', message: '密码至少 8 位' } });
+  }
+  const user = createUser(email, pwd);
+  if (!user) {
+    return res.status(409).json({ error: { code: 'email_taken', message: '该邮箱已注册, 请直接登录' } });
+  }
+  const { token, expiresAt } = createToken(user.id);
+  res.json({ ok: true, token, expiresAt, uid: user.id, email: user.email });
+}));
+api.post('/auth/account-login', wrap(async (req, res) => {
+  const email = String(req.body?.email ?? '').trim().toLowerCase();
+  const password = String(req.body?.password ?? '');
+  const user = findUserByEmail(email);
+  const ok = user && verifyPassword(user, password);
+  if (!ok) {
+    return res.status(401).json({ error: { code: 'bad_credentials', message: '邮箱或密码不正确' } });
+  }
+  const { token, expiresAt } = createToken(user.id);
+  res.json({ ok: true, token, expiresAt, uid: user.id, email: user.email });
+}));
 api.use(authRequired);
 
 // ---------- 模板库 ----------
