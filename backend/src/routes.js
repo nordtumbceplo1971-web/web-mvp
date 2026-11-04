@@ -16,6 +16,7 @@ import { listModels, getModel, createModel, updateModel, deleteModel, saveModelI
 import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
 import { composeModelPrompt } from './modules/models/modelGenerator.js';
 import { batchApi } from './routes-batch.js';
+import { loginHandler, authRequired } from './modules/auth.js';
 import { APP_VERSION } from './version.js';
 
 export const api = Router();
@@ -51,6 +52,11 @@ api.get('/health', (req, res) => {
     runtime: process.env.VERCEL ? 'vercel-serverless' : 'node-server',
   });
 });
+
+// ---------- 登录 (公开) + 鉴权门 ----------
+// health 保持公开 (前端模式芯片用, 无敏感信息); 其余 /api/* 全部要求 Bearer token
+api.post('/auth/login', wrap(loginHandler));
+api.use(authRequired);
 
 // ---------- 模板库 ----------
 api.get('/templates', (req, res) => {

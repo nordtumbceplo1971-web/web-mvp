@@ -18,6 +18,8 @@ import { renderModels } from './views/models.js';
 import { renderLookbook } from './views/lookbook.js';
 import { renderBatch } from './views/batch.js';
 import { renderTools } from './views/tools.js';
+import { renderLoginScreen } from './views/login.js';
+import { isAuthed } from './auth.js';
 
 /**
  * 应用外壳 v3 (严肃商业 SaaS): 左侧功能导航 + 顶栏 + 内容区
@@ -374,7 +376,17 @@ function renderShell() {
   return navigate;
 }
 
-const navigate = renderShell();
+const navigate = (function boot() {
+  // 登录守卫: 后端启用访问码后, 未登录一律先进登录页 (登录成功整页刷新重建外壳)
+  if (!isAuthed()) {
+    renderLoginScreen(document.getElementById('app'));
+    return () => {};
+  }
+  return renderShell();
+})();
+
+// 会话中途失效 (token 过期 / 访问码被换) → 清态回到登录页
+window.addEventListener('bs:unauthorized', () => { location.reload(); });
 
 // 页面初始化视觉引导: 首次访问自动开始 (可跳过)
-setTimeout(() => startTour({}), 600);
+setTimeout(() => { if (isAuthed()) startTour({}); }, 600);

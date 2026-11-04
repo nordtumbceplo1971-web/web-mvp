@@ -5,6 +5,8 @@ const env = (key, fallback = '') => process.env[key] ?? fallback;
 export const config = {
   port: Number(env('PORT', 8787)),
   corsOrigin: env('CORS_ORIGIN', 'http://localhost:5173'),
+  // 单一访问码登录: 留空 = 鉴权关闭 (本地开发 / MOCK); 配置后 /api 全部要求 Bearer token
+  accessCode: env('ACCESS_CODE', ''),
   upstream: {
     baseUrl: env('UPSTREAM_BASE_URL', 'https://121481.token6688.com').replace(/\/+$/, ''),
     apiKey: env('UPSTREAM_API_KEY', ''),

@@ -7,6 +7,8 @@
  * 3) 空字符串 —— 与前端同域的 /api (Vercel 一体化部署 / 本地开发)
  */
 
+import { getToken, handleUnauthorized } from './auth.js';
+
 const RUNTIME_CFG = (typeof window !== 'undefined' && window.__APP_CONFIG__) || {};
 
 const trimBase = (v) => String(v ?? '').trim().replace(/\/+$/, '');
@@ -49,6 +51,9 @@ async function request(path, { method = 'GET', body, formData, base, timeoutMs =
     opts.headers = { 'Content-Type': 'application/json' };
     opts.body = JSON.stringify(body);
   }
+  // 登录态: 后端配置访问码后所有 /api 要求 Bearer token (login 本身无 token 也无妨)
+  const token = getToken();
+  if (token) opts.headers = { ...opts.headers, Authorization: `Bearer ${token}` };
 
   const controller = new AbortController();
   const timer = setTimeout(() => controller.abort(), timeoutMs);
@@ -77,6 +82,8 @@ async function request(path, { method = 'GET', body, formData, base, timeoutMs =
   }
 
   if (!res.ok || data?.error) {
+    // 登录态失效: 清 token 并通知外壳跳登录页 (login 接口自身的 401 不在此处理)
+    if (res.status === 401 && !path.startsWith('/auth/')) handleUnauthorized();
     const reason = res.status === 404 ? 'not-found'
       : res.status >= 500 ? 'server' : 'http';
     const msg = data?.error?.message || `请求失败 (${res.status})`;
@@ -87,6 +94,7 @@ async function request(path, { method = 'GET', body, formData, base, timeoutMs =
 
 export const api = {
   health: (base) => request('/health', base === undefined ? {} : { base }),
+  login: (code) => request('/auth/login', { method: 'POST', body: { code } }),
   listTemplates: ({ category, type } = {}) => {
     const q = new URLSearchParams();
     if (category && category !== 'all') q.set('category', category);

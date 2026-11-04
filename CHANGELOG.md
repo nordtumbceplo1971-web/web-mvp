@@ -3,9 +3,33 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.54**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.54`，
+当前版本：**v0.1.55**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.55`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.55 · 2026-11-04
+
+**主题**：登录机制上线（单一访问码 · 部署到腾讯云 CVM 后的访问门槛）
+
+### 新增：访问码登录鉴权
+
+- 后端 `modules/auth.js`：`POST /api/auth/login` 校验访问码，签发无状态 token
+  （`${exp}.${HMAC-SHA256(exp, ACCESS_CODE)}`，30 天有效）；`authRequired` 中间件
+  保护全部 `/api/*`（`/health` 与 login 本身公开）；login 限流 5 次/分钟/IP 防爆破；
+  `ACCESS_CODE` 未配置 = 鉴权关闭（本地开发 / MOCK 模式不受影响）
+- 前端：`auth.js`（token 存取 + 401 事件）、`api.js` 请求自动带 `Authorization: Bearer`
+  并在 401 时清态派发 `bs:unauthorized`；`views/login.js` 独立登录屏（不套外壳）；
+  `main.js` 启动守卫 —— 未登录一律先进登录页，登录成功整页刷新进入工作台
+- 部署：本地与 996.chat 服务器 `.env` 均已配置 `ACCESS_CODE`（更换即吊销全部登录态）
+
+### 验证（本地 + 996.chat 线上 + tabbit）
+
+- API 冒烟 6 项：health 公开 200 / 无 token 401 / 错码 401 / 正码签发 token /
+  token 访问 200 / 坏 token 401 —— 全部通过
+- tabbit 实测 https://996.chat ：未登录见登录屏 → 错码报错 → 正确访问码进入完整工作台
+- vite build 通过（`index-9YTnUdtv.js` 132.47 kB）
 
 ---
 
