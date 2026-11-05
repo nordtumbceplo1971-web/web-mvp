@@ -144,6 +144,7 @@ export function openReplicateModal(tpl, { navigate }) {
       refreshCta();
       try {
         item.url = (await api.upload(file)).url;
+        refreshCta();
       } catch (e) {
         toast(`「${file.name}」上传失败: ${e.message}`, 'err');
         state.images = state.images.filter((x) => x !== item);
@@ -229,15 +230,21 @@ export function openReplicateModal(tpl, { navigate }) {
     // 批量模式: 张数 = 已上传图数, 每张一条请求 → 消耗按张数计
     const units = batch ? Math.max(state.images.length, 1) : 1;
     const totalCost = tpl.credits * units;
+    // 上传是异步的 (item.url 为 null 表示仍在传): 必须全部就绪才允许生成,
+    // 否则 buildPayload 会过滤掉未就绪的图 → 传 2 张实际只提交 1 条
+    const uploadedCount = state.images.filter((im) => im.url && !isMockUrl(im.url)).length;
+    const uploading = state.images.length > 0 && uploadedCount < state.images.length;
     const enoughImgs = batch ? state.images.length >= 1 : state.images.length >= needImages;
+    const ready = enoughImgs && !uploading;
     const enoughCredits = getCredits() >= totalCost;
     ctaHint.textContent = batch
       ? `批量生成 ${state.images.length} 张 · 每张 1 条请求 · 消耗 ${totalCost} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`
       : `本次消耗 ${tpl.credits} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`;
     // 额度不足不置灰死: 点击直接去充值 (转化路径, 路线图 1.1.2)
-    ctaBtn.disabled = !enoughImgs;
-    ctaBtn.classList.toggle('rf-cta-recharge', !enoughCredits && enoughImgs);
+    ctaBtn.disabled = !ready;
+    ctaBtn.classList.toggle('rf-cta-recharge', !enoughCredits && ready);
     ctaBtn.textContent = !enoughImgs ? (batch ? '请先上传产品图' : `请先上传 ${needImages} 张图`)
+      : uploading ? `图片上传中 ${uploadedCount}/${state.images.length}…`
       : !enoughCredits ? '额度不足 · 去充值'
       : batch ? `批量生成 ${state.images.length} 张`
       : isVideo ? '开始复刻 · 生成视频' : '开始复刻 · 生成图片';
@@ -305,6 +312,8 @@ export function openReplicateModal(tpl, { navigate }) {
    */
   async function generateBatch() {
     const imageUrls = state.images.map((im) => im.url).filter((u) => u && !isMockUrl(u));
+    // 兜底: CTA 已拦截上传中的场景, 这里防住竞态 (上传途中仍可能被点击)
+    if (imageUrls.length < state.images.length) { toast('部分图片尚未上传完成, 请稍候再点生成', 'err'); return; }
     if (!imageUrls.length) { toast('请先上传产品图', 'err'); return; }
     const n = imageUrls.length;
     const totalCost = tpl.credits * n;

@@ -501,6 +501,11 @@ export async function renderStudio(root, { navigate, query, back }) {
 
   async function generate() {
     if (genBtn.disabled) return;
+    // 参考图上传是异步的: url 未就绪会被 payload 过滤 → 静默丢参考图, 必须等传完
+    if (state.images.some((im) => !im.url || isMockUrl(im.url))) {
+      toast('参考图还在上传中, 请稍候再生成', 'err');
+      return;
+    }
     const cost = mode === 'video' ? 2 : 2 * state.count;
     spendCredits(cost, { label: `自由工作台 · ${mode === 'video' ? '视频' : `${state.count} 张图`}`, model: mode === 'video' ? 'veo-4-omni' : 'gpt-image-2.5' });
     genBtn.disabled = true;

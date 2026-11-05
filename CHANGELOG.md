@@ -3,9 +3,34 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.58**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.58`，
+当前版本：**v0.1.59**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.59`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.59 · 2026-11-05
+
+**主题**：修复批量生成「传 2 张只出 1 个结果」——上传未完成即提交导致参考图被静默丢弃
+
+### 修复：图片上传未就绪即可点生成（frontend/src/replicateModal.js）
+
+- **根因**：选图后图片先入列（`url=null`）再逐张异步上传；CTA 只看张数不看上传状态，
+  用户在第 2 张还在上传时点「批量生成」→ payload 过滤掉未就绪的 url → 实际只提交 1 条
+  （复现证据：works.json 只落了 `#1` 一条，无 `#2`）
+- CTA 新增上传状态判断：图片在传时按钮禁用并显示「图片上传中 x/N…」，全部就绪才恢复「批量生成 N 张」
+- 上传成功后补调 `refreshCta()`（此前 CTA 状态不随上传完成刷新）
+- `generateBatch()` 增加兜底：就绪 url 数 < 已选张数时 toast 拦截，不静默缩量提交
+
+### 同类修复：自由工作台参考图（frontend/src/views/studio.js）
+
+- `generate()` 提交前校验参考图 url 全部就绪，未就绪 toast 提示等待，防止静默丢参考图
+
+### 验证
+
+- tabbit E2E（本地 LIVE）：选 2 张 → 提交「已提交 2/2 张」→ 完成面板「成功 2 张」
+  + 结果网格 2 图；works.json 新增 `T恤平铺摆拍图 #1/#2` 两条 completed
+- `npm run build` 通过（33 modules）
 
 ---
 
