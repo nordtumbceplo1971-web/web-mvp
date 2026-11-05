@@ -3,9 +3,44 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.60**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.60`，
+当前版本：**v0.1.61**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.61`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.61 · 2026-11-05
+
+**主题**：作品卡片 UI 收口 + 删除二次确认 + 多选批量删除
+
+### 修复：卡片底部大片空白（frontend/src/styles/main.css）
+
+- 根因：`.works-grid` 行内卡片等高拉伸，而 `.work-body` 未占满剩余高度 →
+  多余空间堆在卡片底部，操作行浮在半空
+- `.work-body { flex: 1 }` + `.work-actions { margin-top: auto }` → 操作行贴卡片底部
+
+### 新增：删除二次确认（frontend/src/ui.js）
+
+- 新增 `confirmDialog({ title, message, confirmText, danger })` → Promise\<boolean\>，
+  复用既有 `.modal-mask` 遮罩；Esc / 点遮罩 / 取消 一律视为「否」
+- 破坏性操作（删除不可恢复）从此必须过人工闸门，不再一点即删
+
+### 新增：多选批量删除（frontend/src/views/works.js）
+
+- 顶栏「多选」进入多选模式：卡片左上角复选框、选中态高亮，工具条显示「已选 N 件 · 全选 · 取消选择 · 批量删除 (N)」
+- 多选模式下隐藏单条删除按钮，统一走批量删除的确认闸门
+- 单条删除 / 批量删除均弹确认框（含作品名与数量），接口失败保留作品与选中状态并 toast 说明原因
+
+### 新增：后端批量删除接口
+
+- `POST /api/works/batch-delete`，body `{ ids: string[] }` → `{ deleted, deletedIds, missing }`
+- 契约：空 ids 返回 400 `invalid_request`；不存在的 id 计入 `missing`；单条失败不影响其余
+- 存储层 `deleteWorks(ids)`（backend/src/modules/works/store.js）
+
+### 验证
+
+- 后端冒烟：空 ids → 400；删 2 条 → `deleted:2`；含不存在 id → `missing:["no-such-id"]`；列表 total 68→66
+- tabbit E2E **15/15 通过**：弹窗出现/取消不删/确认删 1 件/多选工具条/勾选计数/批量弹窗/批量删 2 件/卡片贴底 gap=13px
 
 ---
 

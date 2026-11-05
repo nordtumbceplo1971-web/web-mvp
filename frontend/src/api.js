@@ -119,6 +119,7 @@ export const api = {
   optimizePrompt: (prompt, imageUrl) => request('/prompt/optimize', { method: 'POST', body: { prompt, imageUrl } }),
   listWorks: (type) => request(`/works${type ? `?type=${type}` : ''}`),
   deleteWork: (id) => request(`/works/${id}`, { method: 'DELETE' }),
+  deleteWorksBatch: (ids) => request('/works/batch-delete', { method: 'POST', body: { ids } }),
   updateWork: (id, patch) => request(`/works/${id}`, { method: 'PATCH', body: patch }),
   listModels: () => request('/models'),
 

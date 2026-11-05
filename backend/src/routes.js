@@ -10,7 +10,7 @@ import { generateImage, generateVideo, generateImageBatch } from './modules/gene
 import { isMockTaskId, getMockTask, parseMockTaskId } from './modules/generation/taskSimulator.js';
 import { getTask, uploadFile, UpstreamError } from './upstream/client.js';
 import { optimizePrompt, OPTIMIZER_SYSTEM_PROMPT } from './modules/prompt/optimizer.js';
-import { listWorks, deleteWork, completeWorkByTask, findWorkByTask, updateWork, storageMode } from './modules/works/store.js';
+import { listWorks, deleteWork, deleteWorks, completeWorkByTask, findWorkByTask, updateWork, storageMode } from './modules/works/store.js';
 import { systemModels } from './modules/models/systemModels.js';
 import { listModels, getModel, createModel, updateModel, deleteModel, saveModelImage, getModelImagePath, modelsStorageMode } from './modules/models/store.js';
 import { composeShopifyPrompt, composeShopifyRetouchPrompt, SHOPIFY_STEPS, SHOPIFY_TEMPLATE_ID } from './modules/templates/shopify.js';
@@ -239,6 +239,18 @@ api.delete('/works/:id', (req, res) => {
   const ok = deleteWork(req.params.id);
   if (!ok) return res.status(404).json({ error: { code: 'not_found', message: '作品不存在' } });
   res.json({ deleted: true });
+});
+
+/** 批量删除 (多选): body { ids: string[] } → { deleted, deletedIds, missing } */
+api.post('/works/batch-delete', (req, res) => {
+  const ids = Array.isArray(req.body?.ids)
+    ? req.body.ids.filter((x) => typeof x === 'string' && x.trim())
+    : [];
+  if (!ids.length) {
+    return res.status(400).json({ error: { code: 'invalid_request', message: '请选择要删除的作品' } });
+  }
+  const { deletedIds, missing } = deleteWorks(ids);
+  res.json({ deleted: deletedIds.length, deletedIds, missing });
 });
 
 api.patch('/works/:id', (req, res) => {

@@ -57,6 +57,36 @@ export function fileToDataURI(file) {
 /** 图片 URL (mock 协议跳过本地预览) */
 export const isMockUrl = (u) => typeof u === 'string' && u.startsWith('mock://');
 
+/**
+ * 确认弹窗 (破坏性操作的人工闸门): 返回 Promise<boolean>
+ * 用法: if (await confirmDialog({ title, message, confirmText, danger })) { ... }
+ * 约定: Esc / 点遮罩 / 取消 均视为「否」, 不会误执行破坏性动作
+ */
+export function confirmDialog({ title, message, confirmText = '确定', cancelText = '取消', danger = false } = {}) {
+  return new Promise((resolve) => {
+    const onKey = (e) => { if (e.key === 'Escape') close(false); };
+    const close = (v) => {
+      document.removeEventListener('keydown', onKey);
+      mask.remove();
+      resolve(v);
+    };
+    const mask = h('div', { class: 'modal-mask', role: 'dialog', 'aria-modal': 'true', 'aria-label': title ?? '确认操作' });
+    mask.addEventListener('mousedown', (e) => { if (e.target === mask) close(false); });
+    document.addEventListener('keydown', onKey);
+    const okBtn = h('button', { class: `btn ${danger ? 'btn-danger' : 'btn-primary'}`, type: 'button', onclick: () => close(true) }, confirmText);
+    mask.append(h('div', { class: 'card modal-confirm' },
+      h('h3', {}, title ?? '确认操作'),
+      message ? h('p', { class: 'modal-confirm-msg' }, message) : null,
+      h('div', { class: 'modal-confirm-actions' },
+        h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => close(false) }, cancelText),
+        okBtn,
+      ),
+    ));
+    document.body.append(mask);
+    okBtn.focus();
+  });
+}
+
 /** 生成中的拟物化阶段文案 (PRD 模块 2: 掩盖等待焦虑) */
 export const IMAGE_STAGES = ['正在整理素材…', '正在打光…', '正在布景…', '正在拍摄…', '正在精修…'];
 export const VIDEO_STAGES = ['正在写脚本…', '正在布置片场…', '正在打光…', '正在开拍…', '正在剪辑成片…'];

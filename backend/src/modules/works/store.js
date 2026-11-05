@@ -113,6 +113,26 @@ export function deleteWork(id) {
   return true;
 }
 
+/**
+ * 批量删除 (多选场景)
+ * 契约: 返回 { deletedIds, missing } —— missing = 请求里没匹配到的 id (可能已被别人删掉)
+ * 单条失败不影响其余, 只在确实删掉东西时才落盘
+ */
+export function deleteWorks(ids) {
+  const works = readAll();
+  const targets = new Set(ids);
+  const deletedIds = [];
+  const keep = [];
+  for (const w of works) {
+    if (targets.has(w.id)) deletedIds.push(w.id);
+    else keep.push(w);
+  }
+  const found = new Set(deletedIds);
+  const missing = ids.filter((id) => !found.has(id));
+  if (deletedIds.length) writeAll(keep);
+  return { deletedIds, missing };
+}
+
 /** 任务完成时回写作品 (由任务查询路由触发) */
 export function completeWorkByTask(taskId, { urls, status, error }) {
   const work = findWorkByTask(taskId);
