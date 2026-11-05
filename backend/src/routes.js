@@ -6,7 +6,7 @@ const require = createRequire(import.meta.url);
 const archiver = require('archiver');
 import { config, isMockMode } from './config.js';
 import { templates, categories, getTemplate, composePrompt } from './modules/templates/templates.js';
-import { generateImage, generateVideo } from './modules/generation/service.js';
+import { generateImage, generateVideo, generateImageBatch } from './modules/generation/service.js';
 import { isMockTaskId, getMockTask, parseMockTaskId } from './modules/generation/taskSimulator.js';
 import { getTask, uploadFile, UpstreamError } from './upstream/client.js';
 import { optimizePrompt, OPTIMIZER_SYSTEM_PROMPT } from './modules/prompt/optimizer.js';
@@ -168,6 +168,12 @@ api.post('/generate/image', wrap(async (req, res) => {
 
 api.post('/generate/video', wrap(async (req, res) => {
   const out = await generateVideo(req.body ?? {});
+  res.json(out);
+}));
+
+// 批量生图: 每张参考图独立一条请求 (并发上限 3, 单张失败不影响其它)
+api.post('/generate/image-batch', wrap(async (req, res) => {
+  const out = await generateImageBatch(req.body ?? {});
   res.json(out);
 }));
 

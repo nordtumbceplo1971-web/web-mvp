@@ -83,6 +83,68 @@ const VIDEO_MODES = {
   reference: { maxImages: 7 },
 };
 
+/**
+ * 批量生成图片: 每张参考图独立一条请求 (独立 work / 独立 task_id)
+ *
+ * - 用于「一次上传多张产品图, 每张各出一张图」的场景 (如 T恤平铺摆拍图)
+ * - 并发上限 BATCH_CONCURRENCY (默认 3): 避免瞬时打爆上游/触发限流
+ * - 单张失败不影响其它 (该条返回 error, 其余照常)
+ */
+const BATCH_CONCURRENCY = 3;
+
+export async function generateImageBatch({
+  templateId,
+  slotValues = {},
+  extraIdea = '',
+  prompt: promptOverride = null,
+  aspectRatio,
+  resolution,
+  quality,
+  count,
+  imageUrls = [],
+  title,
+}) {
+  const template = getTemplate(templateId);
+  if (!template || template.type !== 'image') {
+    const err = new Error('模板不存在或类型不是图片'); err.status = 404; throw err;
+  }
+  if (!template.batch?.enabled) {
+    const err = new Error('该模板不支持批量生成'); err.status = 400; err.code = 'batch_not_supported'; throw err;
+  }
+  const urls = (imageUrls ?? []).filter(Boolean);
+  const max = template.batch.max ?? 10;
+  if (!urls.length) { const err = new Error('请至少上传 1 张图片'); err.status = 400; throw err; }
+  if (urls.length > max) { const err = new Error(`单次最多 ${max} 张`); err.status = 400; throw err; }
+
+  const results = [];
+  // 分批并发提交 (每批 BATCH_CONCURRENCY 张)
+  for (let i = 0; i < urls.length; i += BATCH_CONCURRENCY) {
+    const chunk = urls.slice(i, i + BATCH_CONCURRENCY);
+    const settled = await Promise.allSettled(chunk.map((url, idx) => generateImage({
+      templateId,
+      slotValues,
+      extraIdea,
+      prompt: promptOverride,
+      aspectRatio,
+      resolution,
+      quality,
+      // 批量场景: 每条请求 count 固定 1 (每图一张), 不叠模板默认张数
+      count: 1,
+      imageUrls: [url],
+      title: title ? `${title} #${i + idx + 1}` : undefined,
+    })));
+    settled.forEach((r, idx) => {
+      const index = i + idx + 1;
+      if (r.status === 'fulfilled') {
+        results.push({ index, ...r.value });
+      } else {
+        results.push({ index, error: r.reason?.message ?? '提交失败' });
+      }
+    });
+  }
+  return { templateId, total: urls.length, tasks: results };
+}
+
 /** 生成视频 (走 /v1/media/generate, model=veo-4-omni) */
 export async function generateVideo({
   templateId,

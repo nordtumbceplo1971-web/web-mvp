@@ -1,4 +1,5 @@
-import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from '../ui.js';
+import { h, toast, fileToDataURI, isMockUrl, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from '../ui.js';
+import { sharedPoller } from '../poller.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { getCredits, spendCredits, refundCredits } from '../store.js';
@@ -446,10 +447,10 @@ export async function renderStudio(root, { navigate, query, back }) {
     if (!restored.length) return;
     state.tasks.push(...restored); // 本会话新任务在前, 历史任务排后
     drawQueue();
-    // 生成中的历史任务恢复轮询: 页面一进来就抓上游最新状态
+    // 生成中的历史任务恢复轮询: 页面一进来就抓上游最新状态 (共享调度器, 与新任务共用时钟)
     for (const t of restored) {
       if (t.status !== 'processing') continue;
-      pollTask(t.taskId, (st) => {
+      sharedPoller.add(t.taskId, (st) => {
         t.progress = st.progress;
         if (st.isFinal && st.status === 'completed') { t.status = 'completed'; t.urls = st.urls; }
         else if (st.isFinal) { t.status = 'failed'; t.error = st.error || '未知原因'; }
@@ -547,7 +548,8 @@ export async function renderStudio(root, { navigate, query, back }) {
     try {
       const res = isVideo ? await api.generateVideo(payload) : await api.generateImage(payload);
       task.taskId = res.taskId;
-      const poll = pollTask(res.taskId, (st) => {
+      // 共享调度器: 多任务共用一个 5s 时钟 (轮内错峰), 避免 N 个独立定时器打尖峰
+      sharedPoller.add(res.taskId, (st) => {
         genPanel.querySelector('.progress-bar i').style.width = `${Math.max(6, st.progress)}%`;
         task.progress = st.progress;
         if (st.isFinal && st.status === 'completed') {
@@ -566,7 +568,6 @@ export async function renderStudio(root, { navigate, query, back }) {
           drawQueue();
         }
       });
-      void poll;
     } catch (e) {
       task.status = 'failed';
       task.error = e.message;

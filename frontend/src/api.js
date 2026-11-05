@@ -113,6 +113,7 @@ export const api = {
     return request('/uploads', { method: 'POST', formData: fd });
   },
   generateImage: (payload) => request('/generate/image', { method: 'POST', body: payload }),
+  generateImageBatch: (payload) => request('/generate/image-batch', { method: 'POST', body: payload }),
   generateVideo: (payload) => request('/generate/video', { method: 'POST', body: payload }),
   getTask: (taskId) => request(`/tasks/${encodeURIComponent(taskId)}`),
   optimizePrompt: (prompt, imageUrl) => request('/prompt/optimize', { method: 'POST', body: { prompt, imageUrl } }),

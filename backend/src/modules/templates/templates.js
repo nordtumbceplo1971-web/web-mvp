@@ -98,6 +98,8 @@ export const templates = [
     needLabel: '1 张产品图（左正面 / 右背面拼版最佳）',
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '4:5', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
+    // 批量能力: 一次上传多张产品图, 每张单独生成一条请求 (批量走 /generate/image-batch)
+    batch: { enabled: true, max: 10 },
     // 内置提示词 (用户定稿): 中文参考图说明 + 英文摄影场景公式, 固定不发槽位
     promptTemplate:
       '图1为主要的T恤产品（左边是正面图，右边是背面图）。\n'

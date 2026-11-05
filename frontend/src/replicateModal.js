@@ -1,5 +1,6 @@
-import { h, toast, fileToDataURI, isMockUrl, pollTask, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from './ui.js';
+import { h, toast, fileToDataURI, isMockUrl, IMAGE_STAGES, VIDEO_STAGES, aspectShape } from './ui.js';
 import { api } from './api.js';
+import { sharedPoller } from './poller.js';
 import { getCredits, spendCredits, refundCredits } from './store.js';
 import { IMAGE_ASPECTS, VIDEO_ASPECTS, resolveAspect } from './aspect.js';
 import { tplPreview, KIND_LABEL } from './tplMeta.js';
@@ -36,6 +37,9 @@ export function openReplicateModal(tpl, { navigate }) {
   const isVideo = tpl.type === 'video';
   const needImages = tpl.needImages ?? 1;
   const preview = tplPreview(tpl);
+  // 批量模式: 模板声明 batch.enabled → 允许一次上传多张, 每张各生成一条请求
+  const batch = tpl.batch?.enabled ? { max: tpl.batch.max ?? 10 } : null;
+  const maxImages = batch ? batch.max : needImages;
 
   const state = {
     images: [],
@@ -102,29 +106,36 @@ export function openReplicateModal(tpl, { navigate }) {
   current = { modal, close };
 
   // ---------- 表单阶段 ----------
-  const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: needImages > 1, style: 'display:none' });
+  const fileInput = h('input', { type: 'file', accept: 'image/*', multiple: maxImages > 1, style: 'display:none' });
   fileInput.onchange = (e) => { addFiles(e.target.files); fileInput.value = ''; };
 
   const slotsWrap = h('div', { class: 'rf-slots' });
   function drawSlots() {
     const cells = [];
-    for (let i = 0; i < needImages; i++) {
+    // 已上传的图 (批量模式可多于 needImages)
+    for (let i = 0; i < state.images.length; i++) {
       const img = state.images[i];
-      cells.push(img
-        ? h('div', { class: 'rf-slot filled' },
-            h('img', { src: img.dataUri, alt: img.name }),
-            h('button', { class: 'rm', type: 'button', title: '移除', onclick: () => { state.images.splice(i, 1); drawSlots(); refreshCta(); } }, '✕'),
-          )
-        : h('button', { class: 'rf-slot', type: 'button', onclick: () => fileInput.click() },
-            icon('upload', { size: 18 }), h('span', {}, needImages > 1 ? `图 ${i + 1}` : '产品图'),
-          ));
+      cells.push(h('div', { class: 'rf-slot filled' },
+        h('img', { src: img.dataUri, alt: img.name }),
+        h('button', { class: 'rm', type: 'button', title: '移除', onclick: () => { state.images.splice(i, 1); drawSlots(); refreshCta(); } }, '✕'),
+      ));
+    }
+    // 添加槽: 批量模式按 maxImages, 单图模式按 needImages
+    const canAdd = batch ? state.images.length < batch.max : state.images.length < needImages;
+    if (canAdd) {
+      cells.push(h('button', { class: 'rf-slot', type: 'button', onclick: () => fileInput.click() },
+        icon('upload', { size: 18 }),
+        h('span', {}, batch ? `再加一张 (${state.images.length}/${batch.max})` : (needImages > 1 ? `图 ${state.images.length + 1}` : '产品图')),
+      ));
     }
     slotsWrap.replaceChildren(...cells, fileInput);
-    slotCount.textContent = `${state.images.length}/${needImages}`;
+    slotCount.textContent = batch
+      ? `${state.images.length}/${batch.max} 张`
+      : `${state.images.length}/${needImages}`;
   }
 
   async function addFiles(fileList) {
-    const files = [...fileList].filter((f) => f.type.startsWith('image/')).slice(0, needImages - state.images.length);
+    const files = [...fileList].filter((f) => f.type.startsWith('image/')).slice(0, maxImages - state.images.length);
     for (const file of files) {
       const dataUri = await fileToDataURI(file);
       const item = { dataUri, url: null, name: file.name };
@@ -142,12 +153,12 @@ export function openReplicateModal(tpl, { navigate }) {
     }
   }
 
-  const slotCount = h('span', { class: 'rf-count' }, `0/${needImages}`);
+  const slotCount = h('span', { class: 'rf-count' }, batch ? `0/${batch.max} 张` : `0/${needImages}`);
   const formSections = [
     h('div', { class: 'rf-sec' },
-      h('div', { class: 'rf-label' }, `${isVideo ? '首帧产品图' : '产品原图'} `, h('em', {}, '*'), slotCount),
+      h('div', { class: 'rf-label' }, `${isVideo ? '首帧产品图' : (batch ? '产品原图 (可多张)' : '产品原图')} `, batch ? null : h('em', {}, '*'), slotCount),
       slotsWrap,
-      tpl.needLabel ? h('div', { class: 'rf-hint' }, tpl.needLabel) : null,
+      tpl.needLabel ? h('div', { class: 'rf-hint' }, batch ? `${tpl.needLabel} · 多张上传时每张各生成一条请求` : tpl.needLabel) : null,
     ),
     ...tpl.slots.map((slot) => slotGroup(slot)),
     h('div', { class: 'rf-sec' },
@@ -215,14 +226,20 @@ export function openReplicateModal(tpl, { navigate }) {
   const ctaBtn = h('button', { class: 'btn btn-primary btn-lg rf-cta', type: 'button', onclick: () => generate() }, '开始复刻');
 
   function refreshCta() {
-    const enoughImgs = state.images.length >= needImages;
-    const enoughCredits = getCredits() >= tpl.credits;
-    ctaHint.textContent = `本次消耗 ${tpl.credits} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`;
+    // 批量模式: 张数 = 已上传图数, 每张一条请求 → 消耗按张数计
+    const units = batch ? Math.max(state.images.length, 1) : 1;
+    const totalCost = tpl.credits * units;
+    const enoughImgs = batch ? state.images.length >= 1 : state.images.length >= needImages;
+    const enoughCredits = getCredits() >= totalCost;
+    ctaHint.textContent = batch
+      ? `批量生成 ${state.images.length} 张 · 每张 1 条请求 · 消耗 ${totalCost} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`
+      : `本次消耗 ${tpl.credits} 额度 · 余额 ${getCredits()} · ${tpl.timeLabel} · 自动存入「我的作品」`;
     // 额度不足不置灰死: 点击直接去充值 (转化路径, 路线图 1.1.2)
     ctaBtn.disabled = !enoughImgs;
     ctaBtn.classList.toggle('rf-cta-recharge', !enoughCredits && enoughImgs);
-    ctaBtn.textContent = !enoughImgs ? `请先上传 ${needImages} 张图`
+    ctaBtn.textContent = !enoughImgs ? (batch ? '请先上传产品图' : `请先上传 ${needImages} 张图`)
       : !enoughCredits ? '额度不足 · 去充值'
+      : batch ? `批量生成 ${state.images.length} 张`
       : isVideo ? '开始复刻 · 生成视频' : '开始复刻 · 生成图片';
   }
 
@@ -270,6 +287,7 @@ export function openReplicateModal(tpl, { navigate }) {
 
   function generate() {
     if (ctaBtn.disabled) return;
+    if (batch) { generateBatch(); return; }
     if (getCredits() < tpl.credits) { close(); navigate('/recharge'); return; }
     const meta = { label: `复刻 · ${tpl.title}`, model: isVideo ? 'veo-4-omni' : 'gpt-image-2.5' };
     spendCredits(tpl.credits, meta);
@@ -277,6 +295,117 @@ export function openReplicateModal(tpl, { navigate }) {
       onDone: (urls) => drawDone(urls),
       onFail: (err) => { refundCredits(tpl.credits, { ...meta, label: `退回 · ${tpl.title}` }); drawForm(); toast(err || '这次复刻失败了, 额度已退回', 'err'); },
     });
+  }
+
+  /**
+   * 批量生成: 每张产品图一条独立请求
+   * - 提交: POST /api/generate/image-batch (后端并发上限 3, 单张失败不影响其它)
+   * - 轮询: 共享调度器 (5s/轮, 轮内错峰 150ms) —— N 个任务不会形成请求尖峰
+   * - 计费: 按张数扣; 失败的那几张按张退回
+   */
+  async function generateBatch() {
+    const imageUrls = state.images.map((im) => im.url).filter((u) => u && !isMockUrl(u));
+    if (!imageUrls.length) { toast('请先上传产品图', 'err'); return; }
+    const n = imageUrls.length;
+    const totalCost = tpl.credits * n;
+    if (getCredits() < totalCost) { close(); navigate('/recharge'); return; }
+    const meta = { label: `批量复刻 · ${tpl.title}`, model: 'gpt-image-2.5' };
+    spendCredits(totalCost, meta);
+
+    busy = true;
+    const bar = h('div', { class: 'progress-bar' }, h('i', { style: 'width:4%' }));
+    const counter = h('div', { class: 'gen-stage' }, `已提交 0/${n} 张 · 完成 0 张`);
+    body.replaceChildren(
+      h('div', { class: 'repl-busy' },
+        h('div', { class: 'spinner' }),
+        counter,
+        bar,
+        h('div', { class: 'rb-note' }, `每张一条请求 · 并发 3 · 预计 ${tpl.timeLabel} / 张 · 可关闭弹窗, 完成后到「我的作品」查看`),
+      ),
+    );
+
+    let res;
+    try {
+      res = await api.generateImageBatch({ ...buildPayload(), imageUrls });
+    } catch (e) {
+      busy = false;
+      refundCredits(totalCost, { ...meta, label: `退回 · ${tpl.title}` });
+      drawForm();
+      toast(e.message || '批量提交失败, 额度已退回', 'err');
+      return;
+    }
+
+    const tasks = (res.tasks ?? []).filter((t) => t.taskId);
+    const submitted = tasks.length;
+    const failedSubmit = n - submitted;
+    counter.textContent = `已提交 ${submitted}/${n} 张 · 完成 0 张`;
+    if (!tasks.length) {
+      busy = false;
+      refundCredits(totalCost, { ...meta, label: `退回 · ${tpl.title}` });
+      drawForm();
+      toast('批量提交全部失败, 额度已退回', 'err');
+      return;
+    }
+
+    // 结果收集: taskId → { urls, error }
+    const results = new Map(tasks.map((t) => [t.taskId, { index: t.index, urls: [], error: null }]));
+    let doneCount = 0;
+    let failedCount = 0;
+    const allUrls = [];
+
+    for (const t of tasks) {
+      sharedPoller.add(t.taskId, (st) => {
+        const rec = results.get(t.taskId);
+        if (!rec) return;
+        if (st.isFinal) {
+          if (st.status === 'completed') {
+            rec.urls = st.urls;
+            allUrls.push(...st.urls);
+            doneCount += 1;
+          } else {
+            rec.error = st.error || '生成失败';
+            failedCount += 1;
+          }
+          const pct = Math.round(((doneCount + failedCount) / submitted) * 100);
+          bar.querySelector('i').style.width = `${Math.max(4, pct)}%`;
+          counter.textContent = `已提交 ${submitted}/${n} 张 · 完成 ${doneCount} 张${failedCount ? ` · 失败 ${failedCount} 张` : ''}`;
+          if (doneCount + failedCount >= submitted) {
+            busy = false;
+            // 失败的张数按张退回
+            if (failedCount + failedSubmit > 0) {
+              refundCredits(tpl.credits * (failedCount + failedSubmit), { ...meta, label: `退回 · ${tpl.title}` });
+            }
+            if (doneCount > 0) drawBatchDone(allUrls, { submitted, done: doneCount, failed: failedCount + failedSubmit });
+            else { drawForm(); toast('批量生成全部失败, 额度已退回', 'err'); }
+          }
+        }
+      });
+    }
+  }
+
+  /** 批量结果: 结果网格 + 逐张预览 (与单张 drawDone 区分) */
+  function drawBatchDone(urls, stat) {
+    const grid = h('div', { class: 'result-grid' },
+      urls.map((url, i) => h('div', { class: 'result-item' },
+        h('img', { src: url, alt: `批量结果 ${i + 1}` }),
+        h('div', { class: 'pick' },
+          h('a', { class: 'icon-btn', href: url, target: '_blank', rel: 'noopener', title: '下载/查看' }, icon('download', { size: 15 })),
+        ),
+      )),
+    );
+    body.replaceChildren(
+      h('div', { class: 'repl-done' },
+        h('div', { class: 'rd-head' },
+          h('h2', {}, '批量生成完成'),
+          h('span', { class: 'pill pill-soft' }, `成功 ${stat.done} 张${stat.failed ? ` · 失败 ${stat.failed} 张` : ''} · 已存入「我的作品」`),
+        ),
+        grid,
+        h('div', { class: 'rd-actions' },
+          h('button', { class: 'btn btn-ghost', type: 'button', onclick: () => { close(); navigate('/works'); } }, '去「我的作品」看看 →'),
+          h('button', { class: 'btn btn-ghost-green rf-cta', type: 'button', onclick: () => { state.retryFree = false; drawForm(); } }, '再来一批'),
+        ),
+      ),
+    );
   }
 
   function drawBusy({ onDone, onFail }) {
@@ -294,7 +423,8 @@ export function openReplicateModal(tpl, { navigate }) {
       ),
     );
     const res = isVideo ? api.generateVideo(buildPayload()) : api.generateImage(buildPayload());
-    res.then((r) => pollTask(r.taskId, (st) => {
+    // 共享调度器: 与其它任务共用一个 5s 时钟, 避免多任务时请求尖峰
+    res.then((r) => sharedPoller.add(r.taskId, (st) => {
       bar.querySelector('i').style.width = `${Math.max(6, st.progress)}%`;
       stageEls.forEach((item, i) => {
         item.classList.toggle('done', i < st.stageIndex);
