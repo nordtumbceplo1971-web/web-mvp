@@ -3,9 +3,26 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.59**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.59`，
+当前版本：**v0.1.60**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.60`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.60 · 2026-11-05
+
+**主题**：修复「我的作品」卡片删除键溢出边框
+
+### 修复：作品卡片操作行挤爆卡片（frontend/src/styles/main.css）
+
+- **根因**：操作行「再做一张 + 收藏 + 删除」三个按钮均为 `white-space:nowrap` 不可收缩，
+  总宽 ~207px 超过最小列（210px）的内容区 ~180px → 删除键被顶出卡片边框
+- 网格最小列宽 `minmax(210px→232px)`，给操作行留足空间
+- 操作行收紧按钮内边距（13px→10px）+ `flex-wrap:wrap` 兜底：极窄时删除键换行而不是溢出
+
+### 验证
+
+- `npm run build` 通过；tabbit 截图验收「我的作品」卡片三按钮完整落在卡片边框内
 
 ---
 
