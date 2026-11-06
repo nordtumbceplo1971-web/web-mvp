@@ -906,26 +906,35 @@ video.tc-video { background: #fff; }
 .fact .k { font-size: 12px; color: var(--ink-3); font-weight: 500; }
 .fact .v { font-size: 14px; font-weight: 600; }
 
-/* ---------- 详情页 · 效果预览 (大图 + 缩略图 / 示意占位) ---------- */
+/* ---------- 详情页 · 效果预览 (自适应画布: 比例跟随素材, 完整显示不裁切) ---------- */
 .detail-hero-panel h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; }
-.detail-hero { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 14px; margin-top: 12px; }
+.detail-hero { display: grid; grid-template-columns: minmax(0, 1fr) 148px; gap: 14px; margin-top: 12px; align-items: start; }
+/* 画布: 宽高由 JS 按素材真实比例算好 (自适应适配器), 素材用绝对定位图层 contain 完整显示
+   素材不参与行高计算 —— 否则 grid item 的 min-height:auto 会被原图尺寸顶开画布 */
 .hero-main {
   position: relative; cursor: zoom-in; overflow: hidden;
   border: 1px solid var(--line); border-radius: var(--r-md); background: #fff;
-  aspect-ratio: 4 / 3; display: grid; place-items: center;
+  width: 100%; max-width: 100%; margin: 0 auto;   /* 尺寸由 fitCanvas 写入内联 style */
+  min-height: 220px;
 }
-.hero-main img, .hero-main video { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
-.hero-cap {
-  position: absolute; left: 10px; bottom: 10px; z-index: 2;
-  background: rgba(15, 23, 42, 0.62); color: #fff; font-size: 11.5px;
-  padding: 3px 9px; border-radius: 999px;
+/* 硬保护: 画布不得超出所在列 (JS 算出的宽度仍受此约束) */
+.detail-hero > .hero-main { max-width: 100%; }
+.hero-main img, .hero-main video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; display: block; background: #fff;
 }
+.hero-side { display: flex; flex-direction: column; gap: 8px; min-width: 0; }
+.hero-capbar { font-size: 12px; font-weight: 600; color: var(--ink-2); }
 .hero-thumbs { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
 .hero-thumb {
   position: relative; padding: 0; cursor: pointer; overflow: hidden;
   border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; aspect-ratio: 1;
 }
-.hero-thumb img, .hero-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+/* 缩略图用 contain: 竖图不被裁掉半截 (服装参考图能看清整件) */
+.hero-thumb img, .hero-thumb video {
+  position: absolute; inset: 0; width: 100%; height: 100%;
+  object-fit: contain; display: block; background: #fff;
+}
 .hero-thumb span {
   position: absolute; left: 0; right: 0; bottom: 0;
   background: rgba(15, 23, 42, 0.58); color: #fff; font-size: 10px;
@@ -1453,6 +1462,8 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .page-title { font-size: 15px; }
   /* 详情页: 大图与缩略图上下排, 示意占位改纵向堆叠 */
   .detail-hero { grid-template-columns: 1fr; }
+  .hero-main { max-width: 100%; }
+  .hero-side { width: 100%; }
   .hero-thumbs { flex-direction: row; max-height: none; overflow-x: auto; padding-bottom: 4px; }
   .hero-thumb { flex: 0 0 84px; aspect-ratio: 1; }
   .hero-empty { flex-direction: column; text-align: center; gap: 14px; padding: 26px 18px; }

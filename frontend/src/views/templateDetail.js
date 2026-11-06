@@ -117,9 +117,51 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
 
 /* ---------- 效果预览区 (大图 + 缩略图切换; 无素材给示意占位) ---------- */
 
+/** 素材真实宽高比 (图片取 naturalWidth, 视频取 videoWidth) */
+function mediaRatio(el) {
+  if (!el) return null;
+  const w = el.naturalWidth || el.videoWidth;
+  const h = el.naturalHeight || el.videoHeight;
+  return w && h ? w / h : null;
+}
+
+/**
+ * 自适应适配器画布:
+ * - 容器宽高按素材真实比例收敛 (竖图 → 窄而高, 横图 → 宽而扁), 不留大片空白
+ * - 宽不超过所在列, 高不超过可视高度 (calc(100vh - 240px))
+ * - 素材 contain 完整显示, 不裁切、不以原始像素溢出
+ * - 窗口尺寸变化时重算
+ */
+function fitCanvas(container, mediaEl) {
+  if (!mediaEl) return;
+  const apply = () => {
+    const r = mediaRatio(mediaEl);
+    if (!r) return;
+    container.style.width = '100%';                  // 先还原成列宽, 再按比例收敛
+    // 可用宽 = 预览区总宽 - 右侧缩略图列(148) - 间距(14); 窄屏为单列
+    const grid = container.parentElement;
+    const cols = window.innerWidth > 640 ? 162 : 0;
+    const availW = Math.max(220, (grid?.clientWidth ?? container.clientWidth) - cols);
+    const maxH = Math.max(320, window.innerHeight - 240);
+    const w = Math.max(220, Math.min(availW, maxH * r));
+    container.style.width = `${Math.round(w)}px`;
+    container.style.height = `${Math.round(Math.min(maxH, w / r))}px`;
+  };
+  if (mediaEl.tagName === 'IMG') {
+    if (mediaEl.complete && mediaEl.naturalWidth) apply();
+    else mediaEl.addEventListener('load', apply, { once: true });
+  } else if (mediaEl.videoWidth) apply();
+  else mediaEl.addEventListener('loadedmetadata', apply, { once: true });
+
+  // resize 重算 (替换旧监听, 避免切换素材后累积)
+  if (container._fitResize) window.removeEventListener('resize', container._fitResize);
+  container._fitResize = () => apply();
+  window.addEventListener('resize', container._fitResize);
+}
+
 /**
  * 详情页顶部效果预览:
- * - 有成品图集 (flows): 左侧大图 + 右侧缩略图列, 点缩略图切换, 点大图看原图
+ * - 有成品图集 (flows): 左侧自适应画布 + 右侧缩略图列, 点缩略图切换, 点大图看原图
  * - 无成品图集: 示意占位 (分类色 + 构图说明), 告诉用户"上传产品图后按此方案生成"
  */
 function detailHero(tpl, shots, tint, color, iconName) {
@@ -143,16 +185,19 @@ function detailHero(tpl, shots, tint, color, iconName) {
 
   const main = h('div', { class: 'hero-main' });
   const thumbs = h('div', { class: 'hero-thumbs' });
-  let current = 0;
+  const capBar = h('div', { class: 'hero-capbar' });
+  // 默认展示成片 (效果/成图/预览), 而不是输入素材 (产品图/模特图)
+  const resultIdx = shots.findIndex((s) => /效果|成图|预览|结果/.test(s.cap ?? ''));
+  let current = resultIdx >= 0 ? resultIdx : 0;
 
   const renderMain = (i) => {
     const s = shots[i];
-    main.replaceChildren(
-      s.video
-        ? h('video', { src: s.video, poster: s.poster, controls: true, playsinline: true, preload: 'metadata', 'aria-label': s.alt || s.cap })
-        : h('img', { src: s.src, alt: s.alt || s.cap, loading: 'lazy' }),
-      h('span', { class: 'hero-cap' }, s.cap),
-    );
+    const media = s.video
+      ? h('video', { src: s.video, poster: s.poster, controls: true, playsinline: true, preload: 'metadata', 'aria-label': s.alt || s.cap })
+      : h('img', { src: s.src, alt: s.alt || s.cap, loading: 'lazy' });
+    main.replaceChildren(media);
+    fitCanvas(main, media);
+    capBar.textContent = s.cap ?? '';
     [...thumbs.children].forEach((el, idx) => el.classList.toggle('active', idx === i));
   };
 
@@ -178,11 +223,11 @@ function detailHero(tpl, shots, tint, color, iconName) {
     const s = shots[current];
     openLightbox(s.src, s.alt, s.cap, s);
   });
-  renderMain(0);
+  renderMain(current);
 
   box.append(
     h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
-    h('div', { class: 'detail-hero' }, main, thumbs),
+    h('div', { class: 'detail-hero' }, main, h('div', { class: 'hero-side' }, capBar, thumbs)),
     h('p', { class: 'hero-note' }, '点缩略图切换 · 点大图看原图'),
   );
   return box;
