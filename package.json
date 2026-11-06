@@ -11,7 +11,9 @@
     "build": "cd frontend && npm install --no-audit --no-fund && npm run build",
     "dev": "npm run dev --prefix frontend",
     "dev:api": "npm run start --prefix backend",
-    "start": "npm run start --prefix backend"
+    "start": "npm run start --prefix backend",
+    "lint:templates": "npm run lint:templates --prefix backend",
+    "check:composed": "npm run check:composed --prefix backend"
   },
   "dependencies": {
     "archiver": "^7.0.1",

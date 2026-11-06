@@ -7,6 +7,20 @@
  * - 视频: 运镜 + 主体动作 + 场景 + 光线氛围 + 音频/旁白 + 商业规格
  *   (tahou.com 217468593963350021 · clipcat.ai ecommerce-video-prompts · iosur.com ai-video-prompts)
  *
+ * 【模板写作规范 v2】每个模板的 promptTemplate 统一六段式, 顺序固定:
+ *   1) 参考图说明 —— 讲清「第1张图是什么、唯一来源是什么」, 有参考图的模板必写
+ *   2) 主体与构图 —— 主体是什么 + 机位/构图/留白
+ *   3) 场景与背景 —— 背景内容与材质
+ *   4) 光线 —— 光位/软硬/氛围 (可用 {{lighting}} 槽位)
+ *   5) 风格与规格 —— 质感 + 清晰度 + 画面比例等商业规格
+ *   6) 负面约束 —— 禁止改产品/禁止加字水印/禁止畸形等
+ *   (视频模板对应替换为: 主体与动作 / 场景 / 镜头 / 光线 / 声音 / 规格 / 负面约束)
+ *
+ * 槽位规范:
+ * - 选项槽位 (options): value 仅作 UI 标识; **prompt 才是给模型看的描述**, 组装时用 prompt
+ * - 文本槽位 (text): 用户输入优先; 未填时用 defaultValue, 再兜底 fallbackPrompt
+ * - 槽位必须在 promptTemplate 中被引用, 否则视为死槽位 (lint 会报错)
+ *
  * promptTemplate 使用 {{槽位}} 占位; 每个槽位对应一个「可视化点选」微调项 (PRD 模块 2),
  * 用户全程不写 Prompt —— 槽位全部有默认值, 直接生成也能出图。
  */
@@ -33,6 +47,10 @@ const LIGHTING = {
   ],
 };
 
+/** 通用参考图角色: 图1 = 产品外观唯一来源 (仅产品类模板) */
+const REF_PRODUCT =
+  '参考图说明: 第1张是产品图, 是画面中产品外观的唯一来源, 其造型、配色、材质、印花与文字必须严格复刻, 不得重绘、改色或虚构细节。';
+
 export const templates = [
   // ============ Shopify 套图 (多步骤) ============
   shopifyTemplateMeta,
@@ -51,9 +69,14 @@ export const templates = [
     lockAspect: true,   // 平台白底图规范固定 1:1, 不受用户全局比例偏好影响
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '根据图片的图片参考，输出白底的的产品主图（如果主体图有正反面，那就是用正面输出产品主图）。保持与原图产品的整体形态和细节的一致性，形态，材质等元素都要完美还原。',
+      REF_PRODUCT + '\n'
+      + '主体与构图: 输出{{product}}的纯白底电商主图, 产品居中并正面朝向镜头, 占画面约八成面积, 四周留均匀白边, 产品完整不裁切; 若参考图为正背拼版, 取正面角度输出主图。\n'
+      + '场景与背景: 纯白无缝背景 (纯白 255/255/255), 无渐变、无装饰、无多余道具。\n'
+      + '光线: {{lighting}}, 光线柔和均匀不产生硬阴影, 产品边缘与白底自然过渡无灰边无黑边。\n'
+      + '风格与规格: 电商平台上架级产品摄影, 真实材质与纹理, 细节锐利, 8K超清。\n'
+      + '负面约束: 禁止改动产品形态与颜色, 禁止凭空添加配件与文字, 禁止水印、Logo、边框与背景装饰, 禁止畸形与塑料感。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一双米白色帆布鞋', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一双米白色帆布鞋', defaultValue: '该商品', fallbackPrompt: '该商品' },
       LIGHTING,
     ],
     tips: '白底图是搜索流量的第一印象, 产品务必占满画面中心。',
@@ -70,9 +93,13 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '电商场景主图: {{product}}自然摆放在{{scene}}, 三分法构图, 浅景深虚化背景突出主体, {{lighting}}, 画面明亮干净, 高级生活方式感, 商业广告摄影, 8K超清。',
+      REF_PRODUCT + '\n'
+      + '主体与构图: {{product}}自然摆放在{{scene}}, 三分法构图, 产品位于视觉中心且完整不出画, 浅景深虚化背景突出主体, 产品与背景之间有自然的前后景层次。\n'
+      + '光线: {{lighting}}, 阴影方向与场景光源一致, 高光不遮挡产品关键细节。\n'
+      + '风格与规格: 明亮干净的高品质生活方式电商摄影, 真实材质与自然光影, 色彩通透, 8K超清。\n'
+      + '负面约束: 禁止改动产品造型与颜色, 禁止虚构产品结构或配件, 禁止多余商品与人物, 禁止水印、文字与Logo, 禁止畸形与塑料感。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一瓶气泡水', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一瓶气泡水', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '场景',
         key: 'scene',
@@ -106,7 +133,9 @@ export const templates = [
       + 'Overhead-to-45-degree styled product shot on a professional shooting table with infinity sweep background, '
       + 'surrounded by three bounce walls for gentle diffused lighting, one side open for the lens and the main light, '
       + 'casual organic drape of the product with lifestyle props arranged nearby, soft studio light, '
-      + 'high-end catalog quality, single composition, 8K.',
+      + 'high-end catalog quality, single composition, 8K.\n'
+      + '参考图说明: 图1是服装外观的唯一来源, 版型、印花图案、字体字样、颜色与面料质感必须严格复刻, 不得重绘、改色或虚构图案细节。\n'
+      + '负面约束: 禁止改变服装版型与印花, 禁止生成文字水印与Logo, 禁止出现人物, 禁止道具遮挡服装主体, 禁止畸形与塑料质感。',
     slots: [],
     tips: '上传左正面 / 右背面拼版的产品图, 印花与文字会按原图精确复刻; 道具与光线由场景公式自动安排。',
   },
@@ -122,9 +151,14 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'secondary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '电商节日大促KV主图: {{product}}为绝对视觉中心, {{festival}}节日氛围布景, 礼盒彩带丝带飘带点缀但不过度遮挡产品, 画面上方留出标题文字区, {{lighting}}, 热烈高级的商业促销海报质感, 8K超清。',
+      REF_PRODUCT + '\n'
+      + '主体与构图: {{product}}为绝对视觉中心, 位于画面中部并完整清晰, {{festival}}节日氛围布景环绕主体, 礼盒彩带丝带作为点缀不得遮挡产品。\n'
+      + '留白: 画面上方保留干净的标题文案区, 该区域不生成任何文字只留空位。\n'
+      + '光线: {{lighting}}, 节日彩光与主体光比合理, 产品细节不被彩光污染。\n'
+      + '风格与规格: 高级商业促销海报质感, 色彩饱和但主体不过曝, 8K超清。\n'
+      + '负面约束: 禁止改动产品造型与颜色, 禁止生成促销文字、价格与标签, 禁止水印与Logo, 禁止多余商品堆叠遮挡主体, 禁止畸形。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一盒坚果礼盒', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一盒坚果礼盒', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '节日',
         key: 'festival',
@@ -154,9 +188,14 @@ export const templates = [
     lockAspect: true,   // 详情页长图固定 9:21 竖版, 不受用户全局比例偏好影响
     defaults: { model: 'primary', aspect_ratio: '9:21', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '电商详情页首屏长图: {{product}}居中偏上构图, {{scene}}, 画面下方三分之一留白用于卖点文案排版, {{lighting}}, 信息层级清晰, 高级电商详情页设计感, 8K超清。',
+      REF_PRODUCT + '\n'
+      + '主体与构图: {{product}}居中偏上构图, 占据画面上半部并完整清晰, 背景为{{scene}}, 主体与背景之间有明确层次。\n'
+      + '留白: 画面下方三分之一保持干净平整, 便于后期叠加卖点文案, 该区域不生成任何文字。\n'
+      + '光线: {{lighting}}, 主体与背景光比柔和, 材质细节通透不发灰。\n'
+      + '风格与规格: 高级电商详情页设计感, 信息层级清晰, 真实材质与自然光影, 8K超清。\n'
+      + '负面约束: 禁止改动产品造型与颜色, 禁止生成文字、水印与Logo, 禁止多余道具与人物, 禁止畸形与塑料感。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款保温杯', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款保温杯', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '场景',
         key: 'scene',
@@ -182,9 +221,13 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 4, mode: 'image-edit' },
     promptTemplate:
-      '电商产品多角度套装图: {{product}}的完整多视图展示, 每张一个角度(正面/侧面/背面/底部细节), 统一纯白背景与统一布光({{lighting}}), 像素级一致的色彩还原, 产品摄影图鉴风格, 8K超清。',
+      REF_PRODUCT + '\n'
+      + '主体与构图: {{product}}的完整多视图展示, 四格分别呈现正面、侧面、背面、底部细节, 四格排布整齐一致, 每格只展示一个角度, 产品完整不裁切。\n'
+      + '场景与背景: 四格统一纯白无缝背景, 统一布光({{lighting}}), 四格明暗一致不出现色偏。\n'
+      + '风格与规格: 产品摄影图鉴风格, 四个角度之间像素级一致的色彩还原, 细节清晰, 8K超清。\n'
+      + '负面约束: 四个视角必须是同一件产品, 禁止改变配色、比例与结构, 禁止生成文字与水印, 禁止多余道具与人物, 禁止畸形。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一台迷你投影仪', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一台迷你投影仪', defaultValue: '该商品', fallbackPrompt: '该商品' },
       LIGHTING,
     ],
     tips: '多角度套装一次出 4 张, 正好凑齐主图位。',
@@ -201,17 +244,21 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '16:9', resolution: '2K', quality: 'high', count: 1, mode: 'multi-reference' },
     promptTemplate:
-      '电商多色变体展示图: {{product}}并排展示全部配色({{palette}}), 等距一字排开, 每个变体造型完全一致仅颜色不同, 纯白背景, {{lighting}}, 产品目录图鉴风格, 8K超清。',
+      '参考图说明: 第1张是产品图, 是产品造型与结构的唯一来源, 各配色变体必须保持同一版型。\n'
+      + '主体与构图: {{product}}并排展示全部配色({{palette}}), 等距一字排开, 每个变体的造型、比例、细节完全一致, 仅颜色不同, 纯白背景。\n'
+      + '光线: {{lighting}}, 各变体受光方向一致, 颜色还原准确不偏色。\n'
+      + '风格与规格: 产品目录图鉴风格, 排版规整, 8K超清。\n'
+      + '负面约束: 禁止改变产品结构与版型, 禁止各变体造型不一致, 禁止生成文字与水印, 禁止多余道具, 禁止畸形。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一件连帽卫衣', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一件连帽卫衣', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '配色',
         key: 'palette',
         options: [
-          { value: 'earth', label: '大地色系', color: '#D9C6A5', prompt: '燕麦色/咖色/焦糖/米白' },
-          { value: 'candy', label: '糖果色系', color: '#FFD6E7', prompt: '奶黄/薄荷绿/樱花粉/天蓝' },
-          { value: 'mono', label: '经典黑白灰', color: '#E8E8E8', prompt: '黑/白/浅灰/深灰' },
-          { value: 'jewel', label: '宝石色系', color: '#B8D8D8', prompt: '墨绿/酒红/藏蓝/烟紫' },
+          { value: 'earth', label: '大地色系', color: '#D9C6A5', prompt: '燕麦色、咖色、焦糖色、米白色' },
+          { value: 'candy', label: '糖果色系', color: '#FFD6E7', prompt: '奶黄、薄荷绿、樱花粉、天蓝' },
+          { value: 'mono', label: '经典黑白灰', color: '#E8E8E8', prompt: '黑、白、浅灰、深灰' },
+          { value: 'jewel', label: '宝石色系', color: '#B8D8D8', prompt: '墨绿、酒红、藏蓝、烟紫' },
         ],
       },
       LIGHTING,
@@ -237,7 +284,8 @@ export const templates = [
       + 'ACCESSORIES RULE (strict): do not invent or add any accessory — hat, necklace, earrings, rings, chains, glasses, bags. Include accessories ONLY if they are visible on the person in the model reference image; if the reference shows no accessories, the model appears with clean bare styling, nothing added. Never improvise.\n'
       + '时尚电商Lookbook摄影。模特是{{gender}}。模特穿着与参考图1完全一致的上衣，整套造型（上衣+下装）为同一套系搭配：下装为与上衣自然色系搭配（黑配白，白配黑）、同质感面料、同风格版型的配套裤装/裙装，色彩过渡自然、色相统一、明度协调，整体搭配和谐完整，严禁出现与上衣风格或颜色冲突的下装。\n'
       + '模特身体呈约45度侧对镜头，重心落在后侧支撑腿上，前腿膝盖微曲，双肩下沉并向后展开，侧面肩线与背部线条干净利落。一手自然垂于身侧、五指放松微张，另一手轻搭在腰侧或服饰口袋处，指尖引导视线落在服装设计细节上。头部向镜头回转，下巴微收，眼神直视镜头，神情从容自然不刻意，传递"不经意被捕捉"的松弛高级感。\n'
-      + '背景为美国极具现代化时尚风的fashion城市街头；柔和影棚顶光加左前补光，产品底部带淡淡倒影；清晰呈现服装版型、面料质感与垂坠感，真实皮肤质感与自然光影；8K超清，时尚电商Lookbook摄影风格。',
+      + '背景为美国极具现代化时尚风的fashion城市街头；柔和影棚顶光加左前补光，产品底部带淡淡倒影；清晰呈现服装版型、面料质感与垂坠感，真实皮肤质感与自然光影；8K超清，时尚电商Lookbook摄影风格。\n'
+      + '负面约束：禁止改动服装版型、印花与文字，禁止生成水印、Logo与字幕，禁止多余人物与路人，禁止肢体畸形、多余手指与穿模，禁止过度磨皮的塑料皮肤，禁止虚构配饰。',
     slots: [
       {
         label: '模特性别',
@@ -264,8 +312,9 @@ export const templates = [
     defaults: { model: 'primary', aspect_ratio: '16:9', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     // 内置提示词 (源自 model-sheet-prompt-generator skill): 版式块按方案路由, Subject 按性别路由
     promptTemplate:
-      '{{variant}}\n'
-      + '{{gender}}\n'
+      '参考图说明: 若上传了参考图, 它只作为人物形象或服装外观的参考依据, 具体以「生成方案」为准; 未上传时使用标准棚拍人物设定。\n'
+      + '生成方案:\n{{variant}}\n'
+      + '模特设定:\n{{gender}}\n'
       + 'CONSISTENCY: identical face, hairstyle, skin tone, body build and outfit across all three views; identical lighting, color grading and light-grey seamless studio background behind all panels.\n'
       + 'STYLE: photorealistic editorial fashion photography, soft even studio lighting, 85mm lens, natural skin texture, sharp fabric detail, 8K. No text, no logo, no graphic overlay.\n'
       + 'NEGATIVE: different person, changed face, beautified face, changed hairstyle, outfit mismatch between views, unintended print or text on the shirt, altered print, warped lettering, extra fingers, extra hands, extra limbs, deformed hands, twisted neck, asymmetric duplicated body, plastic skin, overly retouched porcelain skin, anime or illustration style, busy background, props, watermark, logo, text, panel border errors, cropped feet in the full-body view.',
@@ -311,9 +360,13 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '服饰细节特写图: 模特身穿{{product}}的局部特写, 聚焦{{part}}, 微距镜头, 布料纹理、走线与材质清晰可见, {{lighting}}, 高级质感商业静物摄影, 8K超清。',
+      '参考图说明: 第1张是上身图或产品图, 是服装面料、版型与工艺细节的唯一来源。\n'
+      + '主体与构图: 模特身穿{{product}}的局部特写, 聚焦{{part}}, 微距镜头, 画面只保留被摄部位与少量周边面料, 焦点落在细节上。\n'
+      + '光线: {{lighting}}, 侧向掠射光表现织纹起伏、走线与印刷表面。\n'
+      + '风格与规格: 高级质感商业静物摄影, 布料纹理与工艺清晰可辨, 真实色彩, 8K超清。\n'
+      + '负面约束: 禁止改变服装款式与颜色, 禁止生成文字与水印, 禁止出现人物面部, 禁止畸形与塑料感。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一件针织开衫', defaultValue: '服装' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一件针织开衫', defaultValue: '该件服装', fallbackPrompt: '该件服装' },
       {
         label: '特写部位',
         key: 'part',
@@ -342,7 +395,12 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '产品换背景: 完整保留图中产品的造型、颜色、材质与文字, 仅将背景替换为{{scene}}, 主体边缘干净无白边, 阴影与新场景光源方向一致({{lighting}}), 画面自然真实, 8K超清。',
+      '参考图说明: 第1张是产品原图, 产品的造型、颜色、材质与文字必须完全保留, 本次只替换背景。\n'
+      + '主体与构图: 产品完整保留在画面中央, 尺寸、比例与透视不变, 主体边缘干净无白边无锯齿。\n'
+      + '场景与背景: {{scene}}。\n'
+      + '光线: {{lighting}}, 阴影方向与新场景光源方向一致, 接触阴影自然不漂浮。\n'
+      + '风格与规格: 真实自然的合成照片, 边缘光与色温与场景融合, 8K超清。\n'
+      + '负面约束: 禁止改动产品本身, 禁止残留原背景元素, 禁止生成文字与水印, 禁止畸形。',
     slots: [
       {
         label: '新背景',
@@ -370,7 +428,10 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit', background: 'transparent', output_format: 'png' },
     promptTemplate:
-      '产品去背景: 精准保留图中产品的完整造型与细节, 移除全部背景, 输出透明底, 产品边缘干净锐利无锯齿无白边, 保留产品原有的光影层次。',
+      '参考图说明: 第1张是产品原图, 需要完整保留产品的造型与全部细节。\n'
+      + '主体与构图: 抠出完整产品主体, 移除全部背景, 输出透明底, 产品边缘干净锐利无锯齿无白边, 保留产品原有的光影层次与自然接触阴影。\n'
+      + '风格与规格: 专业电商抠图, 透明通道纯净无杂色, 边缘半透明像素自然, 8K超清。\n'
+      + '负面约束: 禁止裁切或补全产品轮廓, 禁止添加阴影、背景与装饰物, 禁止生成文字与水印。',
     slots: [],
     tips: '去底图是做所有后期合成的基础素材。',
   },
@@ -386,7 +447,10 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '4K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '图片翻新增强: 在完全保留原图构图、产品造型与文字信息的前提下, 提升清晰度与分辨率, 去除噪点与压缩痕迹, 校正白平衡与色彩({{tone}}), 细节锐利通透, 商业级画质。',
+      '参考图说明: 第1张是待翻新原图, 构图、产品造型与画面文字信息必须完全保留, 本次只提升画质。\n'
+      + '画质处理: 提升清晰度与分辨率, 去除噪点、压缩痕迹与色块, 校正白平衡与色彩({{tone}}), 细节锐利通透。\n'
+      + '风格与规格: 商业级画质, 保持原图景深、光影关系与色调倾向, 不做风格化重绘。\n'
+      + '负面约束: 禁止改变构图与产品形态, 禁止重绘或改写画面文字, 禁止添加元素与水印, 禁止过度锐化产生白边。',
     slots: [
       {
         label: '色调',
@@ -413,9 +477,13 @@ export const templates = [
     needImages: 1,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'image-edit' },
     promptTemplate:
-      '包装文字替换: 保持包装的设计、材质、光影与透视完全不变, 仅将包装上的主文字替换为「{{text}}」, 新文字遵循原有的字体风格、弧度与透视变形, 印刷质感真实, 边缘自然。',
+      '参考图说明: 第1张是包装原图, 是包装设计、材质、光影与透视的唯一来源。\n'
+      + '主体与构图: 保持包装的设计、材质、光影与透视完全不变, 仅将包装上的主文字替换为「{{text}}」。\n'
+      + '文字处理: 新文字沿用原有字体风格、字重、弧度与透视变形, 印刷质感真实, 边缘自然无涂抹无重影。\n'
+      + '风格与规格: 商业包装摄影级还原, 材质细节真实, 8K超清。\n'
+      + '负面约束: 禁止改动包装形状与颜色, 禁止出现多余或重复文字, 禁止水印与Logo, 禁止畸形。',
     slots: [
-      { key: 'text', label: '改成什么字', type: 'text', placeholder: '例: 996 STUDIO', defaultValue: 'NEW TEXT' },
+      { key: 'text', label: '改成什么字', type: 'text', placeholder: '例: 996 STUDIO', defaultValue: 'NEW TEXT', fallbackPrompt: 'NEW TEXT' },
     ],
     tips: '适合换 Logo、换型号、做外语版本包装。',
   },
@@ -431,7 +499,11 @@ export const templates = [
     needImages: 2,
     defaults: { model: 'primary', aspect_ratio: '1:1', resolution: '2K', quality: 'high', count: 1, mode: 'multi-reference' },
     promptTemplate:
-      '多图融合: 将第一张图中的产品自然融入第二张图的场景中, 产品造型颜色材质严格忠于原图, 透视与比例协调, 光影方向与场景光源一致({{lighting}}), 生成真实自然的合成照片, 8K超清。',
+      '参考图说明: 第1张是产品图(产品外观唯一来源), 第2张是场景图(环境、透视与光线的唯一来源)。\n'
+      + '主体与构图: 将第1张图中的产品自然融入第2张图的场景中, 产品造型、颜色与材质严格忠于原图, 透视与比例协调, 与接触面之间有自然阴影。\n'
+      + '光线: {{lighting}}, 光影方向与场景光源一致, 色温与场景匹配。\n'
+      + '风格与规格: 真实自然的合成照片, 边缘、景深与噪点与场景融合无破绽, 8K超清。\n'
+      + '负面约束: 禁止改变产品造型与颜色, 禁止残留原图背景, 禁止生成文字与水印, 禁止畸形。',
     slots: [LIGHTING],
     tips: '上传顺序: 第 1 张产品图, 第 2 张场景图。',
   },
@@ -449,9 +521,16 @@ export const templates = [
     needImages: 1,
     defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '中文' },
     promptTemplate:
-      '竖屏电商种草短视频: 年轻主播手持{{product}}面对镜头, 用{{language}}热情介绍产品卖点, 语速轻快口语化, 带货话术自然有感染力, 背景为{{scene}}, 手持vlog运镜轻微晃动, 中间切一个产品细节特写, 画面鲜活有网感, 真人实拍质感, 收音清晰人声突出。',
+      '参考图说明: 第1张是产品图, 画面中手持产品的外观必须与参考图严格一致, 不得改款或虚构卖点。\n'
+      + '主体与动作: 年轻主播手持{{product}}面对镜头, 用{{language}}口语化介绍产品卖点, 手势自然, 眼神与镜头有交流, 状态放松真实。\n'
+      + '场景: {{scene}}, 背景整洁有生活感, 浅景深突出人物与产品。\n'
+      + '镜头: 竖屏手持vlog轻微晃动, 中段切一个产品细节特写, 结尾产品定格展示。\n'
+      + '光线: 明亮柔和, 面部通透, 产品细节清晰。\n'
+      + '声音: 清晰人声收音, 语速轻快自然, 背景音乐轻, 无刺耳噪音。\n'
+      + '规格: 竖屏9:16, 10秒, 真人实拍质感, 画面干净有网感。\n'
+      + '负面约束: 禁止出现字幕与水印, 禁止口型与声音不一致, 禁止人物畸形与多余手指, 禁止产品变形, 禁止虚构卖点文案与价格。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款便携榨汁杯', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款便携榨汁杯', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '语言',
         key: 'language',
@@ -489,7 +568,14 @@ export const templates = [
     needImages: 1,
     defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
-      '竖屏服饰上身展示视频: 模特身穿图中服装, {{motion}}, 镜头{{camera}}, 背景为{{scene}}, {{lighting}}, 完整展示服装版型与面料动感(垂坠/飘逸/弹力), 节奏感配乐, 时尚大片质感。',
+      '参考图说明: 第1张是上身图或服装图, 视频中服装的版型、颜色、印花必须与参考图一致。\n'
+      + '主体与动作: 模特穿着参考图中的服装, {{motion}}, 完整展示版型、面料垂坠与动态。\n'
+      + '场景: {{scene}}, 背景简洁不抢主体。\n'
+      + '镜头: {{camera}}, 竖屏9:16, 运镜平滑无抖动突跳。\n'
+      + '光线: {{lighting}}, 面料质感与轮廓线清晰。\n'
+      + '声音: 节奏感配乐, 无突兀人声。\n'
+      + '规格: 10秒, 时尚大片质感, 全片统一调色。\n'
+      + '负面约束: 禁止改变服装版型与印花, 禁止字幕与水印, 禁止人物畸形与肢体穿模, 禁止画面闪烁与帧间跳变。',
     slots: [
       {
         label: '模特动作',
@@ -497,7 +583,7 @@ export const templates = [
         options: [
           { value: 'turn', label: '原地转身', color: '#F5EFE6', prompt: '原地缓慢转身一周展示前后版型' },
           { value: 'walk', label: '走向镜头', color: '#EAF3F8', prompt: '自信走向镜头再停顿' },
-          { value: 'spin', label: '裙摆旋转', color: '#FFF3DC', prompt: '旋转让裙摆/衣摆飞扬' },
+          { value: 'spin', label: '裙摆旋转', color: '#FFF3DC', prompt: '旋转让裙摆与衣摆飞扬' },
           { value: 'pose', label: '多变 pose', color: '#EAF3EA', prompt: '连续切换三个时尚 pose' },
         ],
       },
@@ -540,9 +626,16 @@ export const templates = [
     needImages: 1,
     defaults: { aspect_ratio: '16:9', resolution: '1080p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
-      '电影感产品TVC广告: {{product}}特写开场, 缓慢推镜+环绕运镜, {{scene}}中{{lighting}}, 产品材质细节极致呈现, 镜头语言: 产品全景→细节特写→使用场景→品牌落版, 快慢结合的节奏剪辑, 高级质感配乐, 商业大片质感, 画面统一的电影级调色。',
+      '参考图说明: 第1张是产品图, 片中产品的造型、颜色与材质必须与参考图一致, 不得变形。\n'
+      + '主体与动作: {{product}}特写开场, 缓慢推镜加环绕运镜, 材质细节极致呈现。\n'
+      + '场景: {{scene}}, 画面干净有纵深。\n'
+      + '光线: {{lighting}}, 体积光与高光层次分明。\n'
+      + '镜头语言: 产品全景→细节特写→使用场景→品牌落版, 快慢结合的节奏剪辑, 转场干净不闪白。\n'
+      + '声音: 电影感配乐, 结尾留出品牌落版空间但不生成文字。\n'
+      + '规格: 横屏16:9, 10秒, 1080p, 全片统一电影级调色。\n'
+      + '负面约束: 禁止出现字幕、水印与Logo, 禁止产品形变与材质失真, 禁止画面闪烁与帧间跳变, 禁止人物畸形。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一瓶精华液', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一瓶精华液', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '场景',
         key: 'scene',
@@ -578,9 +671,15 @@ export const templates = [
     needImages: 1,
     defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
-      '竖屏开箱展示视频: 俯拍桌面视角, 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 每件物品入场都有轻微景深变化, 背景为{{scene}}, 明亮柔和布光, 最后产品居中定格, ASMR 质感收音(拆封摩擦声), 干净治愈的开箱氛围。',
+      '参考图说明: 第1张是产品图, 片中拆出的产品外观必须与参考图一致, 不得变形或换款。\n'
+      + '主体与动作: 俯拍桌面视角, 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 每件物品入场都有轻微景深变化。\n'
+      + '场景: {{scene}}, 桌面干净无杂物。\n'
+      + '光线: 明亮柔和布光, 产品细节通透不发灰。\n'
+      + '声音: ASMR质感收音, 保留拆封摩擦声。\n'
+      + '规格: 竖屏9:16, 10秒, 结尾产品居中定格, 干净治愈的开箱氛围。\n'
+      + '负面约束: 禁止出现字幕与水印, 禁止手部畸形与多余手指, 禁止产品凭空变形或出现多余配件, 禁止画面闪烁。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一副无线耳机', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一副无线耳机', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '桌面',
         key: 'scene',
@@ -606,9 +705,15 @@ export const templates = [
     needImages: 1,
     defaults: { aspect_ratio: '9:16', resolution: '720p', duration: 10, mode: 'first-frame', language: '无旁白' },
     promptTemplate:
-      '万圣节主题竖屏开箱展示视频: {{scene}}, 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 画面中点缀{{decor}}, 暗调节日氛围里{{lighting}}, 最后产品居中定格, ASMR 质感收音(拆封摩擦声), 趣味而不诡异的节日开箱氛围。',
+      '参考图说明: 第1张是产品图, 片中拆出的产品外观必须与参考图一致, 不得变形或换款。\n'
+      + '主体与动作: 双手打开{{product}}的包装, 拆封动作真实流畅, 依次展示包装盒→产品→配件, 结尾产品居中定格。\n'
+      + '场景: {{scene}}, 画面点缀{{decor}}。\n'
+      + '光线: 暗调节日氛围, {{lighting}}。\n'
+      + '声音: ASMR质感收音, 保留拆封摩擦声。\n'
+      + '规格: 竖屏9:16, 10秒, 趣味而不诡异的节日开箱氛围。\n'
+      + '负面约束: 禁止出现字幕与水印, 禁止血腥恐怖元素, 禁止手部畸形与多余手指, 禁止产品变形, 禁止画面闪烁。',
     slots: [
-      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款主题卫衣', defaultValue: '产品' },
+      { key: 'product', label: '产品是什么', type: 'text', placeholder: '例: 一款主题卫衣', defaultValue: '该商品', fallbackPrompt: '该商品' },
       {
         label: '氛围场景',
         key: 'scene',
@@ -649,6 +754,7 @@ export const templates = [
     type: 'image',
     category: 'retouch',
     hidden: true,
+    passthrough: true,   // 提示词原样直通: 跳过模板质量规则 (不补负向约束, 不做长度下限)
     title: '纯净模式',
     subtitle: '提示词直通, 不套模板',
     timeLabel: '约 1 分钟',
@@ -665,6 +771,7 @@ export const templates = [
     type: 'video',
     category: 'video',
     hidden: true,
+    passthrough: true,   // 提示词原样直通: 跳过模板质量规则
     title: '纯净模式',
     subtitle: '提示词直通, 不套模板',
     timeLabel: '约 5 分钟',
@@ -683,15 +790,30 @@ export function getTemplate(id) {
   return templates.find((t) => t.id === id) ?? null;
 }
 
-/** 把模板 + 槽位值组合成最终提示词 (PRD: 用户全程不写 Prompt) */
+/**
+ * 把模板 + 槽位值组合成最终提示词 (PRD: 用户全程不写 Prompt)
+ *
+ * 槽位取值规则 (前端只传 option.value, 描述文本在服务端解析):
+ * - 选项槽位 (options): value → 该选项的 prompt 描述 (给模型看的内容)
+ *   未命中时取第一个选项; option.prompt 为空时退回 value
+ * - 文本槽位 (text): 用户输入优先 → defaultValue → fallbackPrompt
+ * - 未知占位符: 原样保留, 不吞掉
+ */
 export function composePrompt(template, slotValues = {}) {
+  const slots = template.slots ?? [];
+  const byKey = new Map(slots.map((s) => [s.key, s]));
   return template.promptTemplate.replace(/\{\{(\w+)\}\}/g, (raw, key) => {
-    const v = slotValues[key];
-    if (v && typeof v === 'string' && v.trim()) return v.trim();
-    // 兜底: 找槽位默认选项
-    const slot = template.slots.find((s) => s.key === key);
-    if (slot?.type === 'text') return slot.defaultValue ?? '';
-    const firstOpt = slot?.options?.[0];
-    return firstOpt ? firstOpt.prompt : raw;
+    const slot = byKey.get(key);
+    const v = slotValues?.[key];
+    if (slot?.type === 'text') {
+      if (typeof v === 'string' && v.trim()) return v.trim();
+      return slot.defaultValue?.trim() || slot.fallbackPrompt?.trim() || '';
+    }
+    if (slot?.options?.length) {
+      const picked = slot.options.find((o) => o.value === v) ?? slot.options[0];
+      return picked.prompt?.trim() || picked.value || '';
+    }
+    if (typeof v === 'string' && v.trim()) return v.trim();
+    return raw;
   });
 }

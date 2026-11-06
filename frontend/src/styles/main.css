@@ -903,6 +903,7 @@ video.tc-video { background: #fff; }
   margin-top: 10px; background: var(--fill); border: 1px solid var(--line);
   border-radius: var(--r-sm); padding: 12px 14px;
   font-size: 13px; color: var(--ink-2); line-height: 1.75; white-space: pre-wrap;
+  max-height: 320px; overflow: auto;   /* 模板提示词变长后内部滚动, 不撑高页面 */
 }
 .slot-list { display: flex; flex-direction: column; gap: 12px; margin-top: 10px; }
 .slot-row { display: flex; align-items: flex-start; gap: 12px; flex-wrap: wrap; }

@@ -114,7 +114,8 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
   root.append(
     header,
     // 效果预览 + 制作流程: 全宽模块, 压在双栏 (含右下「同类模板」导航卡) 之上
-    flowSection.length ? h('div', { class: 'flow-section' }, ...flowSection) : null,
+    // 注意: 原生 append(null) 会渲染出字符串 "null", 必须用数组展开过滤
+    ...(flowSection.length ? [h('div', { class: 'flow-section' }, ...flowSection)] : []),
     h('div', { class: 'detail-layout' },
       h('div', {}, facts, promptPanel, slotPanel, tipsPanel),
       h('div', { class: 'detail-side' }, relatedPanel(tpl, navigate)),
