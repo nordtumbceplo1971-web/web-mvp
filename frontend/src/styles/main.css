@@ -496,7 +496,12 @@ main.container { flex: 1; padding: 24px 0 48px; }
 }
 .tc-art-label {
   position: relative; z-index: 1;
-  font-size: 11px; font-weight: 700; letter-spacing: 0.06em; color: rgba(15, 23, 42, 0.52);
+  font-size: 11.5px; font-weight: 700; color: rgba(15, 23, 42, 0.62);
+  max-width: 82%; text-align: center; line-height: 1.5;
+}
+.tc-art-sub {
+  position: relative; z-index: 1;
+  font-size: 10.5px; color: rgba(15, 23, 42, 0.42);
 }
 
 /* 真实效果预览图（配了封面图的模板用图，不再显示色块占位）
@@ -894,11 +899,80 @@ video.tc-video { background: #fff; }
    模板详情页
    ============================================================ */
 .detail-layout { display: grid; grid-template-columns: 1fr 340px; gap: 18px; align-items: start; }
-.detail-side { position: sticky; top: 76px; }
+.detail-main { display: flex; flex-direction: column; gap: 16px; min-width: 0; }
+.detail-side { position: sticky; top: 76px; display: flex; flex-direction: column; gap: 16px; }
 .fact-card { display: grid; grid-template-columns: repeat(2, 1fr); gap: 12px 18px; }
 .fact { display: flex; flex-direction: column; gap: 2px; }
 .fact .k { font-size: 12px; color: var(--ink-3); font-weight: 500; }
 .fact .v { font-size: 14px; font-weight: 600; }
+
+/* ---------- 详情页 · 效果预览 (大图 + 缩略图 / 示意占位) ---------- */
+.detail-hero-panel h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.detail-hero { display: grid; grid-template-columns: minmax(0, 1fr) 128px; gap: 14px; margin-top: 12px; }
+.hero-main {
+  position: relative; cursor: zoom-in; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--r-md); background: #fff;
+  aspect-ratio: 4 / 3; display: grid; place-items: center;
+}
+.hero-main img, .hero-main video { width: 100%; height: 100%; object-fit: contain; display: block; background: #fff; }
+.hero-cap {
+  position: absolute; left: 10px; bottom: 10px; z-index: 2;
+  background: rgba(15, 23, 42, 0.62); color: #fff; font-size: 11.5px;
+  padding: 3px 9px; border-radius: 999px;
+}
+.hero-thumbs { display: flex; flex-direction: column; gap: 8px; max-height: 420px; overflow-y: auto; }
+.hero-thumb {
+  position: relative; padding: 0; cursor: pointer; overflow: hidden;
+  border: 1px solid var(--line); border-radius: var(--r-sm); background: #fff; aspect-ratio: 1;
+}
+.hero-thumb img, .hero-thumb video { width: 100%; height: 100%; object-fit: cover; display: block; }
+.hero-thumb span {
+  position: absolute; left: 0; right: 0; bottom: 0;
+  background: rgba(15, 23, 42, 0.58); color: #fff; font-size: 10px;
+  padding: 2px 4px; text-align: left;
+}
+.hero-thumb.active { border-color: var(--brand); box-shadow: 0 0 0 2px var(--brand-soft); }
+.hero-note { margin-top: 10px; font-size: 12px; color: var(--ink-3); }
+/* 无成品素材的模板: 示意占位 (说明出图构图, 不留空白) */
+.hero-empty {
+  margin-top: 12px; border: 1px solid var(--line); border-radius: var(--r-md);
+  padding: 34px 24px; display: flex; align-items: center; justify-content: center; gap: 22px;
+}
+.he-frame {
+  width: 104px; height: 130px; flex: none; border: 2px dashed rgba(15, 23, 42, 0.16); border-radius: 10px;
+  display: grid; place-items: center; background: rgba(255, 255, 255, 0.62);
+}
+.he-ico { display: grid; place-items: center; }
+.he-text { display: flex; flex-direction: column; gap: 6px; max-width: 420px; }
+.he-text b { font-size: 15px; color: var(--ink); }
+.he-text span { font-size: 13px; color: var(--ink-2); line-height: 1.7; }
+
+/* ---------- 详情页 · 拍摄方案 (提示词分段) ---------- */
+.plan-panel h3 { display: flex; align-items: center; gap: 6px; font-size: 15px; }
+.plan-note { margin: 6px 0 12px; font-size: 12.5px; color: var(--ink-3); }
+.plan-list { display: flex; flex-direction: column; gap: 10px; }
+.plan-sec {
+  border-left: 3px solid var(--brand-border); background: var(--fill);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0; padding: 10px 14px;
+}
+.plan-sec.is-negative { border-left-color: var(--danger); background: var(--danger-soft); }
+.plan-tag {
+  display: flex; align-items: center; gap: 6px;
+  font-size: 12px; font-weight: 700; color: var(--brand-deep); margin-bottom: 4px;
+}
+.plan-sec.is-negative .plan-tag { color: var(--danger); }
+.plan-body { font-size: 13px; line-height: 1.75; color: var(--ink-2); }
+
+/* ---------- 详情页 · 右栏开工卡 ---------- */
+.detail-cta { display: flex; flex-direction: column; gap: 10px; }
+.dcta-title { font-size: 15px; font-weight: 800; }
+.dcta-sub { font-size: 12.5px; color: var(--ink-3); line-height: 1.6; }
+.dcta-btn { width: 100%; }
+.dcta-facts { display: grid; grid-template-columns: 1fr 1fr; gap: 10px 12px; margin-top: 4px; }
+.dcta-fact { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.dcta-fact .k { font-size: 11.5px; color: var(--ink-3); }
+.dcta-fact .v { font-size: 13px; font-weight: 600; line-height: 1.5; }
+
 .prompt-preview {
   margin-top: 10px; background: var(--fill); border: 1px solid var(--line);
   border-radius: var(--r-sm); padding: 12px 14px;
@@ -1377,6 +1451,17 @@ footer.site .container { display: flex; justify-content: space-between; gap: 12p
   .top-nav { display: none; }
   .btn-back { padding: 0 10px; font-size: 12.5px; }
   .page-title { font-size: 15px; }
+  /* 详情页: 大图与缩略图上下排, 示意占位改纵向堆叠 */
+  .detail-hero { grid-template-columns: 1fr; }
+  .hero-thumbs { flex-direction: row; max-height: none; overflow-x: auto; padding-bottom: 4px; }
+  .hero-thumb { flex: 0 0 84px; aspect-ratio: 1; }
+  .hero-empty { flex-direction: column; text-align: center; gap: 14px; padding: 26px 18px; }
+  .he-text { max-width: none; }
+}
+
+/* 桌面端: 顶部开工条与右栏 CTA 重复, 隐藏顶部条; 移动端保留 (右栏会排到主栏下方) */
+@media (min-width: 901px) {
+  .page-head .head-cta { display: none; }
 }
 
 /* ============================================================

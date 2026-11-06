@@ -9,6 +9,15 @@ export const CATEGORY_TINT = {
   video: { tint: '#ecfdf5', color: '#16a34a' },
 };
 
+/** 分类 → 中文名 (与后端 categories 对齐) */
+export const CATEGORY_LABEL = {
+  'main-image': '产品主图',
+  series: '系列套图',
+  tryon: '模特上身',
+  retouch: '生图改图',
+  video: '视频创作',
+};
+
 export const TPL_ICONS = {
   'shopify-lookbook': 'layers',
   'main-white': 'image',

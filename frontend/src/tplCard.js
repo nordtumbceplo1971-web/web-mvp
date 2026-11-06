@@ -107,7 +107,8 @@ export function tplCard(tpl, { navigate, onReplicate, cardAttrs = {} } = {}) {
             h('div', { class: 'tc-art-blob' }),
             h('div', { class: 'tc-art-blob b2' }),
             h('span', { class: 'tc-art-ico', style: `color:${color}` }, icon(iconName, { size: 34 })),
-            h('span', { class: 'tc-art-label' }, '效果预览'),
+            h('span', { class: 'tc-art-label' }, tpl.subtitle),
+            h('span', { class: 'tc-art-sub' }, '上传产品图即可生成'),
           ),
       h('button', {
         class: 'tc-replicate', type: 'button',

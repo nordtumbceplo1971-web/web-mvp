@@ -2,7 +2,7 @@ import { h, toast } from '../ui.js';
 import { api } from '../api.js';
 import { renderApiError } from '../errors.js';
 import { icon } from '../icons.js';
-import { tplCover, tplFlow, KIND_LABEL } from '../tplMeta.js';
+import { tplCover, tplFlow, KIND_LABEL, CATEGORY_LABEL } from '../tplMeta.js';
 import { startReplicate } from '../replicateModal.js';
 
 /**
@@ -61,37 +61,21 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
     cta,
   );
 
-  // ---- 效果预览 + 制作流程 (有成品图集的模板才显示, 如 Shopify 套图) ----
+  // ---- 效果预览 + 制作流程 (多步骤模板才有流程时间线) ----
   const flowShots = tplFlow(tpl);
   const flowSection = [];
-  if (flowShots) {
-    flowSection.push(flowPreviewPanel(flowShots));
-    if ((tpl.steps ?? []).length) flowSection.push(flowStepsPanel(tpl));
-  }
+  if ((tpl.steps ?? []).length) flowSection.push(flowStepsPanel(tpl));
 
-  // ---- 准备信息 ----
-  const facts = h('div', { class: 'card panel fact-card' },
-    h('div', { class: 'fact' }, h('span', { class: 'k' }, '你需要准备'), h('span', { class: 'v' }, tpl.needLabel)),
-    h('div', { class: 'fact' }, h('span', { class: 'k' }, '预计耗时'), h('span', { class: 'v' }, tpl.timeLabel)),
-    h('div', { class: 'fact' }, h('span', { class: 'k' }, '消耗额度'), h('span', { class: 'v' }, `${tpl.credits} 点`)),
-    h('div', { class: 'fact' }, h('span', { class: 'k' }, '所属类目'), h('span', { class: 'v' }, tpl.category)),
-  );
+  // ---- 效果预览区 (大图 + 缩略图; 无素材时给示意占位) ----
+  const heroPanel = detailHero(tpl, flowShots, tint, color, iconName);
 
-  // ---- 提示词预览 ----
-  const promptBox = h('div', { class: 'prompt-preview' }, '提示词加载中…');
-  api.previewPrompt(tpl.id, {}).then((r) => {
-    promptBox.textContent = r.prompt;
-  }).catch(() => { promptBox.textContent = '(预览失败)'; });
+  // ---- 拍摄方案 (提示词拆段, 可读地讲清「系统会怎么拍」) ----
+  const planPanel = shootingPlanPanel(tpl);
 
-  const promptPanel = h('div', { class: 'card panel' },
-    h('h3', {}, '这张图会怎么拍（系统内部提示词，无需你编写）'),
-    promptBox,
-  );
-
-  // ---- 微调项 ----
+  // ---- 可点选的微调项 ----
   const slotPanel = (tpl.slots ?? []).length
     ? h('div', { class: 'card panel' },
-      h('h3', {}, '你可以点选的微调项'),
+      h('h3', {}, icon('palette', { size: 15 }), ' 你可以点选的微调项'),
       h('div', { class: 'slot-list' },
         ...tpl.slots.map((s) => h('div', { class: 'slot-row' },
           h('span', { class: 'g-label' }, s.label),
@@ -107,7 +91,7 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
 
   // ---- 使用建议 ----
   const tipsPanel = h('div', { class: 'card panel tip-panel' },
-    h('h3', {}, '使用建议'),
+    h('h3', {}, icon('info', { size: 15 }), ' 使用建议'),
     h('div', { class: 'guide-hint' }, tpl.tips),
   );
 
@@ -117,8 +101,161 @@ export async function renderTemplateDetail(root, { navigate, params, back }) {
     // 注意: 原生 append(null) 会渲染出字符串 "null", 必须用数组展开过滤
     ...(flowSection.length ? [h('div', { class: 'flow-section' }, ...flowSection)] : []),
     h('div', { class: 'detail-layout' },
-      h('div', {}, facts, promptPanel, slotPanel, tipsPanel),
-      h('div', { class: 'detail-side' }, relatedPanel(tpl, navigate)),
+      h('div', { class: 'detail-main' },
+        heroPanel,
+        planPanel,
+        slotPanel,
+        tipsPanel,
+      ),
+      h('div', { class: 'detail-side' },
+        detailCtaCard(tpl, navigate, isLookbook),
+        relatedPanel(tpl, navigate),
+      ),
+    ),
+  );
+}
+
+/* ---------- 效果预览区 (大图 + 缩略图切换; 无素材给示意占位) ---------- */
+
+/**
+ * 详情页顶部效果预览:
+ * - 有成品图集 (flows): 左侧大图 + 右侧缩略图列, 点缩略图切换, 点大图看原图
+ * - 无成品图集: 示意占位 (分类色 + 构图说明), 告诉用户"上传产品图后按此方案生成"
+ */
+function detailHero(tpl, shots, tint, color, iconName) {
+  const box = h('section', { class: 'card panel detail-hero-panel' });
+
+  if (!shots?.length) {
+    box.append(
+      h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
+      h('div', { class: 'hero-empty', style: `background:linear-gradient(155deg, ${tint} 0%, #ffffff 72%)` },
+        h('div', { class: 'he-frame' },
+          h('span', { class: 'he-ico', style: `color:${color}` }, icon(iconName, { size: 30 })),
+        ),
+        h('div', { class: 'he-text' },
+          h('b', {}, '上传产品图, 按此方案出图'),
+          h('span', {}, tpl.subtitle),
+        ),
+      ),
+    );
+    return box;
+  }
+
+  const main = h('div', { class: 'hero-main' });
+  const thumbs = h('div', { class: 'hero-thumbs' });
+  let current = 0;
+
+  const renderMain = (i) => {
+    const s = shots[i];
+    main.replaceChildren(
+      s.video
+        ? h('video', { src: s.video, poster: s.poster, controls: true, playsinline: true, preload: 'metadata', 'aria-label': s.alt || s.cap })
+        : h('img', { src: s.src, alt: s.alt || s.cap, loading: 'lazy' }),
+      h('span', { class: 'hero-cap' }, s.cap),
+    );
+    [...thumbs.children].forEach((el, idx) => el.classList.toggle('active', idx === i));
+  };
+
+  shots.forEach((s, i) => {
+    const btn = h('button', {
+      class: 'hero-thumb', type: 'button', title: s.cap,
+      onclick: () => { current = i; renderMain(i); },
+    },
+      s.video
+        ? h('video', { src: s.video, poster: s.poster, muted: true, loop: true, playsinline: true, preload: 'metadata', 'aria-label': s.alt || s.cap })
+        : h('img', { src: s.src, alt: s.alt || s.cap, loading: 'lazy' }),
+      h('span', {}, s.cap),
+    );
+    if (s.video) {
+      const v = btn.querySelector('video');
+      btn.addEventListener('mouseenter', () => v.play().catch(() => {}));
+      btn.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
+    }
+    thumbs.append(btn);
+  });
+
+  main.addEventListener('click', () => {
+    const s = shots[current];
+    openLightbox(s.src, s.alt, s.cap, s);
+  });
+  renderMain(0);
+
+  box.append(
+    h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
+    h('div', { class: 'detail-hero' }, main, thumbs),
+    h('p', { class: 'hero-note' }, '点缩略图切换 · 点大图看原图'),
+  );
+  return box;
+}
+
+/* ---------- 拍摄方案 (提示词分段, 可读化) ---------- */
+
+/**
+ * 把模板提示词按行拆成「标题: 内容」分段
+ * 无标题的行 (如整段说明) 原样作为正文, 不丢内容
+ */
+function promptSections(tpl) {
+  const out = [];
+  for (const line of (tpl.promptTemplate ?? '').split('\n')) {
+    const text = line.trim();
+    if (!text) continue;
+    const m = text.match(/^([^:：]{2,28})[:：]\s*(.+)$/);
+    if (m) out.push({ title: m[1].trim(), body: m[2].trim() });
+    else out.push({ title: '', body: text });
+  }
+  return out;
+}
+
+const NEGATIVE_TAGS = ['负面约束', 'NEGATIVE', '负面'];
+
+/**
+ * 拍摄方案: 提示词分段展示 (负面约束段标红), 取代一整块原始文本
+ * 用服务端 previewPrompt 取「槽位已解析」的版本, 避免把 {{占位符}} 暴露给用户
+ */
+function shootingPlanPanel(tpl) {
+  const list = h('div', { class: 'plan-list' });
+  const panel = h('section', { class: 'card panel plan-panel' },
+    h('h3', {}, icon('clapperboard', { size: 15 }), ' 拍摄方案（系统内部提示词，无需你编写）'),
+    h('p', { class: 'plan-note' }, '这一段决定成片长什么样：参考图怎么用、怎么摆、怎么打光、哪些不能出现'),
+    list,
+  );
+
+  api.previewPrompt(tpl.id, {}).then((r) => {
+    const sections = promptSections({ promptTemplate: r.prompt ?? '' });
+    if (!sections.length) { list.remove(); return; }
+    for (const s of sections) {
+      const negative = NEGATIVE_TAGS.some((k) => (s.title || s.body).includes(k));
+      list.append(h('div', { class: `plan-sec${negative ? ' is-negative' : ''}` },
+        s.title ? h('div', { class: 'plan-tag' }, icon(negative ? 'x' : 'scan', { size: 13 }), s.title) : null,
+        h('p', { class: 'plan-body' }, s.body),
+      ));
+    }
+  }).catch(() => {
+    list.replaceChildren(h('p', { class: 'plan-body' }, '(拍摄方案预览失败)'));
+  });
+
+  return panel;
+}
+
+/* ---------- 右栏开工卡 ---------- */
+
+function detailCtaCard(tpl, navigate, isLookbook) {
+  const fact = (k, v) => h('div', { class: 'dcta-fact' },
+    h('span', { class: 'k' }, k),
+    h('span', { class: 'v' }, v),
+  );
+  return h('div', { class: 'card panel detail-cta' },
+    h('div', { class: 'dcta-title' }, tpl.title),
+    h('div', { class: 'dcta-sub' }, tpl.subtitle),
+    h('button', {
+      class: 'btn btn-primary btn-lg dcta-btn',
+      onclick: () => startReplicate(tpl, { navigate }),
+    }, isLookbook ? '开始出套图' : '做同款', icon('arrow-right', { size: 16 })),
+    h('div', { class: 'dcta-facts' },
+      fact('消耗额度', `${tpl.credits} 点`),
+      fact('预计耗时', tpl.timeLabel),
+      fact('你需要准备', tpl.needLabel),
+      fact('所属类目', CATEGORY_LABEL[tpl.category] ?? tpl.category),
     ),
   );
 }
@@ -167,48 +304,6 @@ function openLightbox(src, alt, caption, shot = {}) {
   img.alt = alt;
   box.querySelector('.lb-cap').textContent = caption ?? alt;
   box.classList.add('open');
-}
-
-/** 效果预览: 参考图 + 结果预览 (小图网格, 点击放大; 视频条目跨 2 槽位, 与封面同一条素材) */
-function flowPreviewPanel(shots) {
-  // 含视频的混合比例素材 (TVC): 走定高胶片条, 宽度随素材原始比例, 三卡才能同高
-  // 纯图流程 (lookbook): 保持等宽网格, 视频条目占 2 槽位, 列数按占位累加
-  const hasVideo = shots.some((s) => s.video);
-  const cols = Math.min(shots.reduce((n, s) => n + (s.video ? 2 : 1), 0), 8);
-  // 条目少 (≤4) 的纯图流程 (如模特上身图) 走等宽网格会把卡片撑到 1/3 面板宽,
-  // 且各素材原始比例不同必被裁切 —— 同样改用定高胶片条: 窗口按素材比例等比展开, 同高不裁切
-  const strip = hasVideo || shots.length <= 4;
-  return h('section', { class: 'card panel flow-panel' },
-    h('h3', {}, icon('image', { size: 15 }), ' 效果预览'),
-    h('p', { class: 'flow-note' }, '参考素材与成片预览 · 点小图看大图'),
-    h('div', { class: `flow-gallery${strip ? ' flow-gallery-media' : ''}`, style: strip ? '' : `--flow-cols: ${cols}` },
-      ...shots.map((s, i) => {
-        const isVideo = !!s.video;
-        const btn = h('button', {
-          class: `flow-shot${i === 0 ? ' is-product' : ''}${isVideo ? ' is-video' : ''}`,
-          type: 'button', title: `${s.cap} · 点击看大图`,
-          style: isVideo ? 'grid-column: span 2' : '',
-          onclick: () => openLightbox(s.src, s.alt, s.cap, s),
-        },
-          isVideo
-            ? h('video', {
-              class: 'flow-video', src: s.video, poster: s.poster,
-              muted: true, loop: true, playsinline: true, preload: 'metadata',
-              'aria-label': s.alt || s.cap,
-            })
-            : h('img', { src: s.src, alt: s.alt, loading: 'lazy' }),
-          h('span', { class: 'fs-cap' }, s.cap),
-        );
-        if (isVideo) {
-          // 缩略图悬停即播 (静音), 移开暂停
-          const v = btn.querySelector('video');
-          btn.addEventListener('mouseenter', () => v.play().catch(() => {}));
-          btn.addEventListener('mouseleave', () => { v.pause(); v.currentTime = 0; });
-        }
-        return btn;
-      }),
-    ),
-  );
 }
 
 /** 制作流程: 产品原图 + 分步横向时间线 (一排, 不占竖向大片空间) */
