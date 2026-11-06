@@ -3,9 +3,66 @@
 > **版本号规则**：采用 `v0.1.n` 形式。本次发布为 **v0.1.0**，后续每次更新版本号递增一位
 > （v0.1.1 → v0.1.2 → v0.1.3 …），并在本文件顶部追加对应条目。
 
-当前版本：**v0.1.61**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.61`，
+当前版本：**v0.1.62**（前端 `frontend/package.json` / 后端 `backend/package.json` 同步为 `0.1.62`，
 页面版本号由 `frontend/src/version.js` 的 `APP_VERSION` 统一维护，侧栏底部与页脚均展示；
 后端版本号从 `backend/package.json` 读取）
+
+---
+
+## v0.1.62 · 2026-11-06
+
+**主题**：模板系统重写（槽位解析修复 + 六段式提示词规范）+ 模板详情页改版 + 自适应适配器画布
+
+### 修复：模板槽位解析（核心缺陷，backend/src/modules/templates/templates.js）
+
+- 根因：`composePrompt` 直接把前端传的 `option.value` 当提示词插入，
+  选项里写好的中文描述（场景/布光/配色）全是死字段 → 模型收到的是
+  「自然摆放在home」「柔和光: soft」「用zh说话」这类枚举值
+- 修复：选项槽位按 value 解析到 `option.prompt` 描述文本；
+  文本槽位三级兜底（用户输入 → defaultValue → fallbackPrompt）；未知占位符原样保留
+- 效果：场景主图改为「自然摆放在原木风居家桌面, 搭配亚麻桌布与绿植」、
+  光线为「柔和影棚顶光加左前补光」、节日为「红金配色双11大促」
+
+### 优化：模板写作规范 v2（六段式）
+
+- 统一结构：参考图说明 → 主体与构图 → 场景与背景 → 光线 → 风格与规格 → 负面约束
+  （视频模板对应：主体动作 / 场景 / 镜头 / 光线 / 声音 / 规格 / 负面约束）
+- 18 个模板全部补全：参考图角色、留白说明、负向约束、商业规格；
+  修掉 `main-white` 的死槽位（lighting 定义了却没被引用）；
+  文本槽位默认值改为自然措辞（"产品" → "该商品"）
+- 纯净模式标记 `passthrough`：提示词原样直通，不参与质量规则
+
+### 新增：模板体检脚本（静态校验，不调用生成接口）
+
+- `backend/scripts/lint-templates.mjs` → `npm run lint:templates`
+  校验必填字段 / 悬空占位符 / 死槽位 / 选项完整性 / 文本槽位兜底 /
+  负向约束 / 参考图角色 / 长度区间 / 组装残留
+- `backend/scripts/check-composed.mjs` → `npm run check:composed`
+  组装回归断言（选项必须解析成描述而非枚举值）
+
+### 改版：模板详情页（frontend/src/views/templateDetail.js）
+
+- 效果预览区：有成品素材 → 自适应画布 + 缩略图切换；无素材 → 示意占位（不留白）
+- 拍摄方案：提示词按「标题: 内容」拆成分段卡片（负面约束段标红），
+  取服务端 `previewPrompt` 解析结果，不再把 `{{占位符}}` 暴露给用户
+- 右栏 sticky 开工卡：做同款 CTA + 消耗/耗时/需准备/类目；桌面端隐藏顶部重复 CTA
+- 模板卡片无封面图的占位：从「效果预览」四字改为「模板副标题 + 上传产品图即可生成」
+- 修掉原生 `append(null)` 在详情页渲染出字符串 "null" 的问题
+
+### 修复：自适应适配器画布（frontend/src/views/templateDetail.js）
+
+- 根因：画布固定 4:3 + grid item `min-height:auto` → 竖图被原图像素尺寸顶开画布并裁切；
+  缩略图 `object-fit:cover` 把竖版服装参考图裁掉半截；标签压在大图上
+- 新增 `mediaRatio()` / `fitCanvas()`：容器宽高按素材真实比例算
+  （竖图窄而高、横图宽而扁），素材用绝对定位图层 + contain 完整显示，
+  切换素材与窗口 resize 均重算；缩略图改 contain；标签移到画布上方
+
+### 验证
+
+- lint：23 模板 0 错误（改前 43 错 / 34 警）；check-composed：21 模板断言全通过
+- preview-prompt 接口返回解析后描述文案（改前为 home / soft / double11）
+- tabbit 桌面/窄屏：画布比例跟随素材（竖图 375×667 = 0.562、近方 680×667 = 1.019、
+  横图 1051×526 = 1.998）、素材完整不裁切、缩略图 cover 计数 0、窄屏无横向溢出
 
 ---
 
